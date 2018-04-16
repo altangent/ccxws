@@ -16,7 +16,8 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "test:ci": "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "dependencies": {
     "moment": "^2.22.1",
@@ -25,6 +26,7 @@
     "ws": "^5.1.1"
   },
   "devDependencies": {
+    "coveralls": "^3.0.0",
     "eslint": "^4.19.1",
     "jest": "^22.4.3",
     "prettier": "^1.12.0"
