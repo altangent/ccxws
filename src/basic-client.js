@@ -22,13 +22,16 @@ class BasicTradeClient extends EventEmitter {
   //////////////////////////////////////////////
 
   close() {
-    if (this._wss) this._wss.close();
+    if (this._wss) {
+      this._wss.close();
+      this._wss = undefined;
+    }
     this.emit("closed");
   }
 
   subscribeTrades(market) {
     this._connect();
-    let remote_id = market.id || market.remote_id;
+    let remote_id = market.id;
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
       this._subscriptions.set(remote_id, market);
@@ -40,7 +43,8 @@ class BasicTradeClient extends EventEmitter {
     let remote_id = market.id;
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
-      this._subscriptions.delete(market);
+      this._subscriptions.delete(remote_id);
+      this._sendUnsubscribe(remote_id);
     }
   }
 
@@ -81,6 +85,7 @@ class BasicTradeClient extends EventEmitter {
    * IMPLEMENT handler for messages
    */
   _onMessage() {
+    /* istanbul ignore next */
     throw new Error("not implemented");
   }
 
@@ -88,6 +93,7 @@ class BasicTradeClient extends EventEmitter {
    * IMPLEMENT method that sends subscribe message
    */
   _sendSubscribe() {
+    /* istanbul ignore next */
     throw new Error("not implemented");
   }
 
@@ -96,6 +102,7 @@ class BasicTradeClient extends EventEmitter {
    */
 
   _sendUnsubscribe() {
+    /* istanbul ignore next */
     throw new Error("not implemented");
   }
 }
