@@ -1,7 +1,7 @@
 module.exports = {
-  binance: new (require("./exchanges/binance-client"))(),
-  bitfinex: new (require("./exchanges/bitfinex-client"))(),
-  bittrex: new (require("./exchanges/bittrex-client"))(),
-  gdax: new (require("./exchanges/gdax-client"))(),
-  poloniex: new (require("./exchanges/poloniex-client"))(),
+  Binance: require("./exchanges/binance-client"),
+  Bitfinex: require("./exchanges/bitfinex-client"),
+  Bittrex: require("./exchanges/bittrex-client"),
+  GDAX: require("./exchanges/gdax-client"),
+  Poloniex: require("./exchanges/poloniex-client"),
 };

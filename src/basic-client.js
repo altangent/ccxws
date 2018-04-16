@@ -21,21 +21,21 @@ class BasicTradeClient extends EventEmitter {
 
   //////////////////////////////////////////////
 
-  subscribe(tradingpair) {
+  subscribe(market) {
     this._connect();
-    let remote_id = tradingpair.remote_id;
+    let remote_id = market.id || market.remote_id;
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
-      this._subscriptions.set(remote_id, tradingpair);
+      this._subscriptions.set(remote_id, market);
       this._sendSubscribe(remote_id);
     }
   }
 
-  unsubscribe(tradingpair) {
-    let remote_id = tradingpair.remote_id;
+  unsubscribe(market) {
+    let remote_id = market.id;
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
-      this._subscriptions.delete(tradingpair);
+      this._subscriptions.delete(market);
     }
   }
 

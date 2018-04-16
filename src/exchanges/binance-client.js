@@ -14,20 +14,20 @@ class BinanceClient extends EventEmitter {
 
   //////////////////////////////////////////////
 
-  subscribe(tradingpair) {
-    let remote_id = tradingpair.remote_id.toLowerCase();
+  subscribe(market) {
+    let remote_id = (market.id || market.remote_id).toLowerCase();
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
-      this._subscriptions.set(remote_id, tradingpair);
+      this._subscriptions.set(remote_id, market);
       this._reconnect();
     }
   }
 
-  unsubscribe(tradingpair) {
-    let remote_id = tradingpair.remote_id.toLowerCase();
+  unsubscribe(market) {
+    let remote_id = market.id.toLowerCase();
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
-      this._subscriptions.delete(tradingpair);
+      this._subscriptions.delete(market);
       this._reconnect();
     }
   }
