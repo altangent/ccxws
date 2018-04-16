@@ -16,7 +16,7 @@ class BittrexClient extends EventEmitter {
     return this._surrogateId;
   }
 
-  subscribe(market) {
+  subscribeTrades(market) {
     let remote_id = market.id;
     if (!this._subscribed.has(remote_id)) {
       winston.info("subscribing to", "Bittrex", remote_id);
@@ -25,7 +25,7 @@ class BittrexClient extends EventEmitter {
     }
   }
 
-  unsubscribe(market) {
+  unsubscribeTrades(market) {
     let remote_id = market.id;
     if (this._subscribed.has(remote_id)) {
       winston.info("unsubscribing from", "Bittrex", remote_id);

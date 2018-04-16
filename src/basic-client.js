@@ -21,7 +21,7 @@ class BasicTradeClient extends EventEmitter {
 
   //////////////////////////////////////////////
 
-  subscribe(market) {
+  subscribeTrades(market) {
     this._connect();
     let remote_id = market.id || market.remote_id;
     if (!this._subscriptions.has(remote_id)) {
@@ -31,7 +31,7 @@ class BasicTradeClient extends EventEmitter {
     }
   }
 
-  unsubscribe(market) {
+  unsubscribeTrades(market) {
     let remote_id = market.id;
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);

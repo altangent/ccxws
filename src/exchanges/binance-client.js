@@ -15,7 +15,7 @@ class BinanceClient extends EventEmitter {
 
   //////////////////////////////////////////////
 
-  subscribe(market) {
+  subscribeTrades(market) {
     let remote_id = market.id.toLowerCase();
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
@@ -24,7 +24,7 @@ class BinanceClient extends EventEmitter {
     }
   }
 
-  unsubscribe(market) {
+  unsubscribeTrades(market) {
     let remote_id = market.id.toLowerCase();
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
