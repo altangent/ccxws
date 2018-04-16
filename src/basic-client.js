@@ -21,6 +21,11 @@ class BasicTradeClient extends EventEmitter {
 
   //////////////////////////////////////////////
 
+  close() {
+    if (this._wss) this._wss.close();
+    this.emit("closed");
+  }
+
   subscribeTrades(market) {
     this._connect();
     let remote_id = market.id || market.remote_id;
