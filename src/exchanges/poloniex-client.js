@@ -1,4 +1,5 @@
 const BasicClient = require("../basic-client");
+const Trade = require("../trade");
 
 class PoloniexClient extends BasicClient {
   constructor() {
@@ -10,7 +11,7 @@ class PoloniexClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         command: "subscribe",
-        channel: remote_id
+        channel: remote_id,
       })
     );
   }
@@ -19,7 +20,7 @@ class PoloniexClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         command: "unsubscribe",
-        channel: remote_id
+        channel: remote_id,
       })
     );
   }
@@ -57,15 +58,21 @@ class PoloniexClient extends BasicClient {
     let remote_id = this._idMap.get(id);
     if (!remote_id) return;
 
-    // make tradingpair symbol
-    let tradingpair = this._subscriptions.get(remote_id);
-    let tradingPairSymbol = `Poloniex:${tradingpair.base_symbol}/${tradingpair.quote_symbol}`;
+    let market = this._subscriptions.get(remote_id);
 
     let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);
     price = parseFloat(price);
     trade_id = parseInt(trade_id);
 
-    return [tradingPairSymbol, trade_id, unix, price, amount];
+    return new Trade({
+      exchange: "Poloniex",
+      base: market.base,
+      quote: market.quote,
+      tradeId: trade_id,
+      unix,
+      price,
+      amount,
+    });
   }
 }
 

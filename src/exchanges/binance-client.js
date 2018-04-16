@@ -1,6 +1,7 @@
 const { EventEmitter } = require("events");
 const moment = require("moment");
 const winston = require("winston");
+const Trade = require("../trade");
 const SmartWss = require("../smart-wss");
 
 class BinanceClient extends EventEmitter {
@@ -15,7 +16,7 @@ class BinanceClient extends EventEmitter {
   //////////////////////////////////////////////
 
   subscribe(market) {
-    let remote_id = (market.id || market.remote_id).toLowerCase();
+    let remote_id = market.id.toLowerCase();
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
       this._subscriptions.set(remote_id, market);
@@ -90,14 +91,21 @@ class BinanceClient extends EventEmitter {
   _constructTradeFromMessage({ data }) {
     let { s: symbol, p: price, q: size, f: trade_id, T: time, m: buyer } = data;
 
-    let tradingpair = this._subscriptions.get(symbol.toLowerCase());
-    let tradingPairSymbol = `Binance:${tradingpair.base_symbol}/${tradingpair.quote_symbol}`;
+    let market = this._subscriptions.get(symbol.toLowerCase());
 
     let unix = moment.utc(time).unix();
     let amount = buyer ? parseFloat(size) : -parseFloat(size);
     price = parseFloat(price);
 
-    return [tradingPairSymbol, trade_id, unix, price, amount];
+    return new Trade({
+      exchange: "Binance",
+      base: market.base,
+      quote: market.quote,
+      tradeId: trade_id,
+      unix,
+      price,
+      amount,
+    });
   }
 }
 

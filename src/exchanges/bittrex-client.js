@@ -2,6 +2,7 @@ const { EventEmitter } = require("events");
 const winston = require("winston");
 const moment = require("moment");
 const bittrex = require("node-bittrex-api");
+const Trade = require("../trade");
 
 class BittrexClient extends EventEmitter {
   constructor() {
@@ -15,17 +16,17 @@ class BittrexClient extends EventEmitter {
     return this._surrogateId;
   }
 
-  subscribe(tradingpair) {
-    let remote_id = tradingpair.remote_id;
+  subscribe(market) {
+    let remote_id = market.id;
     if (!this._subscribed.has(remote_id)) {
       winston.info("subscribing to", "Bittrex", remote_id);
-      this._subscribed.set(remote_id, tradingpair);
+      this._subscribed.set(remote_id, market);
       this._debounceReconnect();
     }
   }
 
-  unsubscribe(tradingpair) {
-    let remote_id = tradingpair.remote_id;
+  unsubscribe(market) {
+    let remote_id = market.id;
     if (this._subscribed.has(remote_id)) {
       winston.info("unsubscribing from", "Bittrex", remote_id);
       this._subscribed.delete(remote_id);
@@ -49,8 +50,8 @@ class BittrexClient extends EventEmitter {
                   this._onMessage(data);
                 });
               }
-            }
-          }
+            },
+          },
         });
         this._connect();
       }
@@ -77,14 +78,21 @@ class BittrexClient extends EventEmitter {
   }
 
   _constructTradeFromMessage(msg, marketName) {
-    let tradingpair = this._subscribed.get(marketName);
-    let tradingPairSymbol = `Bittrex:${tradingpair.base_symbol}/${tradingpair.quote_symbol}`;
+    let market = this._subscribed.get(marketName);
     let trade_id = this._newSurrogateId();
     let unix = moment.utc(msg.TimeStamp).unix();
     let price = parseFloat(msg.Rate);
     let amount = msg.OrderType === "BUY" ? parseFloat(msg.Quantity) : -parseFloat(msg.Quantity);
 
-    return [tradingPairSymbol, trade_id, unix, price, amount];
+    return new Trade({
+      exchange: "Bittrex",
+      base: market.base,
+      quote: market.quote,
+      tradeId: trade_id,
+      unix,
+      price,
+      amount,
+    });
   }
 }
 

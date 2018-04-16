@@ -1,5 +1,6 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
+const Trade = require("../trade");
 
 class GdaxClient extends BasicClient {
   constructor() {
@@ -11,7 +12,7 @@ class GdaxClient extends BasicClient {
       JSON.stringify({
         type: "subscribe",
         product_ids: [remote_id],
-        channels: ["matches"]
+        channels: ["matches"],
       })
     );
   }
@@ -21,7 +22,7 @@ class GdaxClient extends BasicClient {
       JSON.stringify({
         type: "unsubscribe",
         product_ids: [remote_id],
-        channels: ["matches"]
+        channels: ["matches"],
       })
     );
   }
@@ -37,15 +38,21 @@ class GdaxClient extends BasicClient {
   _constructTradeFromMessage(msg) {
     let { trade_id, time, product_id, size, price, side } = msg;
 
-    // create tradingpair
-    let tradingpair = this._subscriptions.get(product_id);
-    let tradingPairSymbol = `GDAX:${tradingpair.base_symbol}/${tradingpair.quote_symbol}`;
+    let market = this._subscriptions.get(product_id);
 
     let unix = moment.utc(time).unix();
     let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);
     let priceNum = parseFloat(price);
 
-    return [tradingPairSymbol, trade_id, unix, priceNum, amount];
+    return new Trade({
+      exchange: "GDAX",
+      base: market.base,
+      quote: market.quote,
+      tradeId: trade_id,
+      unix,
+      price: priceNum,
+      amount,
+    });
   }
 }
 

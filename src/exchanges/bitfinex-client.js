@@ -1,4 +1,5 @@
 const BasicClient = require("../basic-client");
+const Trade = require("../trade");
 
 class BitfinexClient extends BasicClient {
   constructor() {
@@ -11,7 +12,7 @@ class BitfinexClient extends BasicClient {
       JSON.stringify({
         event: "subscribe",
         channel: "trades",
-        pair: remote_id
+        pair: remote_id,
       })
     );
   }
@@ -22,7 +23,7 @@ class BitfinexClient extends BasicClient {
       this._wss.send(
         JSON.stringify({
           event: "unsubscribe",
-          chanId: chanId
+          chanId: chanId,
         })
       );
     }
@@ -52,11 +53,17 @@ class BitfinexClient extends BasicClient {
     // eslint-disable-next-line no-unused-vars
     let [status, instr, sequence, id, unix, price, amount] = msg;
     let remote_id = sequence.split("-")[1];
-    let tradingpair = this._subscriptions.get(remote_id);
-    let tradingpairSymbol = `Bitfinex:${tradingpair.base_symbol}/${
-      tradingpair.quote_symbol
-    }`;
-    return [tradingpairSymbol, id, unix, price, amount];
+    let market = this._subscriptions.get(remote_id);
+
+    return new Trade({
+      exchange: "Bitfinex",
+      base: market.base,
+      quote: market.quote,
+      tradeId: id,
+      unix,
+      price,
+      amount,
+    });
   }
 }
 
