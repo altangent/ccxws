@@ -1,0 +1,35 @@
+{
+  "name": "ccxws",
+  "version": "0.1.0",
+  "description": "Cryptocurrency exchange realtime feeds",
+  "keywords": [
+    "cryptocurrency",
+    "bitcoin",
+    "ethereum",
+    "litecoin",
+    "exchange",
+    "realtime",
+    "websockets",
+    "feeds"
+  ],
+  "author": "Brian Mancini <bmancini@gmail.com>",
+  "license": "MIT",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --coverage"
+  },
+  "dependencies": {
+    "moment": "^2.22.1",
+    "node-bittrex-api": "^0.8.3",
+    "winston": "^2.4.1",
+    "ws": "^5.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "jest": "^22.4.3",
+    "prettier": "^1.12.0"
+  },
+  "peerDependencies": {
+    "ccxt": "1.x"
+  }
+}

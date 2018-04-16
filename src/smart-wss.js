@@ -1,0 +1,102 @@
+const { EventEmitter } = require("events");
+const WebSocket = require("ws");
+const winston = require("winston");
+
+class SmartWss extends EventEmitter {
+  constructor(wssPath) {
+    super();
+    this._wssPath = wssPath;
+    this._retryTimeoutMs = 15000;
+    this._connected = false;
+  }
+
+  /**
+   * Attempts to connect
+   */
+  async connect() {
+    await this._attemptConnect();
+  }
+
+  /**
+   * Closes the connection
+   */
+  async close() {
+    winston.info("closing connection to", this._wssPath);
+    this._wss.removeAllListeners();
+    this._wss.close();
+  }
+
+  /**
+   * Sends the data if the socket is currently connected.
+   * Otherwise the consumer needs to retry to send the information
+   * when the socket is connected.
+   */
+  send(data) {
+    if (this._connected) {
+      try {
+        this._wss.send(data);
+      } catch (e) {
+        winston.error(e.message);
+      }
+    }
+  }
+
+  /////////////////////////
+
+  /**
+   * Attempts a connection and will either fail or timeout otherwise.
+   */
+  _attemptConnect() {
+    return new Promise(resolve => {
+      let wssPath = this._wssPath;
+      winston.info("connecting to", wssPath);
+      this._wss = new WebSocket(wssPath, { perMessageDeflate: false });
+      this._wss.on("open", () => {
+        winston.info("connected to", wssPath);
+        this._connected = true;
+        this.emit("open");
+        resolve();
+      });
+      this._wss.on("close", () => this._closeCallback());
+      this._wss.on("error", err => {
+        winston.error(this._wssPath, err);
+        this._closeCallback();
+      });
+      this._wss.on("message", msg => this.emit("message", msg));
+    });
+  }
+
+  /**
+   * Handles the closing event by reconnecting
+   */
+  _closeCallback() {
+    winston.warn("connection closed to", this._wssPath);
+    this._connected = false;
+    this._wss = null;
+    this._retryConnect();
+  }
+
+  /**
+   * Perform reconnection after the timeout period
+   * and will loop on hard failures
+   */
+  async _retryConnect() {
+    // eslint-disable-next-line
+    while (true) {
+      try {
+        await wait(this._retryTimeoutMs);
+        await this._attemptConnect();
+        return;
+      } catch (ex) {
+        winston.error(ex);
+        this._retryConnect();
+      }
+    }
+  }
+}
+
+async function wait(timeout) {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+}
+
+module.exports = SmartWss;
