@@ -1,7 +1,7 @@
 # CryptoCurrency eXchange WebSockets
 
 [![CircleCI](https://circleci.com/gh/altangent/ccxws/tree/master.svg?style=shield)](https://circleci.com/gh/altangent/ccxws/tree/master)
-[![Coverage Status](https://coveralls.io/repos/github/altangent/ccxws/badge.svg?branch=ci)](https://coveralls.io/github/altangent/ccxws?branch=ci)
+[![Coverage Status](https://coveralls.io/repos/github/altangent/ccxws/badge.svg?branch=master)](https://coveralls.io/github/altangent/ccxws?branch=master)
 
 A JavaScript library for connecting to realtime data feeds on cryptocurrency exchanges.
 
