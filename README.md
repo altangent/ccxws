@@ -91,11 +91,12 @@ Unsubscribes from a trade feed for the specified market. \*For some exchanges, c
 
 ## Exchanges
 
-| Exchange | Class    | Trades | Orderbook |
-| -------- | -------- | ------ | --------- |
-| Binance  | Binance  | :+1:   |           |
-| Bitfinex | Bitfinex | :+1:   |           |
-| Bitstamp | Bitstamp | :+1:   |           |
-| Bittrex  | Bittrex  | :+1:   |           |
-| GDAX     | GDAX     | :+1:   |           |
-| Poloniex | Poloniex | :+1:   |           |
+| Exchange | Class    | Trades | Orderbook | Ticker |
+| -------- | -------- | ------ | --------- | ------ |
+| Binance  | Binance  | :+1:   |           |        |
+| Bitfinex | Bitfinex | :+1:   |           |        |
+| Bitstamp | Bitstamp | :+1:   |           |        |
+| Bittrex  | Bittrex  | :+1:   |           |        |
+| GDAX     | GDAX     | :+1:   |           |        |
+| HitBTC   | HitBTC   | :+1:   |           |        |
+| Poloniex | Poloniex | :+1:   |           |        |
