@@ -11,6 +11,13 @@ class SmartWss extends EventEmitter {
   }
 
   /**
+   * Gets if the socket is currently connected
+   */
+  get isConnected() {
+    return this._connected;
+  }
+
+  /**
    * Attempts to connect
    */
   async connect() {

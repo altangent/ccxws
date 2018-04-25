@@ -10,8 +10,10 @@ jest.mock("./smart-wss", () => {
         this._events[event] = handler;
       },
       mockEmit: function(event, payload) {
+        if (event === "open") this.isConnected = true;
         this._events[event](payload);
       },
+      isConnected: false,
     };
   };
 });
@@ -32,6 +34,7 @@ describe("on first subscribe", () => {
     expect(instance._wss.connect.mock.calls.length).toBe(1);
   });
   test("it should send subscribe to the socket", () => {
+    instance._wss.mockEmit("open");
     expect(instance._sendSubscribe.mock.calls.length).toBe(1);
     expect(instance._sendSubscribe.mock.calls[0][0]).toBe("BTCUSD");
   });

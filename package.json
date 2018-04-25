@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Cryptocurrency exchange realtime feeds",
   "keywords": [
     "cryptocurrency",
@@ -23,6 +23,7 @@
     "moment": "^2.22.1",
     "node-bittrex-api": "^0.8.3",
     "pusher-js": "^4.2.2",
+    "semaphore": "^1.1.0",
     "winston": "^2.4.1",
     "ws": "^5.1.1"
   },

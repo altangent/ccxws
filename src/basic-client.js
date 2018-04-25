@@ -35,7 +35,13 @@ class BasicTradeClient extends EventEmitter {
     if (!this._subscriptions.has(remote_id)) {
       winston.info("subscribing to", this._name, remote_id);
       this._subscriptions.set(remote_id, market);
-      this._sendSubscribe(remote_id);
+
+      // perform the subscription if we're connected
+      // and if not, then we'll reply on the _onConnected event
+      // to send the signal to our server!
+      if (this._wss.isConnected) {
+        this._sendSubscribe(remote_id);
+      }
     }
   }
 
@@ -44,7 +50,10 @@ class BasicTradeClient extends EventEmitter {
     if (this._subscriptions.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
       this._subscriptions.delete(remote_id);
-      this._sendUnsubscribe(remote_id);
+
+      if (this._wss.isConnected) {
+        this._sendUnsubscribe(remote_id);
+      }
     }
   }
 
