@@ -71,6 +71,7 @@ class BasicTradeClient extends EventEmitter {
       this._wss = new SmartWss(this._wssPath);
       this._wss.on("open", this._onConnected.bind(this));
       this._wss.on("message", this._onMessage.bind(this));
+      this._wss.on("disconnected", () => this.emit("disconnected"));
       this._wss.connect();
     }
   }

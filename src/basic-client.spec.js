@@ -90,6 +90,11 @@ describe("on duplicate unsubscribe", () => {
 });
 
 describe("when connected", () => {
+  test("disconnect event should fire if the underlying socket closes", done => {
+    instance.on("disconnected", done);
+    instance._wss.mockEmit("disconnected");
+  });
+
   test("close should emit closed event", done => {
     instance.on("closed", done);
     instance.close();

@@ -77,9 +77,10 @@ class SmartWss extends EventEmitter {
    * Handles the closing event by reconnecting
    */
   _closeCallback() {
-    winston.warn("connection closed to", this._wssPath);
+    winston.warn("disconnected from", this._wssPath);
     this._connected = false;
     this._wss = null;
+    this.emit("disconnected");
     this._retryConnect();
   }
 
