@@ -26,7 +26,7 @@ const ccxws = require("ccxws");
 const binance = new ccxws.Binance();
 
 binance.on("trade", trade => console.log(trade));
-binance.subcribeTrades({
+binance.subscribeTrades({
   id: "ADA_BTC",
   base: "ADA",
   quote: "BTC",
