@@ -5,6 +5,13 @@ class HitBTCClient extends BasicClient {
   constructor() {
     super("wss://real.okex.com:10441/websocket", "HitBTC");
     this.channelRegExp = /ok_sub_spot_(.*)_deals/;
+    this._pingInterval = setInterval(this._sendPing.bind(this));
+  }
+
+  _sendPing() {
+    if (this._wss) {
+      this._wss.send(JSON.stringify({ event: "ping" }));
+    }
   }
 
   _sendSubscribe(remote_id) {
@@ -29,6 +36,7 @@ class HitBTCClient extends BasicClient {
 
   _onMessage(raw) {
     let msgs = JSON.parse(raw);
+    if (!Array.isArray(msgs)) return;
     for (let msg of msgs) {
       if (msg.product === "spot" && msg.type === "deal") {
         if (!Array.isArray(msg.data)) return; // handle confirmation
