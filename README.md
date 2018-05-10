@@ -99,4 +99,5 @@ Unsubscribes from a trade feed for the specified market. \*For some exchanges, c
 | Bittrex  | Bittrex  | :+1:   |           |        |
 | GDAX     | GDAX     | :+1:   |           |        |
 | HitBTC   | HitBTC   | :+1:   |           |        |
+| OKEx     | OKEx     | :+1:   |           |        |
 | Poloniex | Poloniex | :+1:   |           |        |
