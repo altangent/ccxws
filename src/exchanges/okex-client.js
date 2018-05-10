@@ -48,7 +48,7 @@ class HitBTCClient extends BasicClient {
 
     amount = side === "2" ? -parseFloat(amount) : parseFloat(amount);
     let priceNum = parseFloat(price);
-    let unix = Math.floor(createdDate / 100);
+    let unix = Math.floor(createdDate / 1000);
 
     return new Trade({
       exchange: "OKEx",
