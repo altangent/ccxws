@@ -1,11 +1,10 @@
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
 
-class HitBTCClient extends BasicClient {
+class OKExClient extends BasicClient {
   constructor() {
     super("wss://real.okex.com:10441/websocket", "HitBTC");
-    this.channelRegExp = /ok_sub_spot_(.*)_deals/;
-    this._pingInterval = setInterval(this._sendPing.bind(this));
+    this._pingInterval = setInterval(this._sendPing.bind(this), 5000);
   }
 
   _sendPing() {
@@ -70,4 +69,4 @@ class HitBTCClient extends BasicClient {
   }
 }
 
-module.exports = HitBTCClient;
+module.exports = OKExClient;

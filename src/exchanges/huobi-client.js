@@ -1,6 +1,6 @@
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
-const zlib = require('zlib');
+const zlib = require("zlib");
 const winston = require("winston");
 
 class HuobiClient extends BasicClient {
@@ -8,11 +8,17 @@ class HuobiClient extends BasicClient {
     super("wss://api.huobi.pro/ws", "Huobi");
   }
 
+  _sendPong(ts) {
+    if (this._wss) {
+      this._wss.send(JSON.stringify({ pong: ts }));
+    }
+  }
+
   _sendSubscribe(remote_id) {
     this._wss.send(
       JSON.stringify({
         sub: `market.${remote_id}.trade.detail`,
-        id: ''
+        id: remote_id,
       })
     );
   }
@@ -21,23 +27,31 @@ class HuobiClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         unsub: `market.${remote_id}.trade.detail`,
-        id: ''
+        id: remote_id,
       })
     );
   }
 
   _onMessage(raw) {
     zlib.unzip(raw, (err, resp) => {
-      if(err) {
+      if (err) {
         winston.error(err);
         return;
       }
 
       let msgs = JSON.parse(resp);
-      if(!msgs.ch || !msgs.ch.includes('trade.detail')) return;
 
-      let remoteId = msgs.ch.split('.')[1]; //market.ethbtc.trade.detail
-      for(let datum of msgs.tick.data) {
+      // handle pongs
+      if (msgs.ping) {
+        this._sendPong(msgs.ping);
+        return;
+      }
+
+      // ignore other messages
+      if (!msgs.ch || !msgs.ch.endsWith("trade.detail")) return;
+
+      let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
+      for (let datum of msgs.tick.data) {
         let trade = this._constructTradesFromMessage(remoteId, datum);
         this.emit("trade", trade);
       }
