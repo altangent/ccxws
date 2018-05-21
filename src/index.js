@@ -1,6 +1,7 @@
 module.exports = {
   Binance: require("./exchanges/binance-client"),
   Bitfinex: require("./exchanges/bitfinex-client"),
+  Bitflyer: require("./exchanges/bitflyer-client"),
   Bitstamp: require("./exchanges/bitstamp-client"),
   Bittrex: require("./exchanges/bittrex-client"),
   GDAX: require("./exchanges/gdax-client"),
