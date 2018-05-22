@@ -95,6 +95,7 @@ Unsubscribes from a trade feed for the specified market. \*For some exchanges, c
 | -------- | -------- | ------ | --------- | ------ |
 | Binance  | Binance  | :+1:   |           |        |
 | Bitfinex | Bitfinex | :+1:   |           |        |
+| bitFlyer | Bitflyer | :+1:   |           |        |
 | Bitstamp | Bitstamp | :+1:   |           |        |
 | Bittrex  | Bittrex  | :+1:   |           |        |
 | GDAX     | GDAX     | :+1:   |           |        |
