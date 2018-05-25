@@ -19,9 +19,14 @@ jest.mock("./smart-wss", () => {
 });
 
 let instance = new BasicClient("wss://localhost/test", "test");
+instance.reconnectIntervalMs = 100;
 instance._onMessage = jest.fn();
 instance._sendSubscribe = jest.fn();
 instance._sendUnsubscribe = jest.fn();
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 beforeAll(() => {
   instance._connect();
@@ -37,6 +42,9 @@ describe("on first subscribe", () => {
     instance._wss.mockEmit("open");
     expect(instance._sendSubscribe.mock.calls.length).toBe(1);
     expect(instance._sendSubscribe.mock.calls[0][0]).toBe("BTCUSD");
+  });
+  test("it should start the reconnectChecker", () => {
+    expect(instance._reconnectIntervalHandle).toBeDefined();
   });
 });
 
@@ -59,9 +67,14 @@ describe("on duplicate subscribe", () => {
 });
 
 describe("on message", () => {
-  test("it should call on message", () => {
+  beforeAll(() => {
     instance._wss.mockEmit("message", "test");
+  });
+  test("it should call on message", () => {
     expect(instance._onMessage.mock.calls[0][0]).toBe("test");
+  });
+  test("it should update to the current time", () => {
+    expect(instance._lastMessage).toBeGreaterThan(1527261103838);
   });
 });
 
@@ -89,6 +102,31 @@ describe("on duplicate unsubscribe", () => {
   });
 });
 
+describe("when no messages received", () => {
+  let originalWss;
+  let closedEvent = jest.fn();
+  let reconnectedEvent = jest.fn();
+  beforeAll(async () => {
+    originalWss = instance._wss;
+    instance.on("closed", closedEvent);
+    instance.on("reconnected", reconnectedEvent);
+    await wait(150);
+  });
+  test("it should close the connection", () => {
+    expect(originalWss.close.mock.calls.length).toBe(1);
+  });
+  test("it should not emit a closed event", () => {
+    expect(closedEvent.mock.calls.length).toBe(0);
+  });
+  test("it should reopen the connection", () => {
+    expect(instance._wss).not.toEqual(originalWss);
+    expect(instance._wss.connect.mock.calls.length).toBe(1);
+  });
+  test("should emit a reconnected event", () => {
+    expect(reconnectedEvent.mock.calls.length).toBe(1);
+  });
+});
+
 describe("when connected", () => {
   test("disconnect event should fire if the underlying socket closes", done => {
     instance.on("disconnected", done);
@@ -98,6 +136,10 @@ describe("when connected", () => {
   test("close should emit closed event", done => {
     instance.on("closed", done);
     instance.close();
+  });
+
+  test(" should stop the reconnection checker", () => {
+    expect(instance._reconnectIntervalHandle).toBeUndefined();
   });
 });
 

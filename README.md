@@ -73,6 +73,12 @@ The trade class is the result of a `trade` event emitted from a client. This obj
 
 A websocket client that connects to a specific exchange. There is an implementation of this class for each exchange that governs the specific rules for managing the realtime connections to the exchange.
 
+#### Properties
+
+##### reconnectIntervalMs (int) - default 15000
+
+Property that must be set before the first subscription (and subsequent connection). This will enable a check at the reconnection interval that looks for ANY broadcast message from the server. If there has not been a message since the last check a reconnection (close, connect) operation is performed.
+
 #### Events
 
 ##### trade

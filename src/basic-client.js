@@ -17,16 +17,20 @@ class BasicTradeClient extends EventEmitter {
     this._name = name;
     this._subscriptions = new Map();
     this._wss = undefined;
+    this.reconnectIntervalMs = 15000;
+    this._lastMessage = undefined;
+    this._reconnectIntervalHandle = undefined;
   }
 
   //////////////////////////////////////////////
 
-  close() {
+  close(emitClosed = true) {
+    this._stopReconnectWatcher();
     if (this._wss) {
       this._wss.close();
       this._wss = undefined;
     }
-    this.emit("closed");
+    if (emitClosed) this.emit("closed");
   }
 
   subscribeTrades(market) {
@@ -70,7 +74,10 @@ class BasicTradeClient extends EventEmitter {
     if (!this._wss) {
       this._wss = new SmartWss(this._wssPath);
       this._wss.on("open", this._onConnected.bind(this));
-      this._wss.on("message", this._onMessage.bind(this));
+      this._wss.on("message", msg => {
+        this._lastMessage = Date.now();
+        this._onMessage(msg);
+      });
       this._wss.on("disconnected", () => this.emit("disconnected"));
       this._wss.connect();
     }
@@ -85,6 +92,45 @@ class BasicTradeClient extends EventEmitter {
   _onConnected() {
     for (let marketSymbol of this._subscriptions.keys()) {
       this._sendSubscribe(marketSymbol);
+    }
+    this._startReconnectWatcher();
+  }
+
+  /**
+   * Reconnects the socket
+   */
+  _reconnect() {
+    this.close(false);
+    this._connect();
+    this.emit("reconnected");
+  }
+
+  /**
+   * Starts an interval to check if a reconnction is required
+   */
+  _startReconnectWatcher() {
+    this._stopReconnectWatcher(); // always clear the prior interval
+    this._reconnectIntervalHandle = setInterval(
+      this._onReconnectCheck.bind(this),
+      this.reconnectIntervalMs
+    );
+  }
+
+  /**
+   * Stops an interval to check if a reconnection is required
+   */
+  _stopReconnectWatcher() {
+    clearInterval(this._reconnectIntervalHandle);
+    this._reconnectIntervalHandle = undefined;
+  }
+
+  /**
+   * Checks if a reconnecton is required by comparing the current
+   * date to the last receieved message date
+   */
+  _onReconnectCheck() {
+    if (this._lastMessage < Date.now() - this.reconnectIntervalMs) {
+      this._reconnect();
     }
   }
 
