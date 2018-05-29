@@ -17,7 +17,7 @@ class BasicTradeClient extends EventEmitter {
     this._name = name;
     this._subscriptions = new Map();
     this._wss = undefined;
-    this.reconnectIntervalMs = 15000;
+    this.reconnectIntervalMs = 90000;
     this._lastMessage = undefined;
     this._reconnectIntervalHandle = undefined;
   }
@@ -78,7 +78,7 @@ class BasicTradeClient extends EventEmitter {
         this._lastMessage = Date.now();
         this._onMessage(msg);
       });
-      this._wss.on("disconnected", () => this.emit("disconnected"));
+      this._wss.on("disconnected", this._onDisconnected.bind(this));
       this._wss.connect();
     }
   }
@@ -94,6 +94,14 @@ class BasicTradeClient extends EventEmitter {
       this._sendSubscribe(marketSymbol);
     }
     this._startReconnectWatcher();
+  }
+
+  /**
+   * Handles a disconnection event
+   */
+  _onDisconnected() {
+    this._stopReconnectWatcher();
+    this.emit("disconnected");
   }
 
   /**
