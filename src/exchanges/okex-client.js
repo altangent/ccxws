@@ -6,6 +6,10 @@ class OKExClient extends BasicClient {
   constructor() {
     super("wss://real.okex.com:10441/websocket", "OKEx");
     this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
+    this.on("connected", this._resetSemaphore.bind(this));
+  }
+
+  _resetSemaphore() {
     this._sem = semaphore(10);
   }
 

@@ -7,6 +7,10 @@ class HitBTCClient extends BasicClient {
   constructor() {
     super("wss://api.hitbtc.com/api/2/ws", "HitBTC");
     this._id = 0;
+    this.on("connected", this._resetSemaphore.bind(this));
+  }
+
+  _resetSemaphore() {
     this._sem = semaphore(10);
   }
 

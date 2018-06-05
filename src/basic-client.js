@@ -90,6 +90,7 @@ class BasicTradeClient extends EventEmitter {
    * feeds
    */
   _onConnected() {
+    this.emit("connected");
     for (let marketSymbol of this._subscriptions.keys()) {
       this._sendSubscribe(marketSymbol);
     }
