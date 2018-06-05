@@ -33,6 +33,22 @@ binance.subscribeTrades({
 });
 ```
 
+## Exchanges
+
+| Exchange | Class    | Trades | Orderbook | Ticker |
+| -------- | -------- | ------ | --------- | ------ |
+| Binance  | Binance  | :+1:   |           |        |
+| Bitfinex | Bitfinex | :+1:   |           |        |
+| bitFlyer | Bitflyer | :+1:   |           |        |
+| BitMEX   | BitMEX   | :+1:   |           |        |
+| Bitstamp | Bitstamp | :+1:   |           |        |
+| Bittrex  | Bittrex  | :+1:   |           |        |
+| GDAX     | GDAX     | :+1:   |           |        |
+| HitBTC   | HitBTC   | :+1:   |           |        |
+| Huobi    | Huobi    | :+1:   |           |        |
+| OKEx     | OKEx     | :+1:   |           |        |
+| Poloniex | Poloniex | :+1:   |           |        |
+
 ## API
 
 Importing `ccxws` will allow you to create an instance of the client for the exchange you want to access. For example:
@@ -94,18 +110,3 @@ Subscribes to a trade feed for the specified market. This method will cause the 
 ##### unsubscribeTrades(market)
 
 Unsubscribes from a trade feed for the specified market. \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
-
-## Exchanges
-
-| Exchange | Class    | Trades | Orderbook | Ticker |
-| -------- | -------- | ------ | --------- | ------ |
-| Binance  | Binance  | :+1:   |           |        |
-| Bitfinex | Bitfinex | :+1:   |           |        |
-| bitFlyer | Bitflyer | :+1:   |           |        |
-| Bitstamp | Bitstamp | :+1:   |           |        |
-| Bittrex  | Bittrex  | :+1:   |           |        |
-| GDAX     | GDAX     | :+1:   |           |        |
-| HitBTC   | HitBTC   | :+1:   |           |        |
-| Huobi    | Huobi    | :+1:   |           |        |
-| OKEx     | OKEx     | :+1:   |           |        |
-| Poloniex | Poloniex | :+1:   |           |        |
