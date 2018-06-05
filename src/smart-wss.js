@@ -54,6 +54,7 @@ class SmartWss extends EventEmitter {
    * Attempts a connection and will either fail or timeout otherwise.
    */
   _attemptConnect() {
+    winston.info("attempting connection");
     return new Promise(resolve => {
       let wssPath = this._wssPath;
       winston.info("connecting to", wssPath);
@@ -65,10 +66,7 @@ class SmartWss extends EventEmitter {
         resolve();
       });
       this._wss.on("close", () => this._closeCallback());
-      this._wss.on("error", err => {
-        winston.error(this._wssPath, err);
-        this._closeCallback();
-      });
+      this._wss.on("error", err => winston.error(this._wssPath, err));
       this._wss.on("message", msg => this.emit("message", msg));
     });
   }
@@ -97,7 +95,6 @@ class SmartWss extends EventEmitter {
         return;
       } catch (ex) {
         winston.error(ex);
-        this._retryConnect();
       }
     }
   }
