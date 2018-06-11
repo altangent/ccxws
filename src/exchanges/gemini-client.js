@@ -73,7 +73,10 @@ class GeminiClient extends EventEmitter {
     let wssPath = "wss://api.gemini.com/v1/marketdata/" + stream;
     let wss = new SmartWss(wssPath);
     wss.on("message", raw => this._onMessage(stream, raw));
-    wss.on("disconnected", () => this.emit("disconnected", stream));
+    wss.on("disconnected", () => {
+      this._stopReconnectWatcher(this._subscriptions.get(stream));
+      this.emit("disconnected", stream);
+    });
     wss.connect();
     return wss;
   }
@@ -117,7 +120,7 @@ class GeminiClient extends EventEmitter {
   _startReconnectWatcher(subscription) {
     this._stopReconnectWatcher(subscription); // always clear the prior interval
     subscription.reconnectIntervalHandle = setInterval(
-      () => this._onReconnectCheck.bind(this)(subscription),
+      () => this._onReconnectCheck(subscription),
       this.reconnectIntervalMs
     );
   }
