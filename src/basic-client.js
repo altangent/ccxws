@@ -16,8 +16,8 @@ class BasicTradeClient extends EventEmitter {
     this._wssPath = wssPath;
     this._name = name;
     this._subscriptions = new Map();
-    this._level2 = new Map();
-    this._level3 = new Map();
+    this._level2Subs = new Map();
+    this._level3Subs = new Map();
     this._wss = undefined;
     this.reconnectIntervalMs = 90000;
     this._lastMessage = undefined;
@@ -36,61 +36,107 @@ class BasicTradeClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
+    this._subscribe(
+      market,
+      this._subscriptions,
+      "subscribing to trades",
+      this._sendSubscribe.bind(this)
+    );
+  }
+
+  unsubscribeTrades(market) {
+    this._unsubscribe(
+      market,
+      this._subscriptions,
+      "unsubscribing from trades",
+      this._sendUnsubscribe.bind(this)
+    );
+  }
+
+  subscribeLevel2(market) {
+    this._subscribe(
+      market,
+      this._level2Subs,
+      "subscribing to level 2",
+      this._sendSubLevel2.bind(this)
+    );
+  }
+
+  unsubcribeLevel2(market) {
+    this._unsubscribe(
+      market,
+      this._level2Subs,
+      "unsubscribing to level 2",
+      this._sendUnsubLevel2.bind(this)
+    );
+  }
+
+  subscribeLevel3(market) {
+    this._subscribe(
+      market,
+      this._level3Subs,
+      "subscribing to level 3",
+      this._sendSubLevel3.bind(this)
+    );
+  }
+
+  unsubscribeLevel3(market) {
+    this._unsubscribe(
+      market,
+      this._level3Subs,
+      "unsubscribing from level 3",
+      this._sendUnsubLevel3.bind(this)
+    );
+  }
+
+  ////////////////////////////////////////////
+  // PROTECTED
+
+  /**
+   * Helper function for performing a subscription operation
+   * where a subscription map is maintained and the message
+   * send operation is performed
+   * @param {Market} market
+   * @param {Map}} map
+   * @param {String} msg
+   * @param {Function} sendFn
+   */
+  _subscribe(market, map, msg, sendFn) {
     this._connect();
     let remote_id = market.id;
-    if (!this._subscriptions.has(remote_id)) {
-      winston.info("subscribing to", this._name, remote_id);
-      this._subscriptions.set(remote_id, market);
+    if (!map.has(remote_id)) {
+      winston.info(msg, this._name, remote_id);
+      map.set(remote_id, market);
 
       // perform the subscription if we're connected
       // and if not, then we'll reply on the _onConnected event
       // to send the signal to our server!
       if (this._wss.isConnected) {
-        this._sendSubscribe(remote_id);
+        sendFn(remote_id);
       }
     }
   }
 
-  unsubscribeTrades(market) {
+  /**
+   * Helper function for performing an unsubscription operation
+   * where a subscription map is maintained and the message
+   * send operation is performed
+   * @param {Market} market
+   * @param {Map}} map
+   * @param {String} msg
+   * @param {Function} sendFn
+   */
+  _unsubscribe(market, map, msg, sendFn) {
     let remote_id = market.id;
-    if (this._subscriptions.has(remote_id)) {
+    if (map.has(remote_id)) {
       winston.info("unsubscribing from", this._name, remote_id);
-      this._subscriptions.delete(remote_id);
+      map.delete(remote_id);
 
       if (this._wss.isConnected) {
-        this._sendUnsubscribe(remote_id);
+        sendFn(remote_id);
       }
     }
   }
-
-  subscribeLevel2Updates(market) {
-    this._connect();
-    let remote_id = market.id;
-    if (!this._level2.has(remote_id)) {
-      winston.info("subscribing to level 2", this._name, remote_id);
-      this._level2.set(remote_id, market);
-
-      if (!this._wss.isConnected) {
-        this._sendSubscribeLevel2Updates(remote_id);
-      }
-    }
-  }
-
-  subscribeLevel3Updates(market) {
-    this._connect();
-    let remote_id = market.id;
-    if (!this._level3.has(remote_id)) {
-      winston.info("subscribing to level 3", this._name, remote_id);
-      this._level3.set(remote_id, market);
-
-      if (!this._wss.isConnected) {
-        this._sendSubscribeLevel3Updates(remote_id);
-      }
-    }
-  }
-
-  ////////////////////////////////////////////
-  // PROTECTED
 
   /**
    * Idempotent method for creating and initializing
@@ -122,11 +168,11 @@ class BasicTradeClient extends EventEmitter {
     for (let marketSymbol of this._subscriptions.keys()) {
       this._sendSubscribe(marketSymbol);
     }
-    for (let marketSymbol of this._level2.keys()) {
-      this._sendSubscribeLevel2Updates(marketSymbol);
+    for (let marketSymbol of this._level2Subs.keys()) {
+      this._sendSubLevel2(marketSymbol);
     }
-    for (let marketSymbol of this._level3.keys()) {
-      this._sendSubscribeLevel3Updates(marketSymbol);
+    for (let marketSymbol of this._level3Subs.keys()) {
+      this._sendSubLevel3(marketSymbol);
     }
     this._startReconnectWatcher();
   }
