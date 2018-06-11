@@ -10,27 +10,33 @@ class GeminiClient extends EventEmitter {
     this._name = "Gemini";
     this._subscriptions = new Map();
     this._reconnectDebounce = undefined;
+    this.reconnectIntervalMs = 90000;
   }
 
-  //////////////////////////////////////////////
-
   subscribeTrades(market) {
-    let remote_id = market.id;
-    if (!this._subscriptions.has(remote_id)) {
-      winston.info("subscribing to", this._name, remote_id);
-      this._subscriptions.set(remote_id, {
+    let remoteId = market.id;
+    if (!this._subscriptions.has(remoteId)) {
+      winston.info("subscribing to", this._name, remoteId);
+
+      let subscription = {
         market,
-        wss: this._connect(remote_id),
-      });
+        wss: this._connect(remoteId),
+        lastMessage: undefined,
+        reconnectIntervalHandle: undefined,
+        remoteId: remoteId,
+      };
+
+      this._startReconnectWatcher(subscription);
+      this._subscriptions.set(remoteId, subscription);
     }
   }
 
   unsubscribeTrades(market) {
-    let remote_id = market.id.toLowerCase();
-    if (this._subscriptions.has(remote_id)) {
-      winston.info("unsubscribing from", this._name, remote_id);
-      this._close(this._subscriptions.get(remote_id).wss);
-      this._subscriptions.delete(remote_id);
+    let remoteId = market.id.toLowerCase();
+    if (this._subscriptions.has(remoteId)) {
+      winston.info("unsubscribing from", this._name, remoteId);
+      this._close(this._subscriptions.get(remoteId).wss);
+      this._subscriptions.delete(remoteId);
     }
   }
 
@@ -106,11 +112,51 @@ class GeminiClient extends EventEmitter {
     });
   }
 
+  /**
+   * Starts an interval to check if a reconnction is required
+   */
+  _startReconnectWatcher(subscription) {
+    this._stopReconnectWatcher(subscription); // always clear the prior interval
+    subscription.reconnectIntervalHandle = setInterval(
+      () => this._onReconnectCheck.bind(this)(subscription),
+      this.reconnectIntervalMs
+    );
+  }
+
+  /**
+   * Stops an interval to check if a reconnection is required
+   */
+  _stopReconnectWatcher(subscription) {
+    clearInterval(subscription.reconnectIntervalHandle);
+    subscription.reconnectIntervalHandle = undefined;
+  }
+
+  /**
+   * Checks if a reconnecton is required by comparing the current
+   * date to the last receieved message date
+   */
+  _onReconnectCheck(subscription) {
+    if (subscription.lastMessage < Date.now() - this.reconnectIntervalMs) {
+      this._reconnect(subscription);
+    }
+  }
+
+  /**
+   * Reconnects the socket
+   */
+  _reconnect(subscription) {
+    this._close(subscription.wss);
+    subscription.wss = this._connect(subscription.remoteId);
+    this.emit("reconnected");
+  }
+
   ////////////////////////////////////////////
   // ABSTRACT
 
   _onMessage(stream, raw) {
     let msg = JSON.parse(raw);
+    let subscription = this._subscriptions.get(stream);
+    subscription.lastMessage = msg.timestampms;
     let trades = this._constructTradeFromMessage(msg, stream);
     trades.map(trade => this.emit(trade.constructor.name.toLowerCase(), trade));
   }
