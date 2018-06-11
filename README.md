@@ -44,6 +44,7 @@ binance.subscribeTrades({
 | Bitstamp | Bitstamp | :+1:   |           |        |
 | Bittrex  | Bittrex  | :+1:   |           |        |
 | GDAX     | GDAX     | :+1:   |           |        |
+| Gemini   | Gemini   | :+1:   |           |        |
 | HitBTC   | HitBTC   | :+1:   |           |        |
 | Huobi    | Huobi    | :+1:   |           |        |
 | OKEx     | OKEx     | :+1:   |           |        |
