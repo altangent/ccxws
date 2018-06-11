@@ -14,7 +14,7 @@ class GeminiClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
-    let remoteId = market.id;
+    let remoteId = market.id.toLowerCase();
     if (!this._subscriptions.has(remoteId)) {
       winston.info("subscribing to", this._name, remoteId);
 
@@ -35,7 +35,7 @@ class GeminiClient extends EventEmitter {
     let remoteId = market.id.toLowerCase();
     if (this._subscriptions.has(remoteId)) {
       winston.info("unsubscribing from", this._name, remoteId);
-      this._close(this._subscriptions.get(remoteId).wss);
+      this._close(this._subscriptions.get(remoteId));
       this._subscriptions.delete(remoteId);
     }
   }
@@ -50,17 +50,19 @@ class GeminiClient extends EventEmitter {
   /**
    * Close the underlying connction, which provides a way to reset the things
    */
-  _close(wss) {
-    if (wss) {
-      wss.close();
-      wss = undefined;
-      this.emit("closed");
+  _close(subscription) {
+    if (subscription && subscription.wss) {
+      subscription.wss.close();
+      subscription.wss = undefined;
+      this._stopReconnectWatcher(subscription);
+      this.emit("closed", subscription.remoteId);
     } else {
       this._subscriptions.forEach(sub => {
+        this._stopReconnectWatcher(sub);
         sub.wss.close();
+        this.emit("closed", sub.remoteId);
       });
       this._subscriptions = new Map();
-      this.emit("closed");
     }
   }
 
@@ -69,12 +71,9 @@ class GeminiClient extends EventEmitter {
    */
   _connect(stream) {
     let wssPath = "wss://api.gemini.com/v1/marketdata/" + stream;
-
     let wss = new SmartWss(wssPath);
-    wss.on("message", raw => {
-      this._onMessage.bind(this)(stream, raw);
-    });
-    wss.on("disconnected", () => this.emit("disconnected"));
+    wss.on("message", raw => this._onMessage(stream, raw));
+    wss.on("disconnected", () => this.emit("disconnected", stream));
     wss.connect();
     return wss;
   }
@@ -147,7 +146,7 @@ class GeminiClient extends EventEmitter {
   _reconnect(subscription) {
     this._close(subscription.wss);
     subscription.wss = this._connect(subscription.remoteId);
-    this.emit("reconnected");
+    this.emit("reconnected", subscription.remoteId);
   }
 
   ////////////////////////////////////////////
