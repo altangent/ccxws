@@ -16,6 +16,8 @@ class BasicTradeClient extends EventEmitter {
     this._wssPath = wssPath;
     this._name = name;
     this._subscriptions = new Map();
+    this._level2 = new Map();
+    this._level3 = new Map();
     this._wss = undefined;
     this.reconnectIntervalMs = 90000;
     this._lastMessage = undefined;
@@ -61,6 +63,32 @@ class BasicTradeClient extends EventEmitter {
     }
   }
 
+  subscribeLevel2Updates(market) {
+    this._connect();
+    let remote_id = market.id;
+    if (!this._level2.has(remote_id)) {
+      winston.info("subscribing to level 2", this._name, remote_id);
+      this._level2.set(remote_id, market);
+
+      if (!this._wss.isConnected) {
+        this._sendSubscribeLevel2Updates(remote_id);
+      }
+    }
+  }
+
+  subscribeLevel3Updates(market) {
+    this._connect();
+    let remote_id = market.id;
+    if (!this._level3.has(remote_id)) {
+      winston.info("subscribing to level 3", this._name, remote_id);
+      this._level3.set(remote_id, market);
+
+      if (!this._wss.isConnected) {
+        this._sendSubscribeLevel3Updates(remote_id);
+      }
+    }
+  }
+
   ////////////////////////////////////////////
   // PROTECTED
 
@@ -93,6 +121,12 @@ class BasicTradeClient extends EventEmitter {
     this.emit("connected");
     for (let marketSymbol of this._subscriptions.keys()) {
       this._sendSubscribe(marketSymbol);
+    }
+    for (let marketSymbol of this._level2.keys()) {
+      this._sendSubscribeLevel2Updates(marketSymbol);
+    }
+    for (let marketSymbol of this._level3.keys()) {
+      this._sendSubscribeLevel3Updates(marketSymbol);
     }
     this._startReconnectWatcher();
   }
