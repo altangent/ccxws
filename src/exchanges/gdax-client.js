@@ -27,12 +27,54 @@ class GdaxClient extends BasicClient {
     );
   }
 
+  _sendSubscribeLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "subscribe",
+        product_ids: [remote_id],
+        channels: ["level2"],
+      })
+    );
+  }
+
+  _sendSubscribeLevel3Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "subscribe",
+        product_ids: [remote_id],
+        channels: ["full"],
+      })
+    );
+  }
+
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-    if (msg.type !== "match") return;
 
-    let trade = this._constructTradeFromMessage(msg);
-    this.emit("trade", trade);
+    let { type, product_id } = msg;
+
+    if (type === "match" && this._subscriptions.has(product_id)) {
+      let trade = this._constructTradeFromMessage(msg);
+      this.emit("trade", trade);
+    }
+
+    if (type === "snapshot") {
+      let snapshot = this._constructLevel2Snapshot(msg);
+      this.emit("l2snapshot", snapshot);
+    }
+
+    if (type === "l2update") {
+      let update = this._constructLevel2Update(msg);
+      this.emit("l2update", update);
+    }
+
+    if (
+      ["received", "open", "done", "match", "change"].includes(type) &&
+      this._level3.has(product_id)
+    ) {
+      let update = this._constructLevel3Update(msg);
+      this.emit("l3update", update);
+      return;
+    }
   }
 
   _constructTradeFromMessage(msg) {
@@ -53,6 +95,119 @@ class GdaxClient extends BasicClient {
       price: priceNum,
       amount,
     });
+  }
+
+  _constructLevel2Snapshot(msg) {
+    let { product_id, bids, asks } = msg;
+
+    let market = this._level2.get(product_id);
+
+    bids = bids.map(([price, size]) => ({ price, size }));
+    asks = asks.map(([price, size]) => ({ price, size }));
+
+    return {
+      exchange: "GDAX",
+      base: market.base,
+      quote: market.quote,
+      bids,
+      asks,
+    };
+  }
+
+  _constructLevel2Update(msg) {
+    let { product_id, changes } = msg;
+
+    let market = this._level2.get(product_id);
+
+    changes = changes.map(([side, price, size]) => ({ side, price, size }));
+
+    return {
+      exchange: "GDAX",
+      base: market.base,
+      quote: market.quote,
+      changes,
+    };
+  }
+
+  _constructLevel3Update(msg) {
+    let market = this._level3.get(msg.product_id);
+    let time = moment(msg.time).valueOf();
+
+    switch (msg.type) {
+      case "received":
+        return {
+          exchange: "GDAX",
+          base: market.base,
+          quote: market.quote,
+          type: msg.type,
+          time,
+          sequence: msg.sequence,
+          order_id: msg.order_id.replace(/-/g, ""),
+          size: msg.size,
+          price: msg.price,
+          side: msg.side,
+          order_type: msg.order_type,
+          funds: msg.funds,
+        };
+      case "open":
+        return {
+          exchange: "GDAX",
+          base: market.base,
+          quote: market.quote,
+          type: msg.type,
+          time,
+          sequence: msg.sequence,
+          order_id: msg.order_id.replace(/-/g, ""),
+          price: msg.price,
+          remaining_size: msg.remaining_size,
+          side: msg.side,
+        };
+      case "done":
+        return {
+          exchange: "GDAX",
+          base: market.base,
+          quote: market.quote,
+          type: msg.type,
+          time,
+          sequence: msg.sequence,
+          price: msg.price,
+          order_id: msg.order_id.replace(/-/g, ""),
+          reason: msg.reason,
+          side: msg.side,
+          remaining_size: msg.remaining_size,
+        };
+      case "match":
+        return {
+          exchange: "GDAX",
+          base: market.base,
+          quote: market.quote,
+          type: msg.type,
+          trade_id: msg.trade_id,
+          sequence: msg.sequence,
+          maker_order_id: msg.maker_order_id.replace(/-/g, ""),
+          taker_order_id: msg.taker_order_id.replace(/-/g, ""),
+          time,
+          size: msg.size,
+          price: msg.price,
+          side: msg.side,
+        };
+      case "change":
+        return {
+          exchange: "GDAX",
+          base: market.base,
+          quote: market.quote,
+          type: msg.type,
+          time,
+          sequence: msg.sequence,
+          order_id: msg.order_id.replace(/-/g, ""),
+          new_size: msg.new_size,
+          old_size: msg.old_size,
+          price: msg.price,
+          side: msg.side,
+          new_funds: msg.new_funds,
+          old_funds: msg.old_funds,
+        };
+    }
   }
 }
 
