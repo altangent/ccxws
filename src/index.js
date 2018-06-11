@@ -6,6 +6,7 @@ module.exports = {
   Bitstamp: require("./exchanges/bitstamp-client"),
   Bittrex: require("./exchanges/bittrex-client"),
   GDAX: require("./exchanges/gdax-client"),
+  Gemini: require("./exchanges/gemini-client"),
   HitBTC: require("./exchanges/hitbtc-client"),
   Huobi: require("./exchanges/huobi-client"),
   OKEx: require("./exchanges/okex-client"),
