@@ -27,7 +27,7 @@ class GdaxClient extends BasicClient {
     );
   }
 
-  _sendSubscribeLevel2Updates(remote_id) {
+  _sendSubLevel2(remote_id) {
     this._wss.send(
       JSON.stringify({
         type: "subscribe",
@@ -37,10 +37,30 @@ class GdaxClient extends BasicClient {
     );
   }
 
-  _sendSubscribeLevel3Updates(remote_id) {
+  _sendUnsubLevel2(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "unsubscribe",
+        product_ids: [remote_id],
+        channels: ["level2"],
+      })
+    );
+  }
+
+  _sendSubLevel3(remote_id) {
     this._wss.send(
       JSON.stringify({
         type: "subscribe",
+        product_ids: [remote_id],
+        channels: ["full"],
+      })
+    );
+  }
+
+  _sendUnsubLevel3(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "unsubscribe",
         product_ids: [remote_id],
         channels: ["full"],
       })
@@ -53,23 +73,23 @@ class GdaxClient extends BasicClient {
     let { type, product_id } = msg;
 
     if (type === "match" && this._subscriptions.has(product_id)) {
-      let trade = this._constructTradeFromMessage(msg);
+      let trade = this._constructTrade(msg);
       this.emit("trade", trade);
     }
 
-    if (type === "snapshot") {
+    if (type === "snapshot" && this._level2Subs.has(product_id)) {
       let snapshot = this._constructLevel2Snapshot(msg);
       this.emit("l2snapshot", snapshot);
     }
 
-    if (type === "l2update") {
+    if (type === "l2update" && this._level2Subs.has(product_id)) {
       let update = this._constructLevel2Update(msg);
       this.emit("l2update", update);
     }
 
     if (
       ["received", "open", "done", "match", "change"].includes(type) &&
-      this._level3.has(product_id)
+      this._level3Subs.has(product_id)
     ) {
       let update = this._constructLevel3Update(msg);
       this.emit("l3update", update);
@@ -77,7 +97,7 @@ class GdaxClient extends BasicClient {
     }
   }
 
-  _constructTradeFromMessage(msg) {
+  _constructTrade(msg) {
     let { trade_id, time, product_id, size, price, side } = msg;
 
     let market = this._subscriptions.get(product_id);
@@ -100,7 +120,7 @@ class GdaxClient extends BasicClient {
   _constructLevel2Snapshot(msg) {
     let { product_id, bids, asks } = msg;
 
-    let market = this._level2.get(product_id);
+    let market = this._level2Subs.get(product_id);
 
     bids = bids.map(([price, size]) => ({ price, size }));
     asks = asks.map(([price, size]) => ({ price, size }));
@@ -117,7 +137,7 @@ class GdaxClient extends BasicClient {
   _constructLevel2Update(msg) {
     let { product_id, changes } = msg;
 
-    let market = this._level2.get(product_id);
+    let market = this._level2Subs.get(product_id);
 
     changes = changes.map(([side, price, size]) => ({ side, price, size }));
 
@@ -130,7 +150,7 @@ class GdaxClient extends BasicClient {
   }
 
   _constructLevel3Update(msg) {
-    let market = this._level3.get(msg.product_id);
+    let market = this._level3Subs.get(msg.product_id);
     let time = moment(msg.time).valueOf();
 
     switch (msg.type) {
