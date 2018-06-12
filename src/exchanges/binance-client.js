@@ -8,7 +8,9 @@ class BinanceClient extends EventEmitter {
   constructor() {
     super();
     this._name = "Binance";
-    this._subscriptions = new Map();
+    this._tradeSubs = new Map();
+    this._level2SnapshotSubs = new Map();
+    this._level2UpdateSubs = new Map();
     this._wss = undefined;
     this._reconnectDebounce = undefined;
   }
@@ -16,21 +18,27 @@ class BinanceClient extends EventEmitter {
   //////////////////////////////////////////////
 
   subscribeTrades(market) {
-    let remote_id = market.id.toLowerCase();
-    if (!this._subscriptions.has(remote_id)) {
-      winston.info("subscribing to", this._name, remote_id);
-      this._subscriptions.set(remote_id, market);
-      this._reconnect();
-    }
+    this._subscribe(market, "subscribing to trades", this._tradeSubs);
   }
 
   unsubscribeTrades(market) {
-    let remote_id = market.id.toLowerCase();
-    if (this._subscriptions.has(remote_id)) {
-      winston.info("unsubscribing from", this._name, remote_id);
-      this._subscriptions.delete(market);
-      this._reconnect();
-    }
+    this._unsubscribe(market, "unsubscribing to trades", this._tradeSubs);
+  }
+
+  subscribeLevel2Snapshots(market) {
+    this._subscribe(market, "subscribing to l2 snapshots", this._level2SnapshotSubs);
+  }
+
+  unsubscribeLevel2Snapshots(market) {
+    this._unsubscribe(market, "unsubscribing from l2 snapshots", this._level2SnapshotSubs);
+  }
+
+  subscribeLevel2Updates(market) {
+    this._subscribe(market, "subscribing to l2 upates", this._level2UpdateSubs);
+  }
+
+  unsubscribeLevel2Updates(market) {
+    this._unsubscribe(market, "unsubscribing from l2 updates", this._level2UpdateSubs);
   }
 
   close() {
@@ -39,6 +47,24 @@ class BinanceClient extends EventEmitter {
 
   ////////////////////////////////////////////
   // PROTECTED
+
+  _subscribe(market, msg, map) {
+    let remote_id = market.id.toLowerCase();
+    if (!map.has(remote_id)) {
+      winston.info(msg, this._name, remote_id);
+      map.set(remote_id, market);
+      this._reconnect();
+    }
+  }
+
+  _unsubscribe(market, msg, map) {
+    let remote_id = market.id.toLowerCase();
+    if (map.has(remote_id)) {
+      winston.info(msg, this._name, remote_id);
+      map.delete(market);
+      this._reconnect();
+    }
+  }
 
   /**
    * Reconnects the socket after a debounce period
@@ -68,10 +94,13 @@ class BinanceClient extends EventEmitter {
    */
   _connect() {
     if (!this._wss) {
-      let streams = Array.from(this._subscriptions.keys())
-        .map(p => p + "@aggTrade")
-        .join("/");
-      let wssPath = "wss://stream.binance.com:9443/stream?streams=" + streams;
+      let streams = [].concat(
+        Array.from(this._tradeSubs.keys()).map(p => p + "@aggTrade"),
+        Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
+        Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
+      );
+
+      let wssPath = "wss://stream.binance.com:9443/stream?streams=" + streams.join("/");
 
       this._wss = new SmartWss(wssPath);
       this._wss.on("message", this._onMessage.bind(this));
@@ -85,14 +114,30 @@ class BinanceClient extends EventEmitter {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-    let trade = this._constructTradeFromMessage(msg);
-    this.emit("trade", trade);
+
+    // trades
+    if (msg.stream.endsWith("trade")) {
+      let trade = this._constructTradeFromMessage(msg);
+      this.emit("trade", trade);
+    }
+
+    // l2snapshot
+    if (msg.stream.endsWith("depth20")) {
+      let snapshot = this._constructLevel2Snapshot(msg);
+      this.emit("l2snapshot", snapshot);
+    }
+
+    // l2update
+    if (msg.stream.endsWith("depth")) {
+      let update = this._constructLevel2Update(msg);
+      this.emit("l2update", update);
+    }
   }
 
   _constructTradeFromMessage({ data }) {
     let { s: symbol, p: price, q: size, f: trade_id, T: time, m: buyer } = data;
 
-    let market = this._subscriptions.get(symbol.toLowerCase());
+    let market = this._tradeSubs.get(symbol.toLowerCase());
 
     let unix = moment.utc(time).unix();
     let amount = buyer ? parseFloat(size) : -parseFloat(size);
@@ -107,6 +152,40 @@ class BinanceClient extends EventEmitter {
       price,
       amount,
     });
+  }
+
+  _constructLevel2Snapshot(msg) {
+    let remote_id = msg.stream.split("@")[0];
+    let market = this._level2SnapshotSubs.get(remote_id);
+    let sequenceId = msg.data.lastUpdateId;
+    let asks = msg.data.asks.map(p => ({ price: p[0], size: p[1] }));
+    let bids = msg.data.bids.map(p => ({ price: p[0], size: p[1] }));
+    return {
+      exchange: "Binance",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      asks,
+      bids,
+    };
+  }
+
+  _constructLevel2Update(msg) {
+    let remote_id = msg.data.s.toLowerCase();
+    let market = this._level2UpdateSubs.get(remote_id);
+    let firstSequenceId = msg.data.U;
+    let lastSequenceId = msg.data.u;
+    let asks = msg.data.a.map(p => ({ price: p[0], size: p[1] }));
+    let bids = msg.data.b.map(p => ({ price: p[0], size: p[1] }));
+    return {
+      exchange: "Binance",
+      base: market.base,
+      quote: market.quote,
+      firstSequenceId,
+      lastSequenceId,
+      asks,
+      bids,
+    };
   }
 }
 

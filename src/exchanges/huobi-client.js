@@ -6,6 +6,8 @@ const winston = require("winston");
 class HuobiClient extends BasicClient {
   constructor() {
     super("wss://api.huobi.pro/ws", "Huobi");
+    this.hasTrades = true;
+    this.hasLevel2Spotshots = true;
   }
 
   _sendPong(ts) {
@@ -32,6 +34,15 @@ class HuobiClient extends BasicClient {
     );
   }
 
+  _sendSubLevel2Snapshots(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        sub: `market.${remote_id}.depth.step0`,
+        id: "depth_" + remote_id,
+      })
+    );
+  }
+
   _onMessage(raw) {
     zlib.unzip(raw, (err, resp) => {
       if (err) {
@@ -47,13 +58,24 @@ class HuobiClient extends BasicClient {
         return;
       }
 
-      // ignore other messages
-      if (!msgs.ch || !msgs.ch.endsWith("trade.detail")) return;
+      if (!msgs.ch) return;
 
-      let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
-      for (let datum of msgs.tick.data) {
-        let trade = this._constructTradesFromMessage(remoteId, datum);
-        this.emit("trade", trade);
+      // trades
+      if (msgs.ch.endsWith("trade.detail")) {
+        let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
+        for (let datum of msgs.tick.data) {
+          let trade = this._constructTradesFromMessage(remoteId, datum);
+          this.emit("trade", trade);
+        }
+        return;
+      }
+
+      // level2updates
+      if (msgs.ch.endsWith("depth.step0")) {
+        let remoteId = msgs.ch.split(".")[1];
+        let update = this._constructLevel2Snapshot(remoteId, msgs);
+        this.emit("l2snapshot", update);
+        return;
       }
     });
   }
@@ -75,6 +97,21 @@ class HuobiClient extends BasicClient {
       price: priceNum,
       amount,
     });
+  }
+
+  _constructLevel2Snapshot(remoteId, msg) {
+    let { ts, tick } = msg;
+    let market = this._level2SnapshotSubs.get(remoteId);
+    let bids = tick.bids.map(p => ({ price: p[0], size: p[1] }));
+    let asks = tick.asks.map(p => ({ price: p[0], size: p[1] }));
+    return {
+      exchange: "Huobi",
+      base: market.base,
+      quote: market.quote,
+      timestamp: ts,
+      asks,
+      bids,
+    };
   }
 }
 
