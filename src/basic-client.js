@@ -65,11 +65,7 @@ class BasicTradeClient extends EventEmitter {
       market,
       this._level2SnapshotSubs,
       "subscribing to level 2 snapshots",
-<<<<<<< HEAD
       this._sendSubLevel2Snapshots.bind(this)
-=======
-      this._sendSubL2Snapshots.bind(this)
->>>>>>> 0a0fa92b8c160d8c8b158b6afdf67a6602ef37c2
     );
   }
 
@@ -203,11 +199,7 @@ class BasicTradeClient extends EventEmitter {
       this._sendSubscribe(marketSymbol);
     }
     for (let marketSymbol of this._level2SnapshotSubs.keys()) {
-<<<<<<< HEAD
       this._sendSubLevel2Snapshots(marketSymbol);
-=======
-      this._sendSubL2Snapshots(marketSymbol);
->>>>>>> 0a0fa92b8c160d8c8b158b6afdf67a6602ef37c2
     }
     for (let marketSymbol of this._level2UpdateSubs.keys()) {
       this._sendSubLevel2Updates(marketSymbol);
