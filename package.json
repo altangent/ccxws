@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Cryptocurrency exchange realtime feeds",
   "keywords": [
     "cryptocurrency",
@@ -17,7 +17,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "jest --coverage",
-    "test:ci": "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "test:ci":
+      "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": "altangent/ccxws",
   "dependencies": {
