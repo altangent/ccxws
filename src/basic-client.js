@@ -16,12 +16,18 @@ class BasicTradeClient extends EventEmitter {
     this._wssPath = wssPath;
     this._name = name;
     this._subscriptions = new Map();
-    this._level2Subs = new Map();
-    this._level3Subs = new Map();
+    this._level2SnapshotSubs = new Map();
+    this._level2UpdateSubs = new Map();
+    this._level3UpdateSubs = new Map();
     this._wss = undefined;
     this.reconnectIntervalMs = 90000;
     this._lastMessage = undefined;
     this._reconnectIntervalHandle = undefined;
+
+    this.hasTrades = false;
+    this.hasLevel2Spotshots = false;
+    this.hasLevel2Updates = false;
+    this.hasLevel3Updates = false;
   }
 
   //////////////////////////////////////////////
@@ -53,39 +59,63 @@ class BasicTradeClient extends EventEmitter {
     );
   }
 
-  subscribeLevel2(market) {
+  subscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Spotshots) return;
     this._subscribe(
       market,
-      this._level2Subs,
-      "subscribing to level 2",
-      this._sendSubLevel2.bind(this)
+      this._level2SnapshotSubs,
+      "subscribing to level 2 snapshots",
+      this._sendSubL2Snapshots.bind(this)
     );
   }
 
-  unsubcribeLevel2(market) {
+  unsubscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Spotshots) return;
     this._unsubscribe(
       market,
-      this._level2Subs,
-      "unsubscribing to level 2",
-      this._sendUnsubLevel2.bind(this)
+      this._level2SnapshotSubs,
+      "unsubscribing from level 2 snapshots",
+      this._sendUnsubLevel2Snapshots.bind(this)
     );
   }
 
-  subscribeLevel3(market) {
+  subscribeLevel2Updates(market) {
+    if (!this.hasLevel2Updates) return;
     this._subscribe(
       market,
-      this._level3Subs,
-      "subscribing to level 3",
-      this._sendSubLevel3.bind(this)
+      this._level2UpdateSubs,
+      "subscribing to level 2 updates",
+      this._sendSubLevel2Updates.bind(this)
     );
   }
 
-  unsubscribeLevel3(market) {
+  unsubcribeLevel2Updates(market) {
+    if (!this.hasLevel2Updates) return;
     this._unsubscribe(
       market,
-      this._level3Subs,
-      "unsubscribing from level 3",
-      this._sendUnsubLevel3.bind(this)
+      this._level2UpdateSubs,
+      "unsubscribing to level 2 updates",
+      this._sendUnsubLevel2Updates.bind(this)
+    );
+  }
+
+  subscribeLevel3Updates(market) {
+    if (!this.hasLevel3Updates) return;
+    this._subscribe(
+      market,
+      this._level3UpdateSubs,
+      "subscribing to level 3 updates",
+      this._sendSubLevel3Updates.bind(this)
+    );
+  }
+
+  unsubscribeLevel3Updates(market) {
+    if (!this.hasLevel3Updates) return;
+    this._unsubscribe(
+      market,
+      this._level3UpdateSubs,
+      "unsubscribing from level 3 updates",
+      this._sendUnsubLevel3Updates.bind(this)
     );
   }
 
@@ -168,11 +198,14 @@ class BasicTradeClient extends EventEmitter {
     for (let marketSymbol of this._subscriptions.keys()) {
       this._sendSubscribe(marketSymbol);
     }
-    for (let marketSymbol of this._level2Subs.keys()) {
-      this._sendSubLevel2(marketSymbol);
+    for (let marketSymbol of this._level2SnapshotSubs.keys()) {
+      this._sendSubL2Snapshots(marketSymbol);
     }
-    for (let marketSymbol of this._level3Subs.keys()) {
-      this._sendSubLevel3(marketSymbol);
+    for (let marketSymbol of this._level2UpdateSubs.keys()) {
+      this._sendSubLevel2Updates(marketSymbol);
+    }
+    for (let marketSymbol of this._level3UpdateSubs.keys()) {
+      this._sendSubLevel3Updates(marketSymbol);
     }
     this._startReconnectWatcher();
   }

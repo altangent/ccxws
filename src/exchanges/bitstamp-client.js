@@ -8,7 +8,7 @@ class BitstampClient extends EventEmitter {
     super();
     this._name = "Bitstamp";
     this._tradeSubs = new Map();
-    this._level2SpotSubs = new Map();
+    this._level2SnapSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._level3UpdateSubs = new Map();
   }
@@ -31,21 +31,21 @@ class BitstampClient extends EventEmitter {
     );
   }
 
-  subscribeLevel2Spot(market) {
+  subscribeLevel2Snapshots(market) {
     this._subscribe(
       market,
-      this._level2SpotSubs,
+      this._level2SnapSubs,
       "subscribing to level2 spot",
-      this._sendSubLevel2Spot.bind(this)
+      this._sendSubLevel2Snapshot.bind(this)
     );
   }
 
-  unsubscribeLevel2Spot(market) {
+  unsubscribeLevel2Snapshots(market) {
     this._unsubscribe(
       market,
-      this._level2SpotSubs,
+      this._level2SnapSubs,
       "unsubscribing from level2 spot",
-      this._sendUnsubLevel2Spot.bind(this)
+      this._sendUnsubLevel2Snapshot.bind(this)
     );
   }
 
@@ -158,19 +158,19 @@ class BitstampClient extends EventEmitter {
     this.emit("trade", trade);
   }
 
-  _sendSubLevel2Spot(remote_id) {
+  _sendSubLevel2Snapshot(remote_id) {
     let channelName = remote_id === "btcusd" ? "order_book" : `order_book_${remote_id}`;
     let channel = this._pusher.subscribe(channelName);
-    channel.bind("data", this._onLevel2Spot.bind(this, remote_id));
+    channel.bind("data", this._onLevel2Snapshot.bind(this, remote_id));
   }
 
-  _sendUnsubLevel2Spot(remote_id) {
+  _sendUnsubLevel2Snapshot(remote_id) {
     let channelName = remote_id === "btcusd" ? "order_book" : `order_book_${remote_id}`;
     this._pusher.unsubscribe(channelName);
   }
 
-  _onLevel2Spot(remote_id, msg) {
-    let market = this._level2SpotSubs.get(remote_id);
+  _onLevel2Snapshot(remote_id, msg) {
+    let market = this._level2SnapSubs.get(remote_id);
     let { bids, asks, timestamp } = msg;
     /*
     {
@@ -204,7 +204,7 @@ class BitstampClient extends EventEmitter {
       asks,
     };
 
-    this.emit("l2spot", spot);
+    this.emit("l2snapshot", spot);
   }
 
   _sendSubLevel2Updates(remote_id) {
