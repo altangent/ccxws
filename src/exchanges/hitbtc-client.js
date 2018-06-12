@@ -7,6 +7,10 @@ class HitBTCClient extends BasicClient {
   constructor() {
     super("wss://api.hitbtc.com/api/2/ws", "HitBTC");
     this._id = 0;
+
+    this.hasTrades = true;
+    this.hasLevel2Updates = true;
+
     this.on("connected", this._resetSemaphore.bind(this));
   }
 
@@ -40,8 +44,34 @@ class HitBTCClient extends BasicClient {
     );
   }
 
+  _sendSubLevel2Updates(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          method: "subscribeOrderbook",
+          params: {
+            symbol: remote_id,
+          },
+          id: ++this._id,
+        })
+      );
+    });
+  }
+
+  _sendUnsubLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        method: "unsubscribeOrderbook",
+        params: {
+          symbol: remote_id,
+        },
+      })
+    );
+  }
+
   _onMessage(raw) {
     let msg = JSON.parse(raw);
+
     if (msg.result) {
       this._sem.leave();
       return;
@@ -51,7 +81,20 @@ class HitBTCClient extends BasicClient {
         datum.symbol = msg.params.symbol;
         let trade = this._constructTradesFromMessage(datum);
         this.emit("trade", trade);
+        return;
       }
+    }
+
+    if (msg.method === "snapshotOrderbook") {
+      let result = this._constructLevel2Snapshot(msg.params);
+      this.emit("l2snapshot", result);
+      return;
+    }
+
+    if (msg.method === "updateOrderbook") {
+      let result = this._constructLevel2Update(msg.params);
+      this.emit("l2update", result);
+      return;
     }
   }
 
@@ -73,6 +116,32 @@ class HitBTCClient extends BasicClient {
       price: priceNum,
       amount,
     });
+  }
+
+  _constructLevel2Snapshot(data) {
+    let { ask, bid, symbol, sequence } = data;
+    let market = this._level2UpdateSubs.get(symbol); // coming from l2update sub
+    return {
+      exchange: "HitBTC",
+      base: market.base,
+      quote: market.quote,
+      sequence,
+      ask,
+      bid,
+    };
+  }
+
+  _constructLevel2Update(data) {
+    let { ask, bid, symbol, sequence } = data;
+    let market = this._level2UpdateSubs.get(symbol);
+    return {
+      exchange: "HitBTC",
+      base: market.base,
+      quote: market.quote,
+      sequence,
+      ask,
+      bid,
+    };
   }
 }
 
