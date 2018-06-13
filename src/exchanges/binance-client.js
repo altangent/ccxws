@@ -2,6 +2,9 @@ const { EventEmitter } = require("events");
 const moment = require("moment");
 const winston = require("winston");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Update = require("../level2-update");
+const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 
 class BinanceClient extends EventEmitter {
@@ -13,6 +16,10 @@ class BinanceClient extends EventEmitter {
     this._level2UpdateSubs = new Map();
     this._wss = undefined;
     this._reconnectDebounce = undefined;
+
+    this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
+    this.hasLevel2Updates = true;
   }
 
   //////////////////////////////////////////////
@@ -116,7 +123,7 @@ class BinanceClient extends EventEmitter {
     let msg = JSON.parse(raw);
 
     // trades
-    if (msg.stream.endsWith("trade")) {
+    if (msg.stream.endsWith("aggTrade")) {
       let trade = this._constructTradeFromMessage(msg);
       this.emit("trade", trade);
     }
@@ -158,34 +165,34 @@ class BinanceClient extends EventEmitter {
     let remote_id = msg.stream.split("@")[0];
     let market = this._level2SnapshotSubs.get(remote_id);
     let sequenceId = msg.data.lastUpdateId;
-    let asks = msg.data.asks.map(p => ({ price: p[0], size: p[1] }));
-    let bids = msg.data.bids.map(p => ({ price: p[0], size: p[1] }));
-    return {
+    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
+    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+    return new Level2Update({
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
       sequenceId,
       asks,
       bids,
-    };
+    });
   }
 
   _constructLevel2Update(msg) {
     let remote_id = msg.data.s.toLowerCase();
     let market = this._level2UpdateSubs.get(remote_id);
-    let firstSequenceId = msg.data.U;
+    let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
-    let asks = msg.data.a.map(p => ({ price: p[0], size: p[1] }));
-    let bids = msg.data.b.map(p => ({ price: p[0], size: p[1] }));
-    return {
+    let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
+    let bids = msg.data.b.map(p => new Level2Point(p[0], p[1]));
+    return new Level2Snapshot({
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
-      firstSequenceId,
+      sequenceId,
       lastSequenceId,
       asks,
       bids,
-    };
+    });
   }
 }
 

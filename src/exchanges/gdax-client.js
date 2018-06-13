@@ -1,6 +1,11 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
+const Level2Update = require("../level2-update");
+const Level3Point = require("../level3-point");
+const Level3Update = require("../level3-update");
 
 class GdaxClient extends BasicClient {
   constructor() {
@@ -11,7 +16,7 @@ class GdaxClient extends BasicClient {
     this.hasLevel3Updates = true;
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         type: "subscribe",
@@ -21,7 +26,7 @@ class GdaxClient extends BasicClient {
     );
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         type: "unsubscribe",
@@ -126,16 +131,16 @@ class GdaxClient extends BasicClient {
 
     let market = this._level2UpdateSubs.get(product_id);
 
-    bids = bids.map(([price, size]) => ({ price, size }));
-    asks = asks.map(([price, size]) => ({ price, size }));
+    bids = bids.map(([price, size]) => new Level2Point(price, size));
+    asks = asks.map(([price, size]) => new Level2Point(price, size));
 
-    return {
+    return new Level2Snapshot({
       exchange: "GDAX",
       base: market.base,
       quote: market.quote,
       bids,
       asks,
-    };
+    });
   }
 
   _constructLevel2Update(msg) {
@@ -143,95 +148,84 @@ class GdaxClient extends BasicClient {
 
     let market = this._level2UpdateSubs.get(product_id);
 
-    changes = changes.map(([side, price, size]) => ({ side, price, size }));
+    let asks = [];
+    let bids = [];
+    changes.forEach(([side, price, size]) => {
+      let point = new Level2Point(price, size);
+      if (side === "bid") bids.push(point);
+      else asks.push(point);
+    });
 
-    return {
+    return new Level2Update({
       exchange: "GDAX",
       base: market.base,
       quote: market.quote,
-      changes,
-    };
+      asks,
+      bids,
+    });
   }
 
   _constructLevel3Update(msg) {
     let market = this._level3UpdateSubs.get(msg.product_id);
-    let time = moment(msg.time).valueOf();
+    let timestampMs = moment(msg.time).valueOf();
+    let sequenceId = msg.sequence;
+
+    let asks = [];
+    let bids = [];
+    let point;
 
     switch (msg.type) {
       case "received":
-        return {
-          exchange: "GDAX",
-          base: market.base,
-          quote: market.quote,
+        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.size, {
           type: msg.type,
-          time,
-          sequence: msg.sequence,
-          order_id: msg.order_id.replace(/-/g, ""),
-          size: msg.size,
-          price: msg.price,
           side: msg.side,
           order_type: msg.order_type,
           funds: msg.funds,
-        };
+        });
+        break;
       case "open":
-        return {
-          exchange: "GDAX",
-          base: market.base,
-          quote: market.quote,
+        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.remaining_size, {
           type: msg.type,
-          time,
-          sequence: msg.sequence,
-          order_id: msg.order_id.replace(/-/g, ""),
-          price: msg.price,
           remaining_size: msg.remaining_size,
-          side: msg.side,
-        };
+        });
+        break;
       case "done":
-        return {
-          exchange: "GDAX",
-          base: market.base,
-          quote: market.quote,
+        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.remaining_size, {
           type: msg.type,
-          time,
-          sequence: msg.sequence,
-          price: msg.price,
-          order_id: msg.order_id.replace(/-/g, ""),
           reason: msg.reason,
-          side: msg.side,
           remaining_size: msg.remaining_size,
-        };
+        });
+        break;
       case "match":
-        return {
-          exchange: "GDAX",
-          base: market.base,
-          quote: market.quote,
+        point = new Level3Point(msg.maker_order_id.replace(/-/g, ""), msg.price, msg.size, {
           type: msg.type,
-          trade_id: msg.trade_id,
-          sequence: msg.sequence,
           maker_order_id: msg.maker_order_id.replace(/-/g, ""),
           taker_order_id: msg.taker_order_id.replace(/-/g, ""),
-          time,
-          size: msg.size,
-          price: msg.price,
-          side: msg.side,
-        };
+        });
+        break;
       case "change":
-        return {
-          exchange: "GDAX",
-          base: market.base,
-          quote: market.quote,
+        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.new_size, {
           type: msg.type,
-          time,
-          sequence: msg.sequence,
-          order_id: msg.order_id.replace(/-/g, ""),
           new_size: msg.new_size,
           old_size: msg.old_size,
-          price: msg.price,
-          side: msg.side,
           new_funds: msg.new_funds,
           old_funds: msg.old_funds,
-        };
+        });
+        break;
     }
+
+    if (msg.side === "sell") asks.push(point);
+    else bids.push(point);
+
+    return new Level3Update({
+      exchange: "GDAX",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      timestampMs,
+      asks,
+      bids,
+    });
   }
 }
 

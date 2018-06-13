@@ -55,13 +55,12 @@ class GeminiClient extends EventEmitter {
       subscription.wss.close();
       subscription.wss = undefined;
       this._stopReconnectWatcher(subscription);
-      this.emit("closed", subscription.remoteId);
     } else {
       this._subscriptions.forEach(sub => {
         this._stopReconnectWatcher(sub);
         sub.wss.close();
-        this.emit("closed", sub.remoteId);
       });
+      this.emit("closed");
       this._subscriptions = new Map();
     }
   }

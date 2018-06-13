@@ -7,7 +7,7 @@ class BitFlyerClient extends BasicClient {
     super("wss://ws.lightstream.bitflyer.com/json-rpc", "BitFlyer");
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrade(remote_id) {
     this._wss.send(
       JSON.stringify({
         method: "subscribe",
@@ -18,7 +18,7 @@ class BitFlyerClient extends BasicClient {
     );
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrade(remote_id) {
     this._wss.send(
       JSON.stringify({
         method: "unsubscribe",

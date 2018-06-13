@@ -2,6 +2,9 @@ const moment = require("moment");
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
+const Level2Update = require("../level2-update");
 
 class HitBTCClient extends BasicClient {
   constructor() {
@@ -18,7 +21,7 @@ class HitBTCClient extends BasicClient {
     this._sem = semaphore(10);
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrades(remote_id) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
@@ -32,7 +35,7 @@ class HitBTCClient extends BasicClient {
     });
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         method: "unsubscribeTrades",
@@ -121,27 +124,31 @@ class HitBTCClient extends BasicClient {
   _constructLevel2Snapshot(data) {
     let { ask, bid, symbol, sequence } = data;
     let market = this._level2UpdateSubs.get(symbol); // coming from l2update sub
-    return {
+    let asks = ask.map(p => new Level2Point(p.price, p.size));
+    let bids = bid.map(p => new Level2Point(p.price, p.size));
+    return new Level2Snapshot({
       exchange: "HitBTC",
       base: market.base,
       quote: market.quote,
-      sequence,
-      ask,
-      bid,
-    };
+      sequenceId: sequence,
+      asks,
+      bids,
+    });
   }
 
   _constructLevel2Update(data) {
     let { ask, bid, symbol, sequence } = data;
     let market = this._level2UpdateSubs.get(symbol);
-    return {
+    let asks = ask.map(p => new Level2Point(p.price, p.size, p.count));
+    let bids = bid.map(p => new Level2Point(p.price, p.size, p.count));
+    return new Level2Update({
       exchange: "HitBTC",
       base: market.base,
       quote: market.quote,
-      sequence,
-      ask,
-      bid,
-    };
+      sequenceId: sequence,
+      asks,
+      bids,
+    });
   }
 }
 

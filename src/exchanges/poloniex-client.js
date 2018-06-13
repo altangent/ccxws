@@ -1,5 +1,8 @@
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Update = require("../level2-update");
+const Level2Snapshot = require("../level2-snapshot");
 
 class PoloniexClient extends BasicClient {
   constructor() {
@@ -10,13 +13,13 @@ class PoloniexClient extends BasicClient {
     this._subCount = {};
   }
 
-  // _sendSubscribe(remote_id) {
-  //   this._sendSubscribe(remote_id);
-  // }
+  _sendSubTrades(remote_id) {
+    this._sendSubscribe(remote_id);
+  }
 
-  // _sendUnsubscribe(remote_id) {
-  //   this._sendUnsubscribe(remote_id);
-  // }
+  _sendUnsubTrades(remote_id) {
+    this._sendUnsubscribe(remote_id);
+  }
 
   _sendSubLevel2Updates(remote_id) {
     this._sendSubscribe(remote_id);
@@ -96,9 +99,9 @@ class PoloniexClient extends BasicClient {
           if (this._level2UpdateSubs.has(this._idMap.get(id))) {
             //[171, 280657226, [["o", 0, "0.00225182", "0.00000000"], ["o", 0, "0.00225179", "860.66363984"]]]
             //[171, 280657227, [["o", 1, "0.00220001", "0.00000000"], ["o", 1, "0.00222288", "208.47334089"]]]
-            let o = { price: update[2], size: update[3] };
-            if (update[1] === 0) asks.push(o);
-            if (update[1] === 1) bids.push(o);
+            let point = new Level2Point(update[2], update[3]);
+            if (update[1] === 0) asks.push(point);
+            if (update[1] === 1) bids.push(point);
           }
           break;
         }
@@ -108,14 +111,14 @@ class PoloniexClient extends BasicClient {
     // check if we have bids/asks and construct order update message
     if (bids.length || asks.length) {
       let market = this._level2UpdateSubs.get(this._idMap.get(id));
-      let l2update = {
+      let l2update = new Level2Update({
         exchange: "Poloniex",
         base: market.base,
         quote: market.quote,
         sequenceId: seq,
         asks,
         bids,
-      };
+      });
       this.emit("l2update", l2update);
     }
   }
@@ -149,20 +152,20 @@ class PoloniexClient extends BasicClient {
     let [asksObj, bidsObj] = update.orderBook;
     let asks = [];
     let bids = [];
-    for (let ask in asksObj) {
-      asks.push({ price: ask, size: asksObj[ask] });
+    for (let price in asksObj) {
+      asks.push(new Level2Point(price, asksObj[price]));
     }
-    for (let bid in bidsObj) {
-      bids.push({ price: bid, size: bidsObj[bid] });
+    for (let price in bidsObj) {
+      bids.push(new Level2Point(price, bidsObj[price]));
     }
-    return {
+    return new Level2Snapshot({
       exchange: "Poloniex",
       base: market.base,
       quote: market.quote,
       sequenceId: seq,
       asks,
       bids,
-    };
+    });
   }
 }
 

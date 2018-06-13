@@ -1,6 +1,9 @@
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
+const Level2Update = require("../level2-update");
 
 class OKExClient extends BasicClient {
   constructor() {
@@ -23,7 +26,7 @@ class OKExClient extends BasicClient {
     }
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrades(remote_id) {
     this._sem.take(() => {
       let [base, quote] = remote_id.split("_");
       this._wss.send(
@@ -35,7 +38,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrades(remote_id) {
     let [base, quote] = remote_id.split("_");
     this._wss.send(
       JSON.stringify({
@@ -74,6 +77,15 @@ class OKExClient extends BasicClient {
         })
       );
     });
+  }
+
+  _sendUnsubLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        event: "removeChannel",
+        channel: `ok_sub_spot_${remote_id}_depth`,
+      })
+    );
   }
 
   _onMessage(raw) {
@@ -187,16 +199,16 @@ class OKExClient extends BasicClient {
     */
     let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
     let market = this._level2SnapshotSubs.get(remote_id);
-    let asks = msg.data.asks.map(p => ({ price: p[0], size: p[1] }));
-    let bids = msg.data.bids.map(p => ({ price: p[0], size: p[1] }));
-    return {
+    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
+    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+    return new Level2Snapshot({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestamp: msg.data.timestamp,
+      timestampMs: msg.data.timestamp,
       asks,
       bids,
-    };
+    });
   }
 
   _constructoL2Update(msg) {
@@ -226,16 +238,16 @@ class OKExClient extends BasicClient {
     */
     let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
     let market = this._level2UpdateSubs.get(remote_id);
-    let asks = msg.data.asks.map(p => ({ price: p[0], size: p[1] }));
-    let bids = msg.data.bids.map(p => ({ price: p[0], size: p[1] }));
-    return {
+    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
+    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+    return new Level2Update({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestamp: msg.data.timestamp,
+      timestampMs: msg.data.timestamp,
       asks,
       bids,
-    };
+    });
   }
 }
 

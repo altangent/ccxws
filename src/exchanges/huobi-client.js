@@ -2,6 +2,8 @@ const BasicClient = require("../basic-client");
 const Trade = require("../trade");
 const zlib = require("zlib");
 const winston = require("winston");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
 
 class HuobiClient extends BasicClient {
   constructor() {
@@ -16,7 +18,7 @@ class HuobiClient extends BasicClient {
     }
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         sub: `market.${remote_id}.trade.detail`,
@@ -25,7 +27,7 @@ class HuobiClient extends BasicClient {
     );
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         unsub: `market.${remote_id}.trade.detail`,
@@ -39,6 +41,14 @@ class HuobiClient extends BasicClient {
       JSON.stringify({
         sub: `market.${remote_id}.depth.step0`,
         id: "depth_" + remote_id,
+      })
+    );
+  }
+
+  _sendUnsubLevel2Snapshots(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        unsub: `market.${remote_id}.depth.step0`,
       })
     );
   }
@@ -102,16 +112,16 @@ class HuobiClient extends BasicClient {
   _constructLevel2Snapshot(remoteId, msg) {
     let { ts, tick } = msg;
     let market = this._level2SnapshotSubs.get(remoteId);
-    let bids = tick.bids.map(p => ({ price: p[0], size: p[1] }));
-    let asks = tick.asks.map(p => ({ price: p[0], size: p[1] }));
-    return {
+    let bids = tick.bids.map(p => new Level2Point(p[0], p[1]));
+    let asks = tick.asks.map(p => new Level2Point(p[0], p[1]));
+    return new Level2Snapshot({
       exchange: "Huobi",
       base: market.base,
       quote: market.quote,
-      timestamp: ts,
+      timestampMs: ts,
       asks,
       bids,
-    };
+    });
   }
 }
 

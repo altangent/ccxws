@@ -24,7 +24,7 @@ class BasicTradeClient extends EventEmitter {
     this._lastMessage = undefined;
     this._reconnectIntervalHandle = undefined;
 
-    this.hasTrades = false;
+    this.hasTrades = true;
     this.hasLevel2Spotshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Updates = false;
@@ -42,20 +42,22 @@ class BasicTradeClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
+    if (!this.hasTrades) return;
     this._subscribe(
       market,
       this._tradeSubs,
       "subscribing to trades",
-      this._sendSubscribe.bind(this)
+      this._sendSubTrades.bind(this)
     );
   }
 
   unsubscribeTrades(market) {
+    if (!this.hasTrades) return;
     this._unsubscribe(
       market,
       this._tradeSubs,
       "unsubscribing from trades",
-      this._sendUnsubscribe.bind(this)
+      this._sendUnsubTrades.bind(this)
     );
   }
 
@@ -89,7 +91,7 @@ class BasicTradeClient extends EventEmitter {
     );
   }
 
-  unsubcribeLevel2Updates(market) {
+  unsubscribeLevel2Updates(market) {
     if (!this.hasLevel2Updates) return;
     this._unsubscribe(
       market,
@@ -196,7 +198,7 @@ class BasicTradeClient extends EventEmitter {
   _onConnected() {
     this.emit("connected");
     for (let marketSymbol of this._tradeSubs.keys()) {
-      this._sendSubscribe(marketSymbol);
+      this._sendSubTrades(marketSymbol);
     }
     for (let marketSymbol of this._level2SnapshotSubs.keys()) {
       this._sendSubLevel2Snapshots(marketSymbol);
@@ -259,28 +261,33 @@ class BasicTradeClient extends EventEmitter {
   ////////////////////////////////////////////
   // ABSTRACT
 
-  /**
-   * IMPLEMENT handler for messages
-   */
+  /* istanbul ignore next */
   _onMessage() {
-    /* istanbul ignore next */
     throw new Error("not implemented");
   }
 
-  /**
-   * IMPLEMENT method that sends subscribe message
-   */
-  _sendSubscribe() {
-    /* istanbul ignore next */
+  /* istanbul ignore next */
+  _sendSubTrades() {
     throw new Error("not implemented");
   }
 
-  /**
-   * IMPLEMENT method to send unsubscribe message
-   */
+  /* istanbul ignore next */
+  _sendUnsubTrades() {
+    throw new Error("not implemented");
+  }
 
-  _sendUnsubscribe() {
-    /* istanbul ignore next */
+  /* istanbul ignore next */
+  _sendSubLevel2Snapshots() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
+  _sendSubLevel2Updates() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
+  _sendSubLevel3Updates() {
     throw new Error("not implemented");
   }
 }

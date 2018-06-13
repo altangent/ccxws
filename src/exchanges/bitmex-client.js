@@ -7,7 +7,7 @@ class BitmexClient extends BasicClient {
     super("wss://www.bitmex.com/realtime", "BitMEX");
   }
 
-  _sendSubscribe(remote_id) {
+  _sendSubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         op: "subscribe",
@@ -16,7 +16,7 @@ class BitmexClient extends BasicClient {
     );
   }
 
-  _sendUnsubscribe(remote_id) {
+  _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",

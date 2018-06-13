@@ -18,17 +18,32 @@ jest.mock("./smart-wss", () => {
   };
 });
 
-let instance = new BasicClient("wss://localhost/test", "test");
-instance.reconnectIntervalMs = 100;
-instance._onMessage = jest.fn();
-instance._sendSubscribe = jest.fn();
-instance._sendUnsubscribe = jest.fn();
+function buildInstance() {
+  let instance = new BasicClient("wss://localhost/test", "test");
+  instance.reconnectIntervalMs = 100;
+  instance.hasLevel2Spotshots = true;
+  instance.hasLevel2Updates = true;
+  instance.hasLevel3Updates = true;
+  instance._onMessage = jest.fn();
+  instance._sendSubTrades = jest.fn();
+  instance._sendUnsubTrades = jest.fn();
+  instance._sendSubLevel2Snapshots = jest.fn();
+  instance._sendUnsubLevel2Snapshots = jest.fn();
+  instance._sendSubLevel2Updates = jest.fn();
+  instance._sendUnsubLevel2Updates = jest.fn();
+  instance._sendSubLevel3Updates = jest.fn();
+  instance._sendUnsubLevel3Updates = jest.fn();
+  return instance;
+}
+
+let instance;
 
 function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 beforeAll(() => {
+  instance = buildInstance();
   instance._connect();
 });
 
@@ -40,8 +55,8 @@ describe("on first subscribe", () => {
   });
   test("it should send subscribe to the socket", () => {
     instance._wss.mockEmit("open");
-    expect(instance._sendSubscribe.mock.calls.length).toBe(1);
-    expect(instance._sendSubscribe.mock.calls[0][0]).toBe("BTCUSD");
+    expect(instance._sendSubTrades.mock.calls.length).toBe(1);
+    expect(instance._sendSubTrades.mock.calls[0][0]).toBe("BTCUSD");
   });
   test("it should start the reconnectChecker", () => {
     expect(instance._reconnectIntervalHandle).toBeDefined();
@@ -54,15 +69,15 @@ describe("on subsequent subscribes", () => {
     expect(instance._wss.connect.mock.calls.length).toBe(1);
   });
   test("it should send subscribe to the socket", () => {
-    expect(instance._sendSubscribe.mock.calls.length).toBe(2);
-    expect(instance._sendSubscribe.mock.calls[1][0]).toBe("LTCBTC");
+    expect(instance._sendSubTrades.mock.calls.length).toBe(2);
+    expect(instance._sendSubTrades.mock.calls[1][0]).toBe("LTCBTC");
   });
 });
 
 describe("on duplicate subscribe", () => {
-  test("it should send subscribe to the socket", () => {
+  test("it should not send subscribe to the socket", () => {
     instance.subscribeTrades({ id: "LTCBTC" });
-    expect(instance._sendSubscribe.mock.calls.length).toBe(2);
+    expect(instance._sendSubTrades.mock.calls.length).toBe(2);
   });
 });
 
@@ -81,24 +96,24 @@ describe("on message", () => {
 describe("on reconnect", () => {
   test("it should resubscribe to markets", () => {
     instance._wss.mockEmit("open");
-    expect(instance._sendSubscribe.mock.calls.length).toBe(4);
-    expect(instance._sendSubscribe.mock.calls[2][0]).toBe("BTCUSD");
-    expect(instance._sendSubscribe.mock.calls[3][0]).toBe("LTCBTC");
+    expect(instance._sendSubTrades.mock.calls.length).toBe(4);
+    expect(instance._sendSubTrades.mock.calls[2][0]).toBe("BTCUSD");
+    expect(instance._sendSubTrades.mock.calls[3][0]).toBe("LTCBTC");
   });
 });
 
 describe("on unsubscribe", () => {
   test("it should send unsubscribe to socket", () => {
     instance.unsubscribeTrades({ id: "LTCBTC" });
-    expect(instance._sendUnsubscribe.mock.calls.length).toBe(1);
-    expect(instance._sendUnsubscribe.mock.calls[0][0]).toBe("LTCBTC");
+    expect(instance._sendUnsubTrades.mock.calls.length).toBe(1);
+    expect(instance._sendUnsubTrades.mock.calls[0][0]).toBe("LTCBTC");
   });
 });
 
 describe("on duplicate unsubscribe", () => {
   test("it should not send unsubscribe to the socket", () => {
     instance.unsubscribeTrades({ id: "LTCBTC" });
-    expect(instance._sendUnsubscribe.mock.calls.length).toBe(1);
+    expect(instance._sendUnsubTrades.mock.calls.length).toBe(1);
   });
 });
 
@@ -147,5 +162,185 @@ describe("when already closed", () => {
   test("it should still emit closed event", done => {
     instance.on("closed", done);
     instance.close();
+  });
+});
+
+describe("level2 snapshots", () => {
+  let instance;
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance._connect();
+  });
+
+  describe("on first subscribe", () => {
+    test("it should open a connection", () => {
+      instance.subscribeLevel2Snapshots({ id: "BTCUSD" });
+      expect(instance._wss).toBeDefined();
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      instance._wss.mockEmit("open");
+      expect(instance._sendSubLevel2Snapshots.mock.calls.length).toBe(1);
+      expect(instance._sendSubLevel2Snapshots.mock.calls[0][0]).toBe("BTCUSD");
+    });
+    test("it should start the reconnectChecker", () => {
+      expect(instance._reconnectIntervalHandle).toBeDefined();
+    });
+  });
+
+  describe("on subsequent subscribes", () => {
+    test("it should not connect again", () => {
+      instance.subscribeLevel2Snapshots({ id: "LTCBTC" });
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      expect(instance._sendSubLevel2Snapshots.mock.calls.length).toBe(2);
+      expect(instance._sendSubLevel2Snapshots.mock.calls[1][0]).toBe("LTCBTC");
+    });
+  });
+
+  describe("on unsubscribe", () => {
+    test("it should send unsubscribe to socket", () => {
+      instance.unsubscribeLevel2Snapshots({ id: "LTCBTC" });
+      expect(instance._sendUnsubLevel2Snapshots.mock.calls.length).toBe(1);
+      expect(instance._sendUnsubLevel2Snapshots.mock.calls[0][0]).toBe("LTCBTC");
+    });
+  });
+});
+
+describe("level2 updates", () => {
+  let instance;
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance._connect();
+  });
+
+  describe("on first subscribe", () => {
+    test("it should open a connection", () => {
+      instance.subscribeLevel2Updates({ id: "BTCUSD" });
+      expect(instance._wss).toBeDefined();
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      instance._wss.mockEmit("open");
+      expect(instance._sendSubLevel2Updates.mock.calls.length).toBe(1);
+      expect(instance._sendSubLevel2Updates.mock.calls[0][0]).toBe("BTCUSD");
+    });
+    test("it should start the reconnectChecker", () => {
+      expect(instance._reconnectIntervalHandle).toBeDefined();
+    });
+  });
+
+  describe("on subsequent subscribes", () => {
+    test("it should not connect again", () => {
+      instance.subscribeLevel2Updates({ id: "LTCBTC" });
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      expect(instance._sendSubLevel2Updates.mock.calls.length).toBe(2);
+      expect(instance._sendSubLevel2Updates.mock.calls[1][0]).toBe("LTCBTC");
+    });
+  });
+
+  describe("on unsubscribe", () => {
+    test("it should send unsubscribe to socket", () => {
+      instance.unsubscribeLevel2Updates({ id: "LTCBTC" });
+      expect(instance._sendUnsubLevel2Updates.mock.calls.length).toBe(1);
+      expect(instance._sendUnsubLevel2Updates.mock.calls[0][0]).toBe("LTCBTC");
+    });
+  });
+});
+
+describe("level3 updates", () => {
+  let instance;
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance._connect();
+  });
+
+  describe("on first subscribe", () => {
+    test("it should open a connection", () => {
+      instance.subscribeLevel3Updates({ id: "BTCUSD" });
+      expect(instance._wss).toBeDefined();
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      instance._wss.mockEmit("open");
+      expect(instance._sendSubLevel3Updates.mock.calls.length).toBe(1);
+      expect(instance._sendSubLevel3Updates.mock.calls[0][0]).toBe("BTCUSD");
+    });
+    test("it should start the reconnectChecker", () => {
+      expect(instance._reconnectIntervalHandle).toBeDefined();
+    });
+  });
+
+  describe("on subsequent subscribes", () => {
+    test("it should not connect again", () => {
+      instance.subscribeLevel3Updates({ id: "LTCBTC" });
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      expect(instance._sendSubLevel3Updates.mock.calls.length).toBe(2);
+      expect(instance._sendSubLevel3Updates.mock.calls[1][0]).toBe("LTCBTC");
+    });
+  });
+
+  describe("on unsubscribe", () => {
+    test("it should send unsubscribe to socket", () => {
+      instance.unsubscribeLevel3Updates({ id: "LTCBTC" });
+      expect(instance._sendUnsubLevel3Updates.mock.calls.length).toBe(1);
+      expect(instance._sendUnsubLevel3Updates.mock.calls[0][0]).toBe("LTCBTC");
+    });
+  });
+});
+
+describe("neutered should no-op", () => {
+  let instance;
+  let market = { id: "BTCUSD" };
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance.hasTrades = false;
+    instance.hasLevel2Spotshots = false;
+    instance.hasLevel2Updates = false;
+    instance.hasLevel3Updates = false;
+    instance._connect();
+    instance._wss.mockEmit("open");
+  });
+
+  test("it should not send trade sub", () => {
+    instance.subscribeTrades(market);
+    expect(instance._sendSubTrades.mock.calls.length).toBe(0);
+  });
+  test("it should not send trade unsub", () => {
+    instance.unsubscribeTrades(market);
+    expect(instance._sendUnsubTrades.mock.calls.length).toBe(0);
+  });
+  test("it should not send level2 snapshot sub", () => {
+    instance.subscribeLevel2Snapshots(market);
+    expect(instance._sendSubLevel2Snapshots.mock.calls.length).toBe(0);
+  });
+  test("it should not send level2 snapshot unsub", () => {
+    instance.unsubscribeLevel2Snapshots(market);
+    expect(instance._sendUnsubLevel2Snapshots.mock.calls.length).toBe(0);
+  });
+  test("it should not send level2 update sub", () => {
+    instance.subscribeLevel2Updates(market);
+    expect(instance._sendSubLevel2Updates.mock.calls.length).toBe(0);
+  });
+  test("it should not send level2 update unsub", () => {
+    instance.unsubscribeLevel2Updates(market);
+    expect(instance._sendUnsubLevel2Updates.mock.calls.length).toBe(0);
+  });
+  test("it should not send level3 update sub", () => {
+    instance.subscribeLevel3Updates(market);
+    expect(instance._sendSubLevel3Updates.mock.calls.length).toBe(0);
+  });
+  test("it should not send level3 update unsub", () => {
+    instance.unsubscribeLevel3Updates(market);
+    expect(instance._sendUnsubLevel3Updates.mock.calls.length).toBe(0);
   });
 });

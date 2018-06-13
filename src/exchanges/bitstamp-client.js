@@ -2,6 +2,11 @@ const { EventEmitter } = require("events");
 const winston = require("winston");
 const Pusher = require("pusher-js");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
+const Level2Update = require("../level2-update");
+const Level3Point = require("../level3-point");
+const Level3Update = require("../level3-update");
 
 class BitstampClient extends EventEmitter {
   constructor() {
@@ -192,17 +197,17 @@ class BitstampClient extends EventEmitter {
     }
     */
 
-    bids = bids.map(([price, size]) => ({ price, size }));
-    asks = asks.map(([price, size]) => ({ price, size }));
+    bids = bids.map(([price, size]) => new Level2Point(price, size));
+    asks = asks.map(([price, size]) => new Level2Point(price, size));
 
-    let spot = {
+    let spot = new Level2Snapshot({
       exchange: "Bitstamp",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestampMs: timestamp * 1000,
       bids,
       asks,
-    };
+    });
 
     this.emit("l2snapshot", spot);
   }
@@ -245,17 +250,17 @@ class BitstampClient extends EventEmitter {
     }
     */
 
-    bids = bids.map(([price, size]) => ({ price, size }));
-    asks = asks.map(([price, size]) => ({ price, size }));
+    bids = bids.map(([price, size]) => new Level2Point(price, size));
+    asks = asks.map(([price, size]) => new Level2Point(price, size));
 
-    let update = {
+    let update = new Level2Update({
       exchange: "Bitstamp",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestampMs: timestamp * 1000,
       bids,
       asks,
-    };
+    });
 
     this.emit("l2update", update);
   }
@@ -287,16 +292,23 @@ class BitstampClient extends EventEmitter {
     }
     */
 
-    let update = {
+    let asks = [];
+    let bids = [];
+
+    let timestampMs = Math.trunc(msg.microtimestamp / 1000); // comes in in microseconds
+    let point = new Level3Point(msg.id, msg.price, msg.amount, { type });
+
+    if (msg.order_type === 0) bids.push(point);
+    else asks.push(point);
+
+    let update = new Level3Update({
       exchange: "Bitstamp",
       base: market.base,
       quote: market.quote,
-      type,
-      time: msg.microtimestamp,
-      order_id: msg.id,
-      price: msg.price,
-      side: msg.order_type === 0 ? "bid" : "ask",
-    };
+      timestampMs,
+      asks,
+      bids,
+    });
 
     this.emit("l3update", update);
   }
