@@ -94,7 +94,7 @@ class BitfinexClient extends BasicClient {
   _onTradeMessage(msg) {
     let [chanId, , , id, unix, price, amount] = msg;
     let remote_id = this._chanIds[chanId].pair;
-    let market = this._subscriptions.get(remote_id);
+    let market = this._tradeSubs.get(remote_id);
 
     let trade = new Trade({
       exchange: "Bitfinex",

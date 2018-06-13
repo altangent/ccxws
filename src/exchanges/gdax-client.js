@@ -76,7 +76,7 @@ class GdaxClient extends BasicClient {
 
     let { type, product_id } = msg;
 
-    if (type === "match" && this._subscriptions.has(product_id)) {
+    if (type === "match" && this._tradeSubs.has(product_id)) {
       let trade = this._constructTrade(msg);
       this.emit("trade", trade);
     }
@@ -104,7 +104,7 @@ class GdaxClient extends BasicClient {
   _constructTrade(msg) {
     let { trade_id, time, product_id, size, price, side } = msg;
 
-    let market = this._subscriptions.get(product_id);
+    let market = this._tradeSubs.get(product_id);
 
     let unix = moment.utc(time).unix();
     let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);

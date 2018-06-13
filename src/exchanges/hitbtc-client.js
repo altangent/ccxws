@@ -101,7 +101,7 @@ class HitBTCClient extends BasicClient {
   _constructTradesFromMessage(datum) {
     let { symbol, id, price, quantity, side, timestamp } = datum;
 
-    let market = this._subscriptions.get(symbol);
+    let market = this._tradeSubs.get(symbol);
 
     let unix = moment(timestamp).unix();
     let amount = side === "sell" ? -parseFloat(quantity) : parseFloat(quantity);

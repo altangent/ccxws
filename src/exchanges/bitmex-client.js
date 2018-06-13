@@ -39,7 +39,7 @@ class BitmexClient extends BasicClient {
 
   _constructTradesFromMessage(datum) {
     let { size, side, timestamp, price, trdMatchID } = datum;
-    let market = this._subscriptions.get(datum.symbol);
+    let market = this._tradeSubs.get(datum.symbol);
 
     size = side === "Sell" ? -parseFloat(size) : parseFloat(size);
     let priceNum = parseFloat(price);

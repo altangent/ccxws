@@ -143,7 +143,7 @@ class OKExClient extends BasicClient {
       type: 'deal' }]
     */
     let { amount, side, createdDate, price, id } = datum;
-    let market = this._subscriptions.get(remoteId);
+    let market = this._tradeSubs.get(remoteId);
 
     amount = side === "2" ? -parseFloat(amount) : parseFloat(amount);
     let priceNum = parseFloat(price);

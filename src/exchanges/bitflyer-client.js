@@ -43,7 +43,7 @@ class BitFlyerClient extends BasicClient {
 
   _constructTradesFromMessage(remoteId, datum) {
     let { size, side, exec_date, price, id } = datum;
-    let market = this._subscriptions.get(remoteId);
+    let market = this._tradeSubs.get(remoteId);
 
     size = side === "BUY" ? parseFloat(size) : -parseFloat(size);
     let priceNum = parseFloat(price);

@@ -85,7 +85,7 @@ class PoloniexClient extends BasicClient {
         // trade events will stream-in after we are subscribed to the channel
         // and hopefully after the info packet has been sent
         case "t": {
-          if (this._subscriptions.has(this._idMap.get(id))) {
+          if (this._tradeSubs.has(this._idMap.get(id))) {
             let trade = this._constructTradeFromMessage(id, update);
             this.emit("trade", trade);
           }
@@ -127,7 +127,7 @@ class PoloniexClient extends BasicClient {
     let remote_id = this._idMap.get(id);
     if (!remote_id) return;
 
-    let market = this._subscriptions.get(remote_id);
+    let market = this._tradeSubs.get(remote_id);
 
     let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);
     price = parseFloat(price);

@@ -15,7 +15,7 @@ class BasicTradeClient extends EventEmitter {
     super();
     this._wssPath = wssPath;
     this._name = name;
-    this._subscriptions = new Map();
+    this._tradeSubs = new Map();
     this._level2SnapshotSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._level3UpdateSubs = new Map();
@@ -44,7 +44,7 @@ class BasicTradeClient extends EventEmitter {
   subscribeTrades(market) {
     this._subscribe(
       market,
-      this._subscriptions,
+      this._tradeSubs,
       "subscribing to trades",
       this._sendSubscribe.bind(this)
     );
@@ -53,7 +53,7 @@ class BasicTradeClient extends EventEmitter {
   unsubscribeTrades(market) {
     this._unsubscribe(
       market,
-      this._subscriptions,
+      this._tradeSubs,
       "unsubscribing from trades",
       this._sendUnsubscribe.bind(this)
     );
@@ -195,7 +195,7 @@ class BasicTradeClient extends EventEmitter {
    */
   _onConnected() {
     this.emit("connected");
-    for (let marketSymbol of this._subscriptions.keys()) {
+    for (let marketSymbol of this._tradeSubs.keys()) {
       this._sendSubscribe(marketSymbol);
     }
     for (let marketSymbol of this._level2SnapshotSubs.keys()) {

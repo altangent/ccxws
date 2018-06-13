@@ -82,7 +82,7 @@ class HuobiClient extends BasicClient {
 
   _constructTradesFromMessage(remoteId, datum) {
     let { amount, direction, ts, price, id } = datum;
-    let market = this._subscriptions.get(remoteId);
+    let market = this._tradeSubs.get(remoteId);
 
     amount = direction === "sell" ? -parseFloat(amount) : parseFloat(amount);
     let priceNum = parseFloat(price);
