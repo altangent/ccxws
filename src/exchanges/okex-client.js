@@ -12,7 +12,7 @@ class OKExClient extends BasicClient {
     this.on("connected", this._resetSemaphore.bind(this));
 
     this.hasTrades = true;
-    this.hasLevel2Spotshots = true;
+    this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
   }
 

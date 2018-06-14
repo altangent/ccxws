@@ -9,7 +9,7 @@ class HuobiClient extends BasicClient {
   constructor() {
     super("wss://api.huobi.pro/ws", "Huobi");
     this.hasTrades = true;
-    this.hasLevel2Spotshots = true;
+    this.hasLevel2Snapshots = true;
   }
 
   _sendPong(ts) {

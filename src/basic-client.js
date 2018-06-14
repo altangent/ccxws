@@ -25,7 +25,7 @@ class BasicTradeClient extends EventEmitter {
     this._reconnectIntervalHandle = undefined;
 
     this.hasTrades = true;
-    this.hasLevel2Spotshots = false;
+    this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Updates = false;
   }
@@ -62,7 +62,7 @@ class BasicTradeClient extends EventEmitter {
   }
 
   subscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Spotshots) return;
+    if (!this.hasLevel2Snapshots) return;
     this._subscribe(
       market,
       this._level2SnapshotSubs,
@@ -72,7 +72,7 @@ class BasicTradeClient extends EventEmitter {
   }
 
   unsubscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Spotshots) return;
+    if (!this.hasLevel2Snapshots) return;
     this._unsubscribe(
       market,
       this._level2SnapshotSubs,

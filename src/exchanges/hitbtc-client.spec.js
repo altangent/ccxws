@@ -12,6 +12,26 @@ beforeAll(() => {
   client = new HitBTC();
 });
 
+test("it should support trades", () => {
+  expect(client.hasTrades).toBeTruthy();
+});
+
+test("it should not support level2 snapshots", () => {
+  expect(client.hasLevel2Snapshots).toBeFalsy();
+});
+
+test("it should support level2 updates", () => {
+  expect(client.hasLevel2Updates).toBeTruthy();
+});
+
+test("it should not support level3 snapshots", () => {
+  expect(client.hasLevel3Snapshots).toBeFalsy();
+});
+
+test("it should not support level3 updates", () => {
+  expect(client.hasLevel3Updates).toBeFalsy();
+});
+
 test(
   "should subscribe and emit trade events",
   done => {

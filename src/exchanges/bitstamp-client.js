@@ -16,6 +16,12 @@ class BitstampClient extends EventEmitter {
     this._level2SnapSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._level3UpdateSubs = new Map();
+
+    this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
+    this.hasLevel2Updates = true;
+    this.hasLevel3Snapshots = false;
+    this.hasLevel3Updates = true;
   }
 
   subscribeTrades(market) {
