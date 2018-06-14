@@ -21,7 +21,7 @@ jest.mock("./smart-wss", () => {
 function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test");
   instance.reconnectIntervalMs = 100;
-  instance.hasLevel2Spotshots = true;
+  instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
   instance.hasLevel3Updates = true;
   instance._onMessage = jest.fn();
@@ -304,7 +304,7 @@ describe("neutered should no-op", () => {
   beforeAll(() => {
     instance = buildInstance();
     instance.hasTrades = false;
-    instance.hasLevel2Spotshots = false;
+    instance.hasLevel2Snapshots = false;
     instance.hasLevel2Updates = false;
     instance.hasLevel3Updates = false;
     instance._connect();
