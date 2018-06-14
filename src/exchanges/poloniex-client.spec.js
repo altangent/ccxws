@@ -83,7 +83,7 @@ test(
       done();
     });
   },
-  30000
+  60000
 );
 
 test("should unsubscribe from trades", () => {
