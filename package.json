@@ -1,16 +1,16 @@
 {
   "name": "ccxws",
-  "version": "0.7.0",
-  "description": "Cryptocurrency exchange realtime feeds",
+  "version": "0.8.0",
+  "description": "Cryptocurrency exchange websocket feeds",
   "keywords": [
     "cryptocurrency",
+    "exchange",
+    "websockets",
+    "realtime",
+    "feeds",
     "bitcoin",
     "ethereum",
-    "litecoin",
-    "exchange",
-    "realtime",
-    "websockets",
-    "feeds"
+    "litecoin"
   ],
   "author": "Brian Mancini <bmancini@gmail.com>",
   "license": "MIT",

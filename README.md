@@ -125,7 +125,7 @@ The level of detail will depend on the specific exchange and may include 5/10/20
 
 This event is also fired when subscribing to the `l2update` event on many exchanges.
 
-##### 'l2update: Level2Update`
+##### `l2update: Level2Update`
 
 Fired when a orderbook level 2 update is recieved. Returns an instance of `Level2Update`.
 
