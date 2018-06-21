@@ -152,7 +152,7 @@ class GdaxClient extends BasicClient {
     let bids = [];
     changes.forEach(([side, price, size]) => {
       let point = new Level2Point(price, size);
-      if (side === "bid") bids.push(point);
+      if (side === "buy") bids.push(point);
       else asks.push(point);
     });
 
