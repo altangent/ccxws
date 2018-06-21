@@ -27,7 +27,7 @@ const binance = new ccxws.Binance();
 
 // market could be from CCXT or genearted by the user
 const market = {
-  id: "ADA_BTC", // remote_id used by the exchange
+  id: "ADABTC", // remote_id used by the exchange
   base: "ADA", // standardized base symbol for Cardano
   quote: "BTC", // standardized quote symbol for Bitcoin
 };
@@ -36,7 +36,7 @@ const market = {
 binance.on("trade", trade => console.log(trade));
 
 // handle level2 orderbook snapshots
-binance.on("l2snapshot", trade => console.log(trade));
+binance.on("l2snapshot", snapshot => console.log(snapshot));
 
 // subscribe to trades
 binance.subscribeTrades(market);
@@ -110,7 +110,7 @@ Once an event handler is attached you can start the stream using the `subscribe<
 
 ```javascript
 binance.on("trades", trade => console.log(trade));
-binance.on("l2snapshot", snapshot => console.log(trade));
+binance.on("l2snapshot", snapshot => console.log(snapshot));
 ```
 
 ##### `trade: Trade`
@@ -151,49 +151,49 @@ Unsubscribes from a trade feed for a market.
 
 \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
 
-##### `subscribeLevel2Snapshot(market): void`
+##### `subscribeLevel2Snapshots(market): void`
 
 Subscribes to the orderbook level 2 snapshot feed for a market. This method will cause the client to emit `l2snapshot` events that have a payload of the `Level2Snaphot` object.
 
 This method is a no-op for exchanges that do not support level 2 snapshot subscriptions.
 
-##### `unsubscribeLevel2Snapshot(market): void`
+##### `unsubscribeLevel2Snapshots(market): void`
 
 Unbusbscribes from the orderbook level 2 snapshot for a market.
 
 \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
 
-##### `subscribeLevel2Update(market): void`
+##### `subscribeLevel2Updates(market): void`
 
 Subscribes to the orderbook level 2 update feed for a market. This method will cause the client to emit `l2update` events that have a payload of the `Level2Update` object.
 
 This method is a no-op for exchanges that do not support level 2 snapshot subscriptions.
 
-##### `unsubscribeLevel2Update(market): void`
+##### `unsubscribeLevel2Updates(market): void`
 
 Unbusbscribes from the orderbook level 2 updates for a market.
 
 \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
 
-##### `subscribeLevel3Snapshot(market): void`
+##### `subscribeLevel3Snapshots(market): void`
 
 Subscribes to the orderbook level 3 snapshot feed for a market. This method will cause the client to emit `l3snapshot` events that have a payload of the `Level3Snaphot` object.
 
 This method is a no-op for exchanges that do not support level 2 snapshot subscriptions.
 
-##### `unsubscribeLevel3Snapshot(market): void`
+##### `unsubscribeLevel3Snapshots(market): void`
 
 Unbusbscribes from the orderbook level 3 snapshot for a market.
 
 \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
 
-##### `subscribeLevel3Update(market): void`
+##### `subscribeLevel3Updates(market): void`
 
 Subscribes to the orderbook level 3 update feed for a market. This method will cause the client to emit `l3update` events that have a payload of the `Level3Update` object.
 
 This method is a no-op for exchanges that do not support level 3 snapshot subscriptions.
 
-##### `unsubscribeLevel2Update(market): void`
+##### `unsubscribeLevel3Updates(market): void`
 
 Unbusbscribes from the orderbook level 3 updates for a market.
 
