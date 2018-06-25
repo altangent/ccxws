@@ -199,6 +199,7 @@ class GdaxClient extends BasicClient {
       case "match":
         point = new Level3Point(msg.maker_order_id.replace(/-/g, ""), msg.price, msg.size, {
           type: msg.type,
+          trade_id: msg.trade_id,
           maker_order_id: msg.maker_order_id.replace(/-/g, ""),
           taker_order_id: msg.taker_order_id.replace(/-/g, ""),
         });
