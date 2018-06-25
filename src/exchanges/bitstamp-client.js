@@ -272,7 +272,7 @@ class BitstampClient extends EventEmitter {
   }
 
   _sendSubLevel3Updates(remote_id) {
-    let channelName = remote_id === "btcusd" ? "live_orders" : `live_orders${remote_id}`;
+    let channelName = remote_id === "btcusd" ? "live_orders" : `live_orders_${remote_id}`;
     let channel = this._pusher.subscribe(channelName);
     channel.bind("order_created", this._onLevel3Update.bind(this, remote_id, "created"));
     channel.bind("order_changed", this._onLevel3Update.bind(this, remote_id, "changed"));
@@ -302,7 +302,7 @@ class BitstampClient extends EventEmitter {
     let bids = [];
 
     let timestampMs = Math.trunc(msg.microtimestamp / 1000); // comes in in microseconds
-    let point = new Level3Point(msg.id, msg.price, msg.amount, { type });
+    let point = new Level3Point(msg.id, msg.price.toFixed(8), msg.amount.toFixed(8), { type });
 
     if (msg.order_type === 0) bids.push(point);
     else asks.push(point);
