@@ -130,6 +130,7 @@ test(
             hasMatch = true;
             expect(parseFloat(point.price)).toBeGreaterThan(0);
             expect(parseFloat(point.size)).toBeGreaterThan(0);
+            expect(point.meta.trade_id).toBeGreaterThan(0);
             expect(point.meta.maker_order_id).toMatch(/[a-f0-9]{16,16}/);
             expect(point.meta.taker_order_id).toMatch(/[a-f0-9]{16,16}/);
             break;
