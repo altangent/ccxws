@@ -72,9 +72,7 @@ class HuobiClient extends BasicClient {
 
       // trades
       if (msgs.ch.endsWith("trade.detail")) {
-        msgs = JSON.parse(resp.toString().replace(/([0-9]{1,}\.{0,1}[0-9]{0,})/g, '"$1"'));
-
-        console.log(JSON.stringify(msgs));
+        msgs = JSON.parse(resp.toString().replace(/:([0-9]{1,}\.{0,1}[0-9]{0,}),/g, ':"$1",'));
 
         let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
         for (let datum of msgs.tick.data) {
