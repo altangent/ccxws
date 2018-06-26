@@ -72,6 +72,10 @@ class HuobiClient extends BasicClient {
 
       // trades
       if (msgs.ch.endsWith("trade.detail")) {
+        msgs = JSON.parse(resp.toString().replace(/([0-9]{1,}\.{0,1}[0-9]{0,})/g, '"$1"'));
+
+        console.log(JSON.stringify(msgs));
+
         let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
         for (let datum of msgs.tick.data) {
           let trade = this._constructTradesFromMessage(remoteId, datum);
@@ -96,7 +100,7 @@ class HuobiClient extends BasicClient {
 
     amount = direction === "sell" ? -parseFloat(amount) : parseFloat(amount);
     let priceNum = parseFloat(price);
-    let unix = Math.floor(ts / 1000);
+    let unix = Math.trunc(parseInt(ts) / 1000);
 
     return new Trade({
       exchange: "Huobi",

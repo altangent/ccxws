@@ -41,7 +41,7 @@ test(
       expect(trade.exchange).toMatch("Huobi");
       expect(trade.base).toMatch("BTC");
       expect(trade.quote).toMatch("USDT");
-      expect(trade.tradeId).toBeGreaterThan(0);
+      expect(trade.tradeId).toMatch(/[0-9]{1,}/);
       expect(trade.unix).toBeGreaterThan(1522540800);
       expect(trade.price).toBeGreaterThan(0);
       expect(trade.amount).toBeDefined();
