@@ -45,6 +45,9 @@ test(
       expect(trade.unix).toBeGreaterThan(1522540800);
       expect(trade.price).toBeGreaterThan(0);
       expect(trade.amount).toBeDefined();
+      expect(trade.buyOrderId).toMatch(/^[0-9a-f]{32,32}$/);
+      expect(trade.sellOrderId).toMatch(/^[0-9a-f]{32,32}$/);
+      expect(trade.buyOrderId).not.toEqual(trade.sellOrderId);
       done();
     });
   },
@@ -100,7 +103,7 @@ test(
         expect(update.sequenceId).toBeGreaterThan(0);
         expect(update.timestampMs).toBeGreaterThan(0);
         point = update.asks[0] || update.bids[0];
-        expect(point.orderId).toMatch(/[a-f0-9]{16,16}/);
+        expect(point.orderId).toMatch(/^[a-f0-9]{32,32}$/);
 
         switch (point.meta.type) {
           case "received":
@@ -131,8 +134,8 @@ test(
             expect(parseFloat(point.price)).toBeGreaterThan(0);
             expect(parseFloat(point.size)).toBeGreaterThan(0);
             expect(point.meta.trade_id).toBeGreaterThan(0);
-            expect(point.meta.maker_order_id).toMatch(/[a-f0-9]{16,16}/);
-            expect(point.meta.taker_order_id).toMatch(/[a-f0-9]{16,16}/);
+            expect(point.meta.maker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
+            expect(point.meta.taker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
             break;
         }
 

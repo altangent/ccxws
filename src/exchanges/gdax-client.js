@@ -107,13 +107,19 @@ class GdaxClient extends BasicClient {
   }
 
   _constructTrade(msg) {
-    let { trade_id, time, product_id, size, price, side } = msg;
+    let { trade_id, time, product_id, size, price, side, maker_order_id, taker_order_id } = msg;
 
     let market = this._tradeSubs.get(product_id);
 
     let unix = moment.utc(time).unix();
     let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);
     let priceNum = parseFloat(price);
+
+    maker_order_id = maker_order_id.replace(/-/g, "");
+    taker_order_id = taker_order_id.replace(/-/g, "");
+
+    let buyOrderId = side === "buy" ? maker_order_id : taker_order_id;
+    let sellOrderId = side === "sell" ? maker_order_id : taker_order_id;
 
     return new Trade({
       exchange: "GDAX",
@@ -123,6 +129,8 @@ class GdaxClient extends BasicClient {
       unix,
       price: priceNum,
       amount,
+      buyOrderId,
+      sellOrderId,
     });
   }
 

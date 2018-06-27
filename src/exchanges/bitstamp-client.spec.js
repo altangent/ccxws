@@ -45,6 +45,8 @@ test(
       expect(trade.unix).toBeGreaterThan(1522540800);
       expect(trade.price).toBeGreaterThan(0);
       expect(trade.amount).toBeDefined();
+      expect(trade.buyOrderId).toBeGreaterThan(0);
+      expect(trade.sellOrderId).toBeGreaterThan(0);
       done();
     });
   },

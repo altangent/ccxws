@@ -1,5 +1,5 @@
 class Trade {
-  constructor({ exchange, base, quote, tradeId, unix, price, amount }) {
+  constructor({ exchange, base, quote, tradeId, unix, price, amount, buyOrderId, sellOrderId }) {
     this.exchange = exchange;
     this.quote = quote;
     this.base = base;
@@ -7,6 +7,8 @@ class Trade {
     this.unix = unix;
     this.price = price;
     this.amount = amount;
+    this.buyOrderId = buyOrderId;
+    this.sellOrderId = sellOrderId;
   }
 
   get marketId() {

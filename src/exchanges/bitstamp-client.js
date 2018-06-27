@@ -165,6 +165,8 @@ class BitstampClient extends EventEmitter {
       unix: parseInt(msg.timestamp),
       price: msg.price,
       amount: msg.type === 1 ? -msg.amount : msg.amount,
+      buyOrderId: msg.buy_order_id,
+      sellOrderId: msg.sell_order_id,
     });
     this.emit("trade", trade);
   }
