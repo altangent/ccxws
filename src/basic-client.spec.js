@@ -20,7 +20,7 @@ jest.mock("./smart-wss", () => {
 
 function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test");
-  instance.reconnectIntervalMs = 100;
+  instance._watcher.intervalMs = 100;
   instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
   instance.hasLevel3Updates = true;
@@ -33,6 +33,9 @@ function buildInstance() {
   instance._sendUnsubLevel2Updates = jest.fn();
   instance._sendSubLevel3Updates = jest.fn();
   instance._sendUnsubLevel3Updates = jest.fn();
+
+  jest.spyOn(instance._watcher, "start");
+  jest.spyOn(instance._watcher, "stop");
   return instance;
 }
 
@@ -58,8 +61,8 @@ describe("on first subscribe", () => {
     expect(instance._sendSubTrades.mock.calls.length).toBe(1);
     expect(instance._sendSubTrades.mock.calls[0][0]).toBe("BTCUSD");
   });
-  test("it should start the reconnectChecker", () => {
-    expect(instance._reconnectIntervalHandle).toBeDefined();
+  test("it should start the watcher", () => {
+    expect(instance._watcher.start).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -87,9 +90,6 @@ describe("on message", () => {
   });
   test("it should call on message", () => {
     expect(instance._onMessage.mock.calls[0][0]).toBe("test");
-  });
-  test("it should update to the current time", () => {
-    expect(instance._lastMessage).toBeGreaterThan(1527261103838);
   });
 });
 
@@ -125,7 +125,8 @@ describe("when no messages received", () => {
     originalWss = instance._wss;
     instance.on("closed", closedEvent);
     instance.on("reconnected", reconnectedEvent);
-    await wait(150);
+    instance.emit("trade"); // triggers the connection watcher
+    await wait(300);
   });
   test("it should close the connection", () => {
     expect(originalWss.close.mock.calls.length).toBe(1);
@@ -142,19 +143,27 @@ describe("when no messages received", () => {
   });
 });
 
-describe("when connected", () => {
+describe("when connected, on disconnect", () => {
   test("disconnect event should fire if the underlying socket closes", done => {
+    instance._watcher.stop.mockClear();
     instance.on("disconnected", done);
     instance._wss.mockEmit("disconnected");
   });
 
+  test("close should stop the reconnection checker", () => {
+    expect(instance._watcher.stop).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("when connected, stop", () => {
   test("close should emit closed event", done => {
+    instance._watcher.stop.mockClear();
     instance.on("closed", done);
     instance.close();
   });
 
-  test(" should stop the reconnection checker", () => {
-    expect(instance._reconnectIntervalHandle).toBeUndefined();
+  test("close should stop the reconnection checker", () => {
+    expect(instance._watcher.stop).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -185,7 +194,7 @@ describe("level2 snapshots", () => {
       expect(instance._sendSubLevel2Snapshots.mock.calls[0][0]).toBe("BTCUSD");
     });
     test("it should start the reconnectChecker", () => {
-      expect(instance._reconnectIntervalHandle).toBeDefined();
+      expect(instance._watcher.start).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -229,7 +238,7 @@ describe("level2 updates", () => {
       expect(instance._sendSubLevel2Updates.mock.calls[0][0]).toBe("BTCUSD");
     });
     test("it should start the reconnectChecker", () => {
-      expect(instance._reconnectIntervalHandle).toBeDefined();
+      expect(instance._watcher.start).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -273,7 +282,7 @@ describe("level3 updates", () => {
       expect(instance._sendSubLevel3Updates.mock.calls[0][0]).toBe("BTCUSD");
     });
     test("it should start the reconnectChecker", () => {
-      expect(instance._reconnectIntervalHandle).toBeDefined();
+      expect(instance._watcher.start).toHaveBeenCalledTimes(1);
     });
   });
 
