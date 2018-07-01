@@ -10,6 +10,10 @@ class PoloniexClient extends BasicClient {
     this._idMap = new Map();
     this.hasTrades = true;
     this.hasLevel2Updates = true;
+    this.on("connected", this._resetSubCount.bind(this));
+  }
+
+  _resetSubCount() {
     this._subCount = {};
   }
 
