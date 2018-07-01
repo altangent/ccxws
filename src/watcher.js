@@ -47,7 +47,7 @@ class Watcher {
    * date to the last receieved message date
    */
   _onCheck() {
-    if (this._lastMessage < Date.now() - this.intervalMs) {
+    if (!this._lastMessage || this._lastMessage < Date.now() - this.intervalMs) {
       this.client.reconnect();
       this.stop();
     }

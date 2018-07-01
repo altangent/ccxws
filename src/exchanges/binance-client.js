@@ -6,6 +6,7 @@ const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
+const Watcher = require("../watcher");
 
 class BinanceClient extends EventEmitter {
   constructor() {
@@ -22,6 +23,8 @@ class BinanceClient extends EventEmitter {
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
+
+    this._watcher = new Watcher(this, 30000);
   }
 
   //////////////////////////////////////////////
@@ -48,6 +51,12 @@ class BinanceClient extends EventEmitter {
 
   unsubscribeLevel2Updates(market) {
     this._unsubscribe(market, "unsubscribing from l2 updates", this._level2UpdateSubs);
+  }
+
+  reconnect() {
+    winston.info("reconnecting");
+    this._reconnect();
+    this.emit("reconnected");
   }
 
   close() {
@@ -113,13 +122,24 @@ class BinanceClient extends EventEmitter {
 
       this._wss = new SmartWss(wssPath);
       this._wss.on("message", this._onMessage.bind(this));
-      this._wss.on("disconnected", () => this.emit("disconnected"));
+      this._wss.on("open", this._onConnected.bind(this));
+      this._wss.on("disconnected", this._onDisconnected.bind(this));
       this._wss.connect();
     }
   }
 
   ////////////////////////////////////////////
   // ABSTRACT
+
+  _onConnected() {
+    this._watcher.start();
+    this.emit("connected");
+  }
+
+  _onDisconnected() {
+    this._watcher.stop();
+    this.emit("disconnected");
+  }
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
