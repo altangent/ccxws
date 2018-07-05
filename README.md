@@ -54,7 +54,7 @@ binance.subscribeLevel2Snapshots(market);
 | bitFlyer | Bitflyer | Support |                |               |                |               |
 | BitMEX   | BitMEX   | Support |                |               |                |               |
 | Bitstamp | Bitstamp | Support | Support        | Support       | N/A            | Support       |
-| Bittrex  | Bittrex  | Support |                |               |                |               |
+| Bittrex  | Bittrex  | Support | N/A            | Support       | N/A            | N/A           |
 | GDAX     | GDAX     | Support | N/A            | Support\*     | N/A            | Support       |
 | Gemini   | Gemini   | Support |                |               |                |               |
 | HitBTC   | HitBTC   | Support | N/A            | Support\*     | N/A            | N/A           |
@@ -64,8 +64,7 @@ binance.subscribeLevel2Snapshots(market);
 
 Notes:
 
-* OB-L2 Support\*: Broadcasts a snapshot event at startup
-* OB-L3 Support\*: Broadcasts a snapshot event at startup
+* Support\*: Broadcasts a snapshot event at startup
 
 ## Definitions
 

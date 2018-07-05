@@ -4,8 +4,10 @@ const winston = require("winston");
 const moment = require("moment");
 const cloudscraper = require("cloudscraper");
 const signalr = require("signalr-client");
-const Trade = require("../trade");
 const Watcher = require("../watcher");
+const Trade = require("../trade");
+const Level2Update = require("../level2-update");
+const Level2Point = require("../level2-point");
 
 class BittrexClient extends EventEmitter {
   constructor() {
@@ -13,11 +15,12 @@ class BittrexClient extends EventEmitter {
     this._retryTimeoutMs = 15000;
     this._cloudflare; // placeholder for information from cloudflare
     this._tradeSubs = new Map();
+    this._level2UpdateSubs = new Map();
     this._watcher = new Watcher(this);
 
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
-    this.hasLevel2Updates = false;
+    this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
   }
@@ -42,40 +45,75 @@ class BittrexClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
-    this._connect();
-    let remote_id = market.id;
+    this._subscribe(market, this._tradeSubs, "subscribing to trades");
+  }
 
-    if (!this._tradeSubs.has(remote_id)) {
-      winston.info("subscribing to trades", "Bittrex", remote_id);
-      this._tradeSubs.set(remote_id, market);
-
-      if (this._wss) {
-        this._sendSubTrades(remote_id);
-      }
-    }
+  subscribeLevel2Updates(market) {
+    this._subscribe(market, this._level2UpdateSubs, "subscribing to level2 updates");
   }
 
   unsubscribeTrades(market) {
+    this._unsubscribe(market, this._tradeSubs, "unsubscribing from trades");
+  }
+
+  unsubscribeLevel2Updates(market) {
+    this._unsubscribe(market, this._level2UpdateSubs, "unsubscribing from level2 updates");
+  }
+
+  ////////////////////////////////////
+  // PROTECTED
+
+  _resetSubCount() {
+    this._subCount = {};
+  }
+
+  _subscribe(market, map, msg) {
+    this._connect();
     let remote_id = market.id;
-    if (this._tradeSubs.has(remote_id)) {
-      winston.info("unsubscribing from", "Bittrex", remote_id);
-      this._tradeSubs.delete(remote_id);
+
+    if (!map.has(remote_id)) {
+      winston.info(msg, "Bittrex", remote_id);
+      map.set(remote_id, market);
 
       if (this._wss) {
-        this._sendUnSubTrades(remote_id);
+        this._sendSub(remote_id);
       }
     }
   }
 
-  ////////////////////////////////////
+  _unsubscribe(market, map, msg) {
+    let remote_id = market.id;
+    if (map.has(remote_id)) {
+      winston.info(msg, "Bittrex", remote_id);
+      map.delete(remote_id);
 
-  _sendSubTrades(remote_id) {
+      if (this._wss) {
+        this._sendUnsub(remote_id);
+      }
+    }
+  }
+
+  _sendSub(remote_id) {
+    // increment market counter
+    this._subCount[remote_id] = (this._subCount[remote_id] || 0) + 1;
+
+    // if we have more than one sub, ignore the request as we're already subbed
+    if (this._subCount[remote_id] > 1) return;
+
+    // otherwise initiate the subscription
     this._wss.call("CoreHub", "SubscribeToExchangeDeltas", remote_id).done(err => {
       if (err) winston.error("subscribe failed", remote_id);
     });
   }
 
-  _sendUnSubTrades(remote_id) {
+  _sendUnsub(remote_id) {
+    // decrement market count
+    this._subCount[remote_id] -= 1;
+
+    // if we still have subs, then leave channel open
+    if (this._subCount[remote_id]) return;
+
+    // otherwise initiate the unsubscription
     this._wss.call("CoreHub", "UnsubscribeToExchangeDeltas", remote_id).done(err => {
       if (err) winston.error("ussubscribe failed", remote_id);
     });
@@ -134,9 +172,13 @@ class BittrexClient extends EventEmitter {
     winston.info("connected to wss://socket.bittrex.com/signalr");
     clearTimeout(this._reconnectHandle);
     this.emit("connected");
+    this._subCount = {};
     this._watcher.start();
     for (let marketSymbol of this._tradeSubs.keys()) {
-      this._sendSubTrades(marketSymbol);
+      this._sendSub(marketSymbol);
+    }
+    for (let marketSymbol of this._level2UpdateSubs.keys()) {
+      this._sendSub(marketSymbol);
     }
   }
 
@@ -159,10 +201,16 @@ class BittrexClient extends EventEmitter {
     for (let msg of raw.M) {
       if (msg.M === "updateExchangeState") {
         msg.A.forEach(data => {
-          data.Fills.forEach(fill => {
-            let trade = this._constructTradeFromMessage(fill, data.MarketName);
-            this.emit("trade", trade);
-          });
+          if (this._tradeSubs.has(data.MarketName)) {
+            data.Fills.forEach(fill => {
+              let trade = this._constructTradeFromMessage(fill, data.MarketName);
+              this.emit("trade", trade);
+            });
+          }
+          if (this._level2UpdateSubs.has(data.MarketName)) {
+            let l2update = this._constructLevel2Update(data);
+            this.emit("l2update", l2update);
+          }
         });
       }
     }
@@ -174,7 +222,6 @@ class BittrexClient extends EventEmitter {
     let unix = moment.utc(msg.TimeStamp).unix();
     let price = parseFloat(msg.Rate);
     let amount = msg.OrderType === "BUY" ? parseFloat(msg.Quantity) : -parseFloat(msg.Quantity);
-
     return new Trade({
       exchange: "Bittrex",
       base: market.base,
@@ -183,6 +230,22 @@ class BittrexClient extends EventEmitter {
       unix,
       price,
       amount,
+    });
+  }
+
+  // prettier-ignore
+  _constructLevel2Update(msg) {
+    let market = this._level2UpdateSubs.get(msg.MarketName);
+    let sequenceId = msg.Nounce;
+    let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
+    let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
+    return new Level2Update({
+      exchange: "Bittrex",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      asks,
+      bids,
     });
   }
 
