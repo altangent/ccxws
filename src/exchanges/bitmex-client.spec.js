@@ -21,6 +21,7 @@ test(
       expect(trade.exchange).toMatch("BitMEX");
       expect(trade.base).toMatch("XBT");
       expect(trade.quote).toMatch("USDT");
+      expect(trade.tradeId).toMatch(/^[a-f0-9]{32,32}$/);
       expect(trade.unix).toBeGreaterThan(1522540800);
       expect(trade.price).toBeGreaterThan(0);
       expect(trade.amount).toBeDefined();

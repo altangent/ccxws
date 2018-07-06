@@ -49,7 +49,7 @@ class BitmexClient extends BasicClient {
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
-      tradeId: trdMatchID,
+      tradeId: trdMatchID.replace(/-/g, ""),
       unix,
       price: priceNum,
       amount: size,
