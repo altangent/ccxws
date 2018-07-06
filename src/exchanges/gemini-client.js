@@ -1,6 +1,9 @@
 const { EventEmitter } = require("events");
 const Trade = require("../trade");
 const Auction = require("../auction");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
+const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
 const winston = require("winston");
 
@@ -9,35 +12,29 @@ class GeminiClient extends EventEmitter {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
-    this._reconnectDebounce = undefined;
     this.reconnectIntervalMs = 90000;
+
+    this.hasTrades = true;
+    this.hasLevel2Snapshots = false;
+    this.hasLevel2Updates = true;
+    this.hasLevel3Snapshots = false;
+    this.hasLevel3Updates = false;
   }
 
   subscribeTrades(market) {
-    let remoteId = market.id.toLowerCase();
-    if (!this._subscriptions.has(remoteId)) {
-      winston.info("subscribing to", this._name, remoteId);
-
-      let subscription = {
-        market,
-        wss: this._connect(remoteId),
-        lastMessage: undefined,
-        reconnectIntervalHandle: undefined,
-        remoteId: remoteId,
-      };
-
-      this._startReconnectWatcher(subscription);
-      this._subscriptions.set(remoteId, subscription);
-    }
+    this._subscribe(market, "trades");
   }
 
   unsubscribeTrades(market) {
-    let remoteId = market.id.toLowerCase();
-    if (this._subscriptions.has(remoteId)) {
-      winston.info("unsubscribing from", this._name, remoteId);
-      this._close(this._subscriptions.get(remoteId));
-      this._subscriptions.delete(remoteId);
-    }
+    this._unsubscribe(market, "trades");
+  }
+
+  subscribeLevel2Updates(market) {
+    this._subscribe(market, "level2updates");
+  }
+
+  unsubscribeLevel2Updates(market) {
+    this._unsubscribe(market, "level2updates");
   }
 
   close() {
@@ -46,6 +43,75 @@ class GeminiClient extends EventEmitter {
 
   ////////////////////////////////////////////
   // PROTECTED
+
+  _subscribe(market, mode) {
+    let remote_id = market.id.toLowerCase();
+    let subscription = this._subscriptions.get(remote_id);
+
+    if (subscription && subscription[mode]) return;
+
+    winston.info("subscribing to " + mode, this._name, remote_id);
+
+    if (!subscription) {
+      subscription = {
+        market,
+        wss: this._connect(remote_id),
+        lastMessage: undefined,
+        reconnectIntervalHandle: undefined,
+        remoteId: remote_id,
+        trades: false,
+        level2Updates: false,
+      };
+
+      this._startReconnectWatcher(subscription);
+      this._subscriptions.set(remote_id, subscription);
+    }
+
+    subscription[mode] = true;
+  }
+
+  _unsubscribe(market, mode) {
+    let remote_id = market.id.toLowerCase();
+    let subscription = this._subscriptions.get(remote_id);
+
+    if (!subscription) return;
+
+    winston.info("unsubscribing from " + mode, this._name, remote_id);
+
+    subscription[mode] = false;
+    if (!subscription.trades && !subscription.level2updates) {
+      this._close(this._subscriptions.get(remote_id));
+      this._subscriptions.delete(remote_id);
+    }
+  }
+
+  /** Connect to the websocket stream by constructing a path from
+   * the subscribed markets.
+   */
+  _connect(remote_id) {
+    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id;
+    let wss = new SmartWss(wssPath);
+    wss.on("open", () => this._onConnected(remote_id));
+    wss.on("message", raw => this._onMessage(remote_id, raw));
+    wss.on("disconnected", () => this._onDisconnected(remote_id));
+    wss.connect();
+    return wss;
+  }
+
+  /**
+   * Fires when connected
+   */
+  _onConnected(remote_id) {
+    this._startReconnectWatcher(this._subscriptions.get(remote_id));
+  }
+
+  /**
+   * Fires when there is a disconnection event
+   */
+  _onDisconnected(remote_id) {
+    this._stopReconnectWatcher(this._subscriptions.get(remote_id));
+    this.emit("disconnected", remote_id);
+  }
 
   /**
    * Close the underlying connction, which provides a way to reset the things
@@ -65,19 +131,88 @@ class GeminiClient extends EventEmitter {
     }
   }
 
-  /** Connect to the websocket stream by constructing a path from
-   * the subscribed markets.
+  /**
+   * Reconnects the socket
    */
-  _connect(stream) {
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + stream;
-    let wss = new SmartWss(wssPath);
-    wss.on("message", raw => this._onMessage(stream, raw));
-    wss.on("disconnected", () => {
-      this._stopReconnectWatcher(this._subscriptions.get(stream));
-      this.emit("disconnected", stream);
-    });
-    wss.connect();
-    return wss;
+  _reconnect(subscription) {
+    this._close(subscription.wss);
+    subscription.wss = this._connect(subscription.remoteId);
+    this.emit("reconnected", subscription.remoteId);
+  }
+
+  /**
+   * Starts an interval to check if a reconnction is required
+   */
+  _startReconnectWatcher(subscription) {
+    this._stopReconnectWatcher(subscription); // always clear the prior interval
+    subscription.reconnectIntervalHandle = setInterval(
+      () => this._onReconnectCheck(subscription),
+      this.reconnectIntervalMs
+    );
+  }
+
+  /**
+   * Stops an interval to check if a reconnection is required
+   */
+  _stopReconnectWatcher(subscription) {
+    clearInterval(subscription.reconnectIntervalHandle);
+    subscription.reconnectIntervalHandle = undefined;
+  }
+
+  /**
+   * Checks if a reconnecton is required by comparing the current
+   * date to the last receieved message date
+   */
+  _onReconnectCheck(subscription) {
+    if (subscription.lastMessage < Date.now() - this.reconnectIntervalMs) {
+      this._reconnect(subscription);
+    }
+  }
+
+  ////////////////////////////////////////////
+  // ABSTRACT
+
+  _onMessage(remote_id, raw) {
+    let msg = JSON.parse(raw);
+    let subscription = this._subscriptions.get(remote_id);
+    let market = subscription.market;
+    subscription.lastMessage = Date.now();
+
+    if (!market) return;
+
+    if (msg.type === "update") {
+      let { timestamp, timestampms, eventId, socket_sequence } = msg;
+
+      // process trades
+      if (subscription.trades) {
+        let events = msg.events.filter(p => p.type === "trade");
+        for (let event of events) {
+          let trade = this._constructTrade(event, market, timestamp);
+          if (trade instanceof Trade) this.emit("trade", trade);
+          else if (trade instanceof Auction) this.emit("auction", trade);
+        }
+      }
+
+      // process l2 updates
+      if (subscription.level2updates) {
+        let updates = msg.events.filter(p => p.type === "change");
+        if (socket_sequence === 0) {
+          let snapshot = this._constructL2Snapshot(updates, market, eventId);
+          this.emit("l2snapshot", snapshot);
+        } else {
+          let update = this._constructL2Update(updates, market, eventId, timestampms);
+          this.emit("l2update", update);
+        }
+      }
+    }
+  }
+
+  _constructTrade(event, market, timestamp) {
+    if (event.makerSide === "auction") {
+      return this._formatAuction(event, market, timestamp);
+    } else {
+      return this._formatTrade(event, market, timestamp);
+    }
   }
 
   _formatTrade(event, market, timestamp) {
@@ -113,67 +248,45 @@ class GeminiClient extends EventEmitter {
     });
   }
 
-  /**
-   * Starts an interval to check if a reconnction is required
-   */
-  _startReconnectWatcher(subscription) {
-    this._stopReconnectWatcher(subscription); // always clear the prior interval
-    subscription.reconnectIntervalHandle = setInterval(
-      () => this._onReconnectCheck(subscription),
-      this.reconnectIntervalMs
-    );
-  }
+  _constructL2Snapshot(events, market, sequenceId) {
+    let asks = [];
+    let bids = [];
 
-  /**
-   * Stops an interval to check if a reconnection is required
-   */
-  _stopReconnectWatcher(subscription) {
-    clearInterval(subscription.reconnectIntervalHandle);
-    subscription.reconnectIntervalHandle = undefined;
-  }
-
-  /**
-   * Checks if a reconnecton is required by comparing the current
-   * date to the last receieved message date
-   */
-  _onReconnectCheck(subscription) {
-    if (subscription.lastMessage < Date.now() - this.reconnectIntervalMs) {
-      this._reconnect(subscription);
+    for (let { side, price, remaining, reason, delta } of events) {
+      let update = new Level2Point(price, remaining, undefined, { reason, delta });
+      if (side === "ask") asks.push(update);
+      else bids.push(update);
     }
+
+    return new Level2Snapshot({
+      exchange: "Gemini",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      asks,
+      bids,
+    });
   }
 
-  /**
-   * Reconnects the socket
-   */
-  _reconnect(subscription) {
-    this._close(subscription.wss);
-    subscription.wss = this._connect(subscription.remoteId);
-    this.emit("reconnected", subscription.remoteId);
-  }
+  _constructL2Update(events, market, sequenceId, timestampMs) {
+    let asks = [];
+    let bids = [];
 
-  ////////////////////////////////////////////
-  // ABSTRACT
+    for (let { side, price, remaining, reason, delta } of events) {
+      let update = new Level2Point(price, remaining, undefined, { reason, delta });
+      if (side === "ask") asks.push(update);
+      else bids.push(update);
+    }
 
-  _onMessage(stream, raw) {
-    let msg = JSON.parse(raw);
-    let subscription = this._subscriptions.get(stream);
-    subscription.lastMessage = msg.timestampms;
-    let trades = this._constructTradeFromMessage(msg, stream);
-    trades.map(trade => this.emit(trade.constructor.name.toLowerCase(), trade));
-  }
-
-  _constructTradeFromMessage(data, stream) {
-    if (data.type !== "update") return;
-    let tradeTransformer = event => {
-      if (event.type !== "trade") return undefined;
-      let market = this._subscriptions.get(stream).market;
-
-      if (event.makerSide === "auction") return this._formatAuction(data, market);
-      return this._formatTrade(event, market, data.timestamp);
-    };
-
-    let trades = data.events.map(tradeTransformer).filter(x => x !== undefined);
-    return trades;
+    return new Level2Update({
+      exchange: "Gemini",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      timestampMs,
+      asks,
+      bids,
+    });
   }
 }
 

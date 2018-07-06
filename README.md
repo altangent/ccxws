@@ -56,7 +56,7 @@ binance.subscribeLevel2Snapshots(market);
 | Bitstamp | Bitstamp | Support | Support        | Support       | N/A            | Support       |
 | Bittrex  | Bittrex  | Support | N/A            | Support       | N/A            | N/A           |
 | GDAX     | GDAX     | Support | N/A            | Support\*     | N/A            | Support       |
-| Gemini   | Gemini   | Support |                |               |                |               |
+| Gemini   | Gemini   | Support | N/A            | Support\*     | N/A            | N/A           |
 | HitBTC   | HitBTC   | Support | N/A            | Support\*     | N/A            | N/A           |
 | Huobi    | Huobi    | Support | Support        | N/A           | N/A            | N/A           |
 | OKEx     | OKEx     | Support | Support        | Support       | N/A            | N/A           |
