@@ -6,6 +6,7 @@ const cloudscraper = require("cloudscraper");
 const signalr = require("signalr-client");
 const Watcher = require("../watcher");
 const Trade = require("../trade");
+const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const Level2Point = require("../level2-point");
 
@@ -100,7 +101,15 @@ class BittrexClient extends EventEmitter {
     // if we have more than one sub, ignore the request as we're already subbed
     if (this._subCount[remote_id] > 1) return;
 
-    // otherwise initiate the subscription
+    // initiate snapshot request
+    this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
+      if (err) winston.error("snapshot failed", remote_id);
+      result.MarketName = remote_id;
+      let snapshot = this._constructLevel2Snapshot(result);
+      this.emit("l2snapshot", snapshot);
+    });
+
+    // initiate the subscription
     this._wss.call("CoreHub", "SubscribeToExchangeDeltas", remote_id).done(err => {
       if (err) winston.error("subscribe failed", remote_id);
     });
@@ -230,6 +239,22 @@ class BittrexClient extends EventEmitter {
       unix,
       price,
       amount,
+    });
+  }
+
+  // prettier-ignore
+  _constructLevel2Snapshot(msg) {
+    let market = this._level2UpdateSubs.get(msg.MarketName);
+    let sequenceId = msg.Nounce;
+    let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
+    let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
+    return new Level2Snapshot({
+      exchange: "Bittrex",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      asks,
+      bids,
     });
   }
 

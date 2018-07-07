@@ -54,7 +54,7 @@ binance.subscribeLevel2Snapshots(market);
 | bitFlyer | bitflyer | Support | -              | Support       | -              | -             |
 | BitMEX   | bitmex   | Support | -              | Support\*     | -              | -             |
 | Bitstamp | bitstamp | Support | Support        | Support       | -              | Support       |
-| Bittrex  | bittrex  | Support | -              | Support       | -              | -             |
+| Bittrex  | bittrex  | Support | -              | Support\*     | -              | -             |
 | GDAX     | gdax     | Support | -              | Support\*     | -              | Support       |
 | Gemini   | gemini   | Support | -              | Support\*     | -              | -             |
 | HitBTC   | hitbtc   | Support | -              | Support\*     | -              | -             |
