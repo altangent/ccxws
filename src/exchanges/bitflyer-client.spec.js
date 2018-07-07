@@ -37,8 +37,8 @@ test(
   done => {
     client.subscribeTrades(market);
     client.on("trade", trade => {
-      expect(trade.fullId).toMatch("BitFlyer:BTC/JPY");
-      expect(trade.exchange).toMatch("BitFlyer");
+      expect(trade.fullId).toMatch("bitFlyer:BTC/JPY");
+      expect(trade.exchange).toMatch("bitFlyer");
       expect(trade.base).toMatch("BTC");
       expect(trade.quote).toMatch("JPY");
       expect(trade.tradeId).toBeGreaterThan(0);
@@ -54,8 +54,8 @@ test(
 test("should subscribe and emit level2 updates", done => {
   client.subscribeLevel2Updates(market);
   client.on("l2update", update => {
-    expect(update.fullId).toMatch("BitFlyer:BTC/JPY");
-    expect(update.exchange).toMatch("BitFlyer");
+    expect(update.fullId).toMatch("bitFlyer:BTC/JPY");
+    expect(update.exchange).toMatch("bitFlyer");
     expect(update.base).toMatch("BTC");
     expect(update.quote).toMatch("JPY");
     expect(update.sequenceId).toBeUndefined();

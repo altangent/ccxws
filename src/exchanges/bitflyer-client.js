@@ -86,7 +86,7 @@ class BitFlyerClient extends BasicClient {
     let unix = moment(exec_date).unix();
 
     return new Trade({
-      exchange: "BitFlyer",
+      exchange: "bitFlyer",
       base: market.base,
       quote: market.quote,
       tradeId: id,
@@ -102,7 +102,7 @@ class BitFlyerClient extends BasicClient {
     let bids = msg.bids.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
 
     return new Level2Update({
-      exchange: "BitFlyer",
+      exchange: "bitFlyer",
       base: market.base,
       quote: market.quote,
       asks,

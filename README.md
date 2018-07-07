@@ -49,18 +49,18 @@ binance.subscribeLevel2Snapshots(market);
 
 | Exchange | Class    | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | -------- | -------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Binance  | Binance  | Support | Support        | Support       | -              | -             |
-| Bitfinex | Bitfinex | Support | -              | Support\*     | -              | Support\*     |
-| bitFlyer | Bitflyer | Support | -              | Support       | -              | -             |
-| BitMEX   | BitMEX   | Support | -              | Support\*     | -              | -             |
-| Bitstamp | Bitstamp | Support | Support        | Support       | -              | Support       |
-| Bittrex  | Bittrex  | Support | -              | Support       | -              | -             |
-| GDAX     | GDAX     | Support | -              | Support\*     | -              | Support       |
-| Gemini   | Gemini   | Support | -              | Support\*     | -              | -             |
-| HitBTC   | HitBTC   | Support | -              | Support\*     | -              | -             |
-| Huobi    | Huobi    | Support | Support        | -             | -              | -             |
-| OKEx     | OKEx     | Support | Support        | Support       | -              | -             |
-| Poloniex | Poloniex | Support | -              | Support\*     | -              | -             |
+| Binance  | binance  | Support | Support        | Support       | -              | -             |
+| Bitfinex | bitfinex | Support | -              | Support\*     | -              | Support\*     |
+| bitFlyer | bitflyer | Support | -              | Support       | -              | -             |
+| BitMEX   | bitmex   | Support | -              | Support\*     | -              | -             |
+| Bitstamp | bitstamp | Support | Support        | Support       | -              | Support       |
+| Bittrex  | bittrex  | Support | -              | Support       | -              | -             |
+| GDAX     | gdax     | Support | -              | Support\*     | -              | Support       |
+| Gemini   | gemini   | Support | -              | Support\*     | -              | -             |
+| HitBTC   | hitbtc   | Support | -              | Support\*     | -              | -             |
+| Huobi    | huobi    | Support | Support        | -             | -              | -             |
+| OKEx     | okex     | Support | Support        | Support       | -              | -             |
+| Poloniex | poloniex | Support | -              | Support\*     | -              | -             |
 
 Notes:
 
