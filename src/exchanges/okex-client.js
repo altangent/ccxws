@@ -156,18 +156,16 @@ class OKExClient extends BasicClient {
     */
     let { amount, side, createdDate, price, id } = datum;
     let market = this._tradeSubs.get(remoteId);
-
-    amount = side === "2" ? -parseFloat(amount) : parseFloat(amount);
-    let priceNum = parseFloat(price);
-    let unix = Math.floor(createdDate / 1000);
+    side = side === "1" ? "buy" : "sell";
 
     return new Trade({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
       tradeId: id,
-      unix,
-      price: priceNum,
+      side,
+      unix: createdDate,
+      price,
       amount,
     });
   }

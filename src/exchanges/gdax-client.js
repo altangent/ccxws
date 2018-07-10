@@ -111,9 +111,7 @@ class GdaxClient extends BasicClient {
 
     let market = this._tradeSubs.get(product_id);
 
-    let unix = moment.utc(time).unix();
-    let amount = side === "sell" ? -parseFloat(size) : parseFloat(size);
-    let priceNum = parseFloat(price);
+    let unix = moment.utc(time).valueOf();
 
     maker_order_id = maker_order_id.replace(/-/g, "");
     taker_order_id = taker_order_id.replace(/-/g, "");
@@ -127,8 +125,9 @@ class GdaxClient extends BasicClient {
       quote: market.quote,
       tradeId: trade_id,
       unix,
-      price: priceNum,
-      amount,
+      side,
+      price,
+      amount: size,
       buyOrderId,
       sellOrderId,
     });

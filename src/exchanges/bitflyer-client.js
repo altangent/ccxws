@@ -81,9 +81,8 @@ class BitFlyerClient extends BasicClient {
     let { size, side, exec_date, price, id } = datum;
     let market = this._tradeSubs.get(remoteId);
 
-    size = side === "BUY" ? parseFloat(size) : -parseFloat(size);
-    let priceNum = parseFloat(price);
-    let unix = moment(exec_date).unix();
+    side = side.toLowerCase();
+    let unix = moment(exec_date).valueOf();
 
     return new Trade({
       exchange: "bitFlyer",
@@ -91,8 +90,9 @@ class BitFlyerClient extends BasicClient {
       quote: market.quote,
       tradeId: id,
       unix,
-      price: priceNum,
-      amount: size,
+      side: side.toLowerCase(),
+      price: price.toFixed(8),
+      amount: size.toFixed(8),
     });
   }
 

@@ -228,15 +228,17 @@ class BittrexClient extends EventEmitter {
   _constructTradeFromMessage(msg, marketName) {
     let market = this._tradeSubs.get(marketName);
     let tradeId = this._getTradeId(msg);
-    let unix = moment.utc(msg.TimeStamp).unix();
-    let price = parseFloat(msg.Rate);
-    let amount = msg.OrderType === "BUY" ? parseFloat(msg.Quantity) : -parseFloat(msg.Quantity);
+    let unix = moment.utc(msg.TimeStamp).valueOf();
+    let price = msg.Rate.toFixed(8);
+    let amount = msg.Quantity.toFixed(8);
+    let side = msg.OrderType === "BUY" ? "buy" : "sell";
     return new Trade({
       exchange: "Bittrex",
       base: market.base,
       quote: market.quote,
       tradeId,
       unix,
+      side,
       price,
       amount,
     });

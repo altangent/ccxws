@@ -77,9 +77,12 @@ test(
       expect(trade.base).toMatch("BTC");
       expect(trade.quote).toMatch("USDT");
       expect(trade.tradeId).toBeGreaterThan(0);
-      expect(trade.unix).toBeGreaterThan(1522540800);
-      expect(trade.price).toBeGreaterThan(0);
-      expect(trade.amount).toBeDefined();
+      expect(trade.unix).toBeGreaterThan(1522540800000);
+      expect(trade.side).toMatch(/buy|sell/);
+      expect(typeof trade.price).toBe("string");
+      expect(typeof trade.amount).toBe("string");
+      expect(parseFloat(trade.price)).toBeGreaterThan(0);
+      expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();
     });
   },

@@ -129,13 +129,16 @@ class BitfinexClient extends BasicClient {
     let [chanId, , , id, unix, price, amount] = msg;
     let remote_id = this._channels[chanId].pair;
     let market = this._tradeSubs.get(remote_id);
-
+    let side = amount > 0 ? "buy" : "sell";
+    price = price.toFixed(8);
+    amount = Math.abs(amount).toFixed(8);
     let trade = new Trade({
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
       tradeId: id,
-      unix,
+      unix: unix * 1000,
+      side,
       price,
       amount,
     });

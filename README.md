@@ -209,9 +209,10 @@ The trade class is the result of a `trade` event emitted from a client.
 * `base: string` - the normalized base symbol for the market
 * `quote: string` - the normalized quote symbol for the market
 * `tradeId: int` - the unique trade identifer from the exchanges feed
-* `unix: float` - the unix time stamp in seconds for when the trade executed
-* `price: float` - the price that the trade executed at
-* `amount: float` - the amount that was traded (positive means the buyer was the taker, negative means the seller was the taker)
+* `unix: int` - the unix timestamp in milliseconds for when the trade executed
+* `side: string` - whether the buyer `buy` or seller `sell` was the maker for the match
+* `price: string` - the price at which the match executed
+* `amount: string` - the amount executed in the match
 
 ### `Level2Point`
 

@@ -162,9 +162,10 @@ class BitstampClient extends EventEmitter {
       base: market.base,
       quote: market.quote,
       tradeId: msg.id,
-      unix: parseInt(msg.timestamp),
-      price: msg.price,
-      amount: msg.type === 1 ? -msg.amount : msg.amount,
+      unix: msg.timestamp * 1000,
+      side: msg.type === 1 ? "sell" : "buy",
+      price: msg.price_str,
+      amount: msg.amount_str,
       buyOrderId: msg.buy_order_id,
       sellOrderId: msg.sell_order_id,
     });

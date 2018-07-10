@@ -106,18 +106,17 @@ class HitBTCClient extends BasicClient {
 
     let market = this._tradeSubs.get(symbol);
 
-    let unix = moment(timestamp).unix();
-    let amount = side === "sell" ? -parseFloat(quantity) : parseFloat(quantity);
-    let priceNum = parseFloat(price);
+    let unix = moment(timestamp).valueOf();
 
     return new Trade({
       exchange: "HitBTC",
       base: market.base,
       quote: market.quote,
       tradeId: id,
+      side,
       unix,
-      price: priceNum,
-      amount,
+      price,
+      amount: quantity,
     });
   }
 
