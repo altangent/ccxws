@@ -102,12 +102,14 @@ class BittrexClient extends EventEmitter {
     if (this._subCount[remote_id] > 1) return;
 
     // initiate snapshot request
-    this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
-      if (err) return winston.error("snapshot failed", remote_id, err);
-      result.MarketName = remote_id;
-      let snapshot = this._constructLevel2Snapshot(result);
-      this.emit("l2snapshot", snapshot);
-    });
+    if (this._level2UpdateSubs.has(remote_id)) {
+      this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
+        if (err) return winston.error("snapshot failed", remote_id, err);
+        result.MarketName = remote_id;
+        let snapshot = this._constructLevel2Snapshot(result);
+        this.emit("l2snapshot", snapshot);
+      });
+    }
 
     // initiate the subscription
     this._wss.call("CoreHub", "SubscribeToExchangeDeltas", remote_id).done(err => {
