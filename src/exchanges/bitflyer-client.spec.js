@@ -51,7 +51,7 @@ test(
       done();
     });
   },
-  30000
+  90000
 );
 
 test("should subscribe and emit level2 updates", done => {

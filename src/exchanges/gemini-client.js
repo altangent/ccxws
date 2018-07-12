@@ -1,6 +1,5 @@
 const { EventEmitter } = require("events");
 const Trade = require("../trade");
-const Auction = require("../auction");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
@@ -185,11 +184,10 @@ class GeminiClient extends EventEmitter {
 
       // process trades
       if (subscription.trades) {
-        let events = msg.events.filter(p => p.type === "trade");
+        let events = msg.events.filter(p => p.type === "trade" && /ask|bid/.test(p.makerSide));
         for (let event of events) {
           let trade = this._constructTrade(event, market, timestampms);
-          if (trade instanceof Trade) this.emit("trade", trade);
-          else if (trade instanceof Auction) this.emit("auction", trade);
+          this.emit("trade", trade);
         }
       }
 
@@ -208,14 +206,6 @@ class GeminiClient extends EventEmitter {
   }
 
   _constructTrade(event, market, timestamp) {
-    if (event.makerSide === "auction") {
-      return this._formatAuction(event, market, timestamp);
-    } else {
-      return this._formatTrade(event, market, timestamp);
-    }
-  }
-
-  _formatTrade(event, market, timestamp) {
     let side = event.makerSide === "ask" ? "sell" : "buy";
     let price = event.price;
     let amount = event.amount;
@@ -229,24 +219,6 @@ class GeminiClient extends EventEmitter {
       unix: timestamp,
       price,
       amount,
-    });
-  }
-
-  _formatAuction(data, market) {
-    let trade = data.events[0];
-    let auctionResults = data.events[1];
-    let price = parseFloat(trade.price);
-
-    return new Auction({
-      exchange: "Gemini",
-      base: market.base,
-      quote: market.quote,
-      tradeId: trade.tid,
-      price,
-      amount: trade.amount,
-      unix: data.timestamp,
-      high: auctionResults.highest_bid_price,
-      low: auctionResults.lowest_ask_price,
     });
   }
 
