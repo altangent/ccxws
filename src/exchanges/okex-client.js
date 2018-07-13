@@ -156,7 +156,7 @@ class OKExClient extends BasicClient {
     */
     let { amount, side, createdDate, price, id } = datum;
     let market = this._tradeSubs.get(remoteId);
-    side = side === "1" ? "buy" : "sell";
+    side = side === 1 ? "buy" : "sell";
 
     return new Trade({
       exchange: "OKEx",
