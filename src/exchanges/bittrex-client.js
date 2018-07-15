@@ -105,6 +105,7 @@ class BittrexClient extends EventEmitter {
     if (this._level2UpdateSubs.has(remote_id)) {
       this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
         if (err) return winston.error("snapshot failed", remote_id, err);
+        if (!result) return winston.warn("snapshot empty", remote_id);
         result.MarketName = remote_id;
         let snapshot = this._constructLevel2Snapshot(result);
         this.emit("l2snapshot", snapshot);
