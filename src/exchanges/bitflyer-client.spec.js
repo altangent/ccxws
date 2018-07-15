@@ -3,7 +3,7 @@ jest.mock("winston", () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn()
 
 let client;
 let market = {
-  id: "BTC_JPY",
+  id: "FX_BTC_JPY",
   base: "BTC",
   quote: "JPY",
 };
@@ -30,6 +30,31 @@ test("it should not support level3 snapshots", () => {
 
 test("it should not support level3 updates", () => {
   expect(client.hasLevel3Updates).toBeFalsy();
+});
+
+test("should subscribe and emit ticker events", done => {
+  client.subscribeTicker(market);
+  client.on("ticker", ticker => {
+    expect(ticker.fullId).toMatch("bitFlyer:BTC/JPY");
+    expect(ticker.timestamp).toBeGreaterThan(1531677480465);
+    expect(typeof ticker.last).toBe("string");
+    expect(typeof ticker.dayVolume).toBe("string");
+    expect(typeof ticker.bid).toBe("string");
+    expect(typeof ticker.bidVolume).toBe("string");
+    expect(typeof ticker.ask).toBe("string");
+    expect(typeof ticker.askVolume).toBe("string");
+    expect(parseFloat(ticker.last)).toBeGreaterThan(0);
+    expect(ticker.dayHigh).toBeUndefined();
+    expect(ticker.dayLow).toBeUndefined();
+    expect(parseFloat(ticker.dayVolume)).toBeGreaterThan(0);
+    expect(ticker.dayChange).toBeUndefined();
+    expect(ticker.dayChangePercent).toBeUndefined();
+    expect(parseFloat(ticker.bid)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.bidVolume)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.ask)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.askVolume)).toBeGreaterThan(0);
+    done();
+  });
 });
 
 test(
@@ -73,7 +98,11 @@ test("should subscribe and emit level2 updates", done => {
   });
 });
 
-test("should unsubscribe", () => {
+test("should unsubscribe from tickers", () => {
+  client.unsubscribeTicker(market);
+});
+
+test("should unsubscribe trades", () => {
   client.unsubscribeTrades(market);
 });
 

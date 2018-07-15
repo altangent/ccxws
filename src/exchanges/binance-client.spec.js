@@ -42,17 +42,25 @@ test("should subscribe and emit ticker events", done => {
     expect(ticker.fullId).toMatch("Binance:ETH/BTC");
     expect(ticker.timestamp).toBeGreaterThan(1531677480465);
     expect(typeof ticker.last).toBe("string");
-    expect(parseFloat(ticker.last)).toBeGreaterThan(0);
     expect(typeof ticker.dayHigh).toBe("string");
     expect(typeof ticker.dayLow).toBe("string");
     expect(typeof ticker.dayVolume).toBe("string");
     expect(typeof ticker.dayChange).toBe("string");
     expect(typeof ticker.dayChangePercent).toBe("string");
+    expect(typeof ticker.bid).toBe("string");
+    expect(typeof ticker.bidVolume).toBe("string");
+    expect(typeof ticker.ask).toBe("string");
+    expect(typeof ticker.askVolume).toBe("string");
+    expect(parseFloat(ticker.last)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayHigh)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayLow)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayVolume)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayChange)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayChangePercent)).toBeDefined();
+    expect(parseFloat(ticker.bid)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.bidVolume)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.ask)).toBeGreaterThan(0);
+    expect(parseFloat(ticker.askVolume)).toBeGreaterThan(0);
     done();
   });
 });
@@ -106,11 +114,15 @@ test("should subscribe and emit level2 updates", done => {
     expect(update.base).toMatch("ETH");
     expect(update.quote).toMatch("BTC");
     expect(update.sequenceId).toBeGreaterThan(0);
-    expect(update.lastSequenceId).toBeGreaterThan(update.sequenceId);
-    expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
+    expect(update.lastSequenceId).toBeGreaterThanOrEqual(update.sequenceId);
+    if (update.asks.length) {
+      expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
+    }
+    if (update.bids.length) {
+      expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
+    }
     done();
   });
 });
