@@ -21,10 +21,13 @@ jest.mock("./smart-wss", () => {
 function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test");
   instance._watcher.intervalMs = 100;
+  instance.hasTickers = true;
   instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
   instance.hasLevel3Updates = true;
   instance._onMessage = jest.fn();
+  instance._sendSubTicker = jest.fn();
+  instance._sendUnsubTicker = jest.fn();
   instance._sendSubTrades = jest.fn();
   instance._sendUnsubTrades = jest.fn();
   instance._sendSubLevel2Snapshots = jest.fn();
@@ -306,18 +309,68 @@ describe("level3 updates", () => {
   });
 });
 
+describe("ticker", () => {
+  let instance;
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance._connect();
+  });
+
+  describe("on first subscribe", () => {
+    test("it should open a connection", () => {
+      instance.subscribeTicker({ id: "BTCUSD" });
+      expect(instance._wss).toBeDefined();
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      instance._wss.mockEmit("open");
+      expect(instance._sendSubTicker.mock.calls.length).toBe(1);
+      expect(instance._sendSubTicker.mock.calls[0][0]).toBe("BTCUSD");
+    });
+    test("it should start the reconnectChecker", () => {
+      expect(instance._watcher.start).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("on subsequent subscribes", () => {
+    test("it should not connect again", () => {
+      instance.subscribeTicker({ id: "LTCBTC" });
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      expect(instance._sendSubTicker.mock.calls.length).toBe(2);
+      expect(instance._sendSubTicker.mock.calls[1][0]).toBe("LTCBTC");
+    });
+  });
+
+  // describe("on unsubscribe", () => {
+  //   test("it should send unsubscribe to socket", () => {
+  //     instance.unsubscribeTicker({ id: "LTCBTC" });
+  //     expect(instance._sendUnsubTicker.mock.calls.length).toBe(1);
+  //     expect(instance._sendUnsubTicker.mock.calls[0][0]).toBe("LTCBTC");
+  //   });
+  // });
+});
+
 describe("neutered should no-op", () => {
   let instance;
   let market = { id: "BTCUSD" };
 
   beforeAll(() => {
     instance = buildInstance();
+    instance.hasTickers = false;
     instance.hasTrades = false;
     instance.hasLevel2Snapshots = false;
     instance.hasLevel2Updates = false;
     instance.hasLevel3Updates = false;
     instance._connect();
     instance._wss.mockEmit("open");
+  });
+
+  test("it should not send ticker sub", () => {
+    instance.subscribeTicker(market);
+    expect(instance._sendSubTicker.mock.calls.length).toBe(0);
   });
 
   test("it should not send trade sub", () => {

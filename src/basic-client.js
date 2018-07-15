@@ -16,6 +16,7 @@ class BasicTradeClient extends EventEmitter {
     super();
     this._wssPath = wssPath;
     this._name = name;
+    this._tickerSubs = new Map();
     this._tradeSubs = new Map();
     this._level2SnapshotSubs = new Map();
     this._level2UpdateSubs = new Map();
@@ -23,6 +24,7 @@ class BasicTradeClient extends EventEmitter {
     this._wss = undefined;
     this._watcher = new Watcher(this);
 
+    this.hasTickers = false;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
@@ -44,6 +46,26 @@ class BasicTradeClient extends EventEmitter {
     this.close(false);
     this._connect();
     this.emit("reconnected");
+  }
+
+  subscribeTicker(market) {
+    if (!this.hasTickers) return;
+    this._subscribe(
+      market,
+      this._tickerSubs,
+      "subscribing to ticker",
+      this._sendSubTicker.bind(this)
+    );
+  }
+
+  unsubscribeTicker(market) {
+    if (!this.hasTickers) return;
+    this._unsubscribe(
+      market,
+      this._tickerSubs,
+      "unsubscribing from ticker",
+      this._sendUnsubTicker.bind(this)
+    );
   }
 
   subscribeTrades(market) {
@@ -199,6 +221,9 @@ class BasicTradeClient extends EventEmitter {
    */
   _onConnected() {
     this.emit("connected");
+    for (let marketSymbol of this._tickerSubs.keys()) {
+      this._sendSubTicker(marketSymbol);
+    }
     for (let marketSymbol of this._tradeSubs.keys()) {
       this._sendSubTrades(marketSymbol);
     }
@@ -227,6 +252,16 @@ class BasicTradeClient extends EventEmitter {
 
   /* istanbul ignore next */
   _onMessage() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
+  _sendSubTicker() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
+  _sendUnsubTicker() {
     throw new Error("not implemented");
   }
 

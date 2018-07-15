@@ -1,4 +1,5 @@
 const BasicClient = require("../basic-client");
+const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
@@ -12,9 +13,30 @@ class BitfinexClient extends BasicClient {
     super("wss://api.bitfinex.com/ws", "Bitfinex");
     this._channels = {};
 
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = true;
+  }
+
+  _sendSubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        event: "subscribe",
+        channel: "ticker",
+        pair: remote_id,
+      })
+    );
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        event: "unsubscribe",
+        channel: "ticker",
+        pair: remote_id,
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -104,6 +126,11 @@ class BitfinexClient extends BasicClient {
     // ignore heartbeats
     if (msg[1] === "hb") return;
 
+    if (channel.channel === "ticker") {
+      this._onTicker(msg, channel);
+      return;
+    }
+
     // trades
     if (channel.channel === "trades" && msg[1] === "tu") {
       this._onTradeMessage(msg, channel);
@@ -123,6 +150,41 @@ class BitfinexClient extends BasicClient {
       else this._onLevel2Update(msg, channel);
       return;
     }
+  }
+
+  _onTicker(msg) {
+    let [
+      chanId,
+      bid,
+      bidSize,
+      ask,
+      askSize,
+      dayChange,
+      dayChangePercent,
+      last,
+      dayVolume,
+      dayHigh,
+      dayLow,
+    ] = msg;
+    let remote_id = this._channels[chanId].pair;
+    let market = this._tickerSubs.get(remote_id);
+    let ticker = new Ticker({
+      exchange: "Bitfinex",
+      base: market.base,
+      quote: market.quote,
+      timestamp: Date.now(),
+      last: last.toFixed(8),
+      dayHigh: dayHigh.toFixed(8),
+      dayLow: dayLow.toFixed(8),
+      dayVolume: dayVolume.toFixed(8),
+      dayChange: dayChange.toFixed(8),
+      dayChangePercent: dayChangePercent.toFixed(2),
+      bid: bid.toFixed(8),
+      bidVolume: bidSize.toFixed(8),
+      ask: ask.toFixed(8),
+      askVolume: askSize.toFixed(8),
+    });
+    this.emit("ticker", ticker);
   }
 
   _onTradeMessage(msg) {
