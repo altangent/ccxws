@@ -1,5 +1,5 @@
 const HuobiClient = require("./huobi-client");
-jest.mock("winston", () => ({ info: jest.fn() }));
+jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 let client;
 let market = {
@@ -10,6 +10,10 @@ let market = {
 
 beforeAll(() => {
   client = new HuobiClient();
+});
+
+test("it should support tickers", () => {
+  expect(client.hasTickers).toBeTruthy();
 });
 
 test("it should support trades", () => {
@@ -31,6 +35,35 @@ test("it should not support level3 snapshots", () => {
 test("it should not support level3 updates", () => {
   expect(client.hasLevel3Updates).toBeFalsy();
 });
+
+test(
+  "should subscribe and emit ticker events",
+  done => {
+    client.subscribeTicker(market);
+    client.on("ticker", ticker => {
+      expect(ticker.fullId).toMatch("Huobi:BTC/USDT");
+      expect(ticker.timestamp).toBeGreaterThan(1531677480465);
+      expect(typeof ticker.last).toBe("string");
+      expect(typeof ticker.dayHigh).toBe("string");
+      expect(typeof ticker.dayLow).toBe("string");
+      expect(typeof ticker.dayVolume).toBe("string");
+      expect(typeof ticker.dayChange).toBe("string");
+      expect(typeof ticker.dayChangePercent).toBe("string");
+      expect(parseFloat(ticker.last)).toBeGreaterThan(0);
+      expect(parseFloat(ticker.dayHigh)).toBeGreaterThan(0);
+      expect(parseFloat(ticker.dayLow)).toBeGreaterThan(0);
+      expect(parseFloat(ticker.dayVolume)).toBeGreaterThan(0);
+      expect(Math.abs(parseFloat(ticker.dayChange))).toBeGreaterThan(0);
+      expect(Math.abs(parseFloat(ticker.dayChangePercent))).toBeGreaterThan(0);
+      expect(ticker.bid).toBeUndefined();
+      expect(ticker.bidVolume).toBeUndefined();
+      expect(ticker.ask).toBeUndefined();
+      expect(ticker.askVolume).toBeUndefined();
+      done();
+    });
+  },
+  10000
+);
 
 test(
   "should subscribe and emit trade events",

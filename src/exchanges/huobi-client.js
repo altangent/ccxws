@@ -1,13 +1,15 @@
 const BasicClient = require("../basic-client");
-const Trade = require("../trade");
 const zlib = require("zlib");
 const winston = require("winston");
+const Ticker = require("../ticker");
+const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 
 class HuobiClient extends BasicClient {
   constructor() {
     super("wss://api.huobi.pro/ws", "Huobi");
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
   }
@@ -16,6 +18,24 @@ class HuobiClient extends BasicClient {
     if (this._wss) {
       this._wss.send(JSON.stringify({ pong: ts }));
     }
+  }
+
+  _sendSubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        sub: `market.${remote_id}.detail`,
+        id: remote_id,
+      })
+    );
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        unsub: `market.${remote_id}.detail`,
+        id: remote_id,
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -82,6 +102,14 @@ class HuobiClient extends BasicClient {
         return;
       }
 
+      // tickers
+      if (msgs.ch.endsWith(".detail")) {
+        let remoteId = msgs.ch.split(".")[1];
+        let ticker = this._constructTicker(remoteId, msgs.tick);
+        this.emit("ticker", ticker);
+        return;
+      }
+
       // level2updates
       if (msgs.ch.endsWith("depth.step0")) {
         let remoteId = msgs.ch.split(".")[1];
@@ -89,6 +117,25 @@ class HuobiClient extends BasicClient {
         this.emit("l2snapshot", update);
         return;
       }
+    });
+  }
+
+  _constructTicker(remoteId, data) {
+    let { open, close, high, low, vol } = data;
+    let market = this._tickerSubs.get(remoteId);
+    let dayChange = close - open;
+    let dayChangePercent = (close - open) / open;
+    return new Ticker({
+      exchange: "Huobi",
+      base: market.base,
+      quote: market.quote,
+      timestamp: Date.now(),
+      last: close.toFixed(8),
+      dayHigh: high.toFixed(8),
+      dayLow: low.toFixed(8),
+      dayVolume: vol.toFixed(8),
+      dayChange: dayChange.toFixed(8),
+      dayChangePercent: dayChangePercent.toFixed(8),
     });
   }
 

@@ -1,5 +1,5 @@
 const BitFlyerClient = require("./bitflyer-client");
-jest.mock("winston", () => ({ info: jest.fn(), error: jest.fn(), warn: jest.fn() }));
+jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 let client;
 let market = {

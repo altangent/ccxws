@@ -1,5 +1,6 @@
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
+const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
@@ -11,6 +12,7 @@ class OKExClient extends BasicClient {
     this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
     this.on("connected", this._resetSemaphore.bind(this));
 
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
@@ -24,6 +26,28 @@ class OKExClient extends BasicClient {
     if (this._wss) {
       this._wss.send(JSON.stringify({ event: "ping" }));
     }
+  }
+
+  _sendSubTicker(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          event: "addChannel",
+          channel: `ok_sub_spot_${remote_id}_ticker`,
+        })
+      );
+    });
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          event: "removeChannel",
+          channel: `ok_sub_spot_${remote_id}_ticker`,
+        })
+      );
+    });
   }
 
   _sendSubTrades(remote_id) {
@@ -112,6 +136,13 @@ class OKExClient extends BasicClient {
 
       if (!msg.channel) return;
 
+      // tickers
+      if (msg.channel.endsWith("_ticker")) {
+        let ticker = this._constructTicker(msg);
+        this.emit("ticker", ticker);
+        return;
+      }
+
       // l2 snapshots
       if (
         msg.channel.endsWith("_5") ||
@@ -130,6 +161,44 @@ class OKExClient extends BasicClient {
         return;
       }
     }
+  }
+
+  _constructTicker(msg) {
+    /*
+    { binary: 0,
+    channel: 'ok_sub_spot_eth_btc_ticker',
+    data:
+    { high: '0.07121405',
+      vol: '53824.717918',
+      last: '0.07071044',
+      low: '0.06909468',
+      buy: '0.07065946',
+      change: '0.00141498',
+      sell: '0.07071625',
+      dayLow: '0.06909468',
+      close: '0.07071044',
+      dayHigh: '0.07121405',
+      open: '0.06929546',
+      timestamp: 1531692991115 } }
+     */
+    let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
+    let market = this._tickerSubs.get(remoteId);
+    let { open, vol, last, buy, change, sell, dayLow, dayHigh, timestamp } = msg.data;
+    let dayChangePercent = parseFloat(change) / parseFloat(open) * 100;
+    return new Ticker({
+      exchange: "OKEx",
+      base: market.base,
+      quote: market.quote,
+      timestamp,
+      last,
+      dayHigh,
+      dayLow,
+      dayVolume: vol,
+      dayChange: change,
+      dayChangePercent: dayChangePercent.toFixed(2),
+      bid: buy,
+      ask: sell,
+    });
   }
 
   _constructTradesFromMessage(remoteId, datum) {

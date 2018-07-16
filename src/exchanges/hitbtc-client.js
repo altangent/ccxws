@@ -1,6 +1,7 @@
 const moment = require("moment");
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
+const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
@@ -11,6 +12,7 @@ class HitBTCClient extends BasicClient {
     super("wss://api.hitbtc.com/api/2/ws", "HitBTC");
     this._id = 0;
 
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
 
@@ -19,6 +21,32 @@ class HitBTCClient extends BasicClient {
 
   _resetSemaphore() {
     this._sem = semaphore(10);
+  }
+
+  _sendSubTicker(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          method: "subscribeTicker",
+          params: {
+            symbol: remote_id,
+          },
+          id: ++this._id,
+        })
+      );
+    });
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        method: "unsubscribeTicker",
+        params: {
+          symbol: remote_id,
+        },
+        id: ++this._id,
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -79,6 +107,12 @@ class HitBTCClient extends BasicClient {
       this._sem.leave();
       return;
     }
+
+    if (msg.method === "ticker") {
+      let ticker = this._constructTicker(msg.params);
+      this.emit("ticker", ticker);
+    }
+
     if (msg.method === "updateTrades") {
       for (let datum of msg.params.data) {
         datum.symbol = msg.params.symbol;
@@ -99,6 +133,27 @@ class HitBTCClient extends BasicClient {
       this.emit("l2update", result);
       return;
     }
+  }
+
+  _constructTicker(param) {
+    let { ask, bid, last, open, low, high, volume, timestamp, symbol } = param;
+    let market = this._tickerSubs.get(symbol);
+    let dayChange = (parseFloat(last) - parseFloat(open)).toFixed(8);
+    let dayChangePercent = ((parseFloat(last) - parseFloat(open)) / parseFloat(open)).toFixed(8);
+    return new Ticker({
+      exchange: "HitBTC",
+      base: market.base,
+      quote: market.quote,
+      timestamp: moment.utc(timestamp).valueOf(),
+      last,
+      dayHigh: high,
+      dayLow: low,
+      dayVolume: volume,
+      ask,
+      bid,
+      dayChange,
+      dayChangePercent,
+    });
   }
 
   _constructTradesFromMessage(datum) {

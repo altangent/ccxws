@@ -1,5 +1,5 @@
 const Gemini = require("./gemini-client");
-jest.mock("winston", () => ({ info: jest.fn() }));
+jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 let client;
 let market1 = {

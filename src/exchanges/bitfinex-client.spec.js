@@ -1,5 +1,5 @@
 const Bitfinex = require("./bitfinex-client");
-jest.mock("winston", () => ({ info: jest.fn() }));
+jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 
 let client;
 let market = {
@@ -55,8 +55,8 @@ test("should subscribe and emit ticker events", done => {
     expect(parseFloat(ticker.dayHigh)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayLow)).toBeGreaterThan(0);
     expect(parseFloat(ticker.dayVolume)).toBeGreaterThan(0);
-    expect(parseFloat(ticker.dayChange)).toBeGreaterThan(0);
-    expect(parseFloat(ticker.dayChangePercent)).toBeDefined();
+    expect(Math.abs(parseFloat(ticker.dayChange))).toBeGreaterThan(0);
+    expect(Math.abs(parseFloat(ticker.dayChangePercent))).toBeGreaterThan(0);
     expect(parseFloat(ticker.bid)).toBeGreaterThan(0);
     expect(parseFloat(ticker.bidVolume)).toBeGreaterThan(0);
     expect(parseFloat(ticker.ask)).toBeGreaterThan(0);

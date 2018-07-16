@@ -5,6 +5,7 @@ const moment = require("moment");
 const cloudscraper = require("cloudscraper");
 const signalr = require("signalr-client");
 const Watcher = require("../watcher");
+const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
@@ -15,10 +16,13 @@ class BittrexClient extends EventEmitter {
     super();
     this._retryTimeoutMs = 15000;
     this._cloudflare; // placeholder for information from cloudflare
+    this._tickerSubs = new Map();
     this._tradeSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._watcher = new Watcher(this);
+    this._tickerConnected;
 
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
@@ -43,6 +47,28 @@ class BittrexClient extends EventEmitter {
     this.close(false);
     this._connect();
     if (emitEvent) this.emit("reconnected");
+  }
+
+  subscribeTicker(market) {
+    let remote_id = market.id;
+    if (this._tickerSubs.has(remote_id)) return;
+
+    this._connect();
+    winston.info("subscribing to ticker", "Bittrex", remote_id);
+    this._tickerSubs.set(remote_id, market);
+    if (this._wss) {
+      this._sendSubTickers(remote_id);
+    }
+  }
+
+  unsubscribeTicker(market) {
+    let remote_id = market.id;
+    if (!this._tickerSubs.has(remote_id)) return;
+    winston.info("subscribing to ticker", "Bittrex", remote_id);
+    this._tickerSubs.delete(remote_id);
+    if (this._wss) {
+      this._sendUnsubTicker(remote_id);
+    }
   }
 
   subscribeTrades(market) {
@@ -131,6 +157,20 @@ class BittrexClient extends EventEmitter {
     });
   }
 
+  _sendSubTickers() {
+    if (this._tickerConnected) return;
+    this._wss.call("CoreHub", "SubscribeToSummaryDeltas").done(err => {
+      if (err) winston.error("ticker subscribe failed");
+      else this._tickerConnected = true;
+    });
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._wss.call("CoreHub", "UnsubscribeToSummaryDeltas", remote_id).done(err => {
+      if (err) winston.error("ticker unsubscribe failed", remote_id);
+    });
+  }
+
   async _connectCloudflare() {
     return new Promise((resolve, reject) => {
       winston.info("cloudflare connection to https://bittrex.com/");
@@ -185,7 +225,11 @@ class BittrexClient extends EventEmitter {
     clearTimeout(this._reconnectHandle);
     this.emit("connected");
     this._subCount = {};
+    this._tickerConnected = false;
     this._watcher.start();
+    for (let marketSymbol of this._tickerSubs.keys()) {
+      this._sendSubTickers(marketSymbol);
+    }
     for (let marketSymbol of this._tradeSubs.keys()) {
       this._sendSub(marketSymbol);
     }
@@ -225,7 +269,34 @@ class BittrexClient extends EventEmitter {
           }
         });
       }
+      if (msg.M === "updateSummaryState") {
+        for (let raw of msg.A[0].Deltas) {
+          if (this._tickerSubs.has(raw.MarketName)) {
+            let ticker = this._constructTicker(raw);
+            this.emit("ticker", ticker);
+          }
+        }
+      }
     }
+  }
+
+  _constructTicker(msg) {
+    let market = this._tickerSubs.get(msg.MarketName);
+    let { High, Low, Last, PrevDay, BaseVolume, TimeStamp, Bid, Ask } = msg;
+    return new Ticker({
+      exchange: "Bittrex",
+      base: market.base,
+      quote: market.quote,
+      timestamp: moment.utc(TimeStamp).valueOf(),
+      last: Last.toFixed(8),
+      dayHigh: High.toFixed(8),
+      dayLow: Low.toFixed(8),
+      dayVolume: BaseVolume.toFixed(8),
+      dayChange: (Last - PrevDay).toFixed(8),
+      dayChangePercent: ((Last - PrevDay) / PrevDay).toFixed(8),
+      bid: Bid.toFixed(8),
+      ask: Ask.toFixed(8),
+    });
   }
 
   _constructTradeFromMessage(msg, marketName) {

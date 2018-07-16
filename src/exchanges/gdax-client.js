@@ -1,5 +1,6 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
+const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
@@ -10,10 +11,21 @@ const Level3Update = require("../level3-update");
 class GdaxClient extends BasicClient {
   constructor() {
     super("wss://ws-feed.gdax.com", "GDAX");
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Spotshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = true;
+  }
+
+  _sendSubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "subscribe",
+        product_ids: [remote_id],
+        channels: ["ticker"],
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -81,6 +93,11 @@ class GdaxClient extends BasicClient {
 
     let { type, product_id } = msg;
 
+    if (type === "ticker" && this._tickerSubs.has(product_id)) {
+      let ticker = this._constructTicker(msg);
+      this.emit("ticker", ticker);
+    }
+
     if (type === "match" && this._tradeSubs.has(product_id)) {
       let trade = this._constructTrade(msg);
       this.emit("trade", trade);
@@ -104,6 +121,40 @@ class GdaxClient extends BasicClient {
       this.emit("l3update", update);
       return;
     }
+  }
+
+  _constructTicker(msg) {
+    let {
+      product_id,
+      price,
+      volume_24h,
+      open_24h,
+      low_24h,
+      high_24h,
+      best_bid,
+      best_ask,
+      time,
+    } = msg;
+    let market = this._tickerSubs.get(product_id);
+    let dayChange = (parseFloat(price) - parseFloat(open_24h)).toFixed(8);
+    let dayChangePercent = (
+      (parseFloat(price) - parseFloat(open_24h)) /
+      parseFloat(open_24h)
+    ).toFixed(8);
+    return new Ticker({
+      exchange: "GDAX",
+      base: market.base,
+      quote: market.quote,
+      timestamp: moment.utc(time).valueOf(),
+      last: price,
+      dayHigh: high_24h,
+      dayLow: low_24h,
+      dayVolume: volume_24h,
+      dayChange,
+      dayChangePercent,
+      bid: best_bid,
+      ask: best_ask,
+    });
   }
 
   _constructTrade(msg) {
