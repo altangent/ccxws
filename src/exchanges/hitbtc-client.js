@@ -136,23 +136,25 @@ class HitBTCClient extends BasicClient {
   }
 
   _constructTicker(param) {
-    let { ask, bid, last, open, low, high, volume, timestamp, symbol } = param;
+    let { ask, bid, last, open, low, high, volume, volumeQuote, timestamp, symbol } = param;
     let market = this._tickerSubs.get(symbol);
-    let dayChange = (parseFloat(last) - parseFloat(open)).toFixed(8);
-    let dayChangePercent = ((parseFloat(last) - parseFloat(open)) / parseFloat(open)).toFixed(8);
+    let change = (parseFloat(last) - parseFloat(open)).toFixed(8);
+    let changePercent = ((parseFloat(last) - parseFloat(open)) / parseFloat(open) * 100).toFixed(8);
     return new Ticker({
       exchange: "HitBTC",
       base: market.base,
       quote: market.quote,
       timestamp: moment.utc(timestamp).valueOf(),
       last,
-      dayHigh: high,
-      dayLow: low,
-      dayVolume: volume,
+      open,
+      high,
+      low,
+      volume,
+      quoteVolume: volumeQuote,
       ask,
       bid,
-      dayChange,
-      dayChangePercent,
+      change,
+      changePercent,
     });
   }
 

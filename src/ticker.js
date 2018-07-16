@@ -5,11 +5,13 @@ class Ticker {
     quote,
     timestamp,
     last,
-    dayHigh,
-    dayLow,
-    dayVolume,
-    dayChange,
-    dayChangePercent,
+    open,
+    high,
+    low,
+    volume,
+    quoteVolume,
+    change,
+    changePercent,
     bid,
     bidVolume,
     ask,
@@ -20,11 +22,13 @@ class Ticker {
     this.quote = quote;
     this.timestamp = timestamp;
     this.last = last;
-    this.dayHigh = dayHigh;
-    this.dayLow = dayLow;
-    this.dayVolume = dayVolume;
-    this.dayChange = dayChange;
-    this.dayChangePercent = dayChangePercent;
+    this.open = open;
+    this.high = high;
+    this.low = low;
+    this.volume = volume;
+    this.quoteVolume = quoteVolume;
+    this.change = change;
+    this.changePercent = changePercent;
     this.bid = bid;
     this.bidVolume = bidVolume;
     this.ask = ask;

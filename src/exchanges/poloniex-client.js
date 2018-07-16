@@ -264,7 +264,7 @@ class PoloniexClient extends BasicClient {
   }
 
   _createTicker(remoteId, update) {
-    let [, last, ask, bid, percent, , baseVol, , dayHigh, dayLow] = update;
+    let [, last, ask, bid, percent, quoteVol, baseVol, , high, low] = update;
     let market = this._tickerSubs.get(remoteId);
     let open = parseFloat(last) / (1 + parseFloat(percent));
     let dayChange = parseFloat(last) - open;
@@ -274,11 +274,13 @@ class PoloniexClient extends BasicClient {
       quote: market.quote,
       timestamp: Date.now(),
       last,
-      dayHigh,
-      dayLow,
-      dayVolume: baseVol,
-      dayChange: dayChange.toFixed(8),
-      dayChangePercent: percent,
+      open: open.toFixed(8),
+      high,
+      low,
+      volume: baseVol,
+      quoteVolume: quoteVol,
+      change: dayChange.toFixed(8),
+      changePercent: percent,
       ask,
       bid,
     });

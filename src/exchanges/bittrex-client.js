@@ -282,18 +282,22 @@ class BittrexClient extends EventEmitter {
 
   _constructTicker(msg) {
     let market = this._tickerSubs.get(msg.MarketName);
-    let { High, Low, Last, PrevDay, BaseVolume, TimeStamp, Bid, Ask } = msg;
+    let { High, Low, Last, PrevDay, BaseVolume, Volume, TimeStamp, Bid, Ask } = msg;
+    let change = Last - PrevDay;
+    let percentChange = (Last - PrevDay) / PrevDay * 100;
     return new Ticker({
       exchange: "Bittrex",
       base: market.base,
       quote: market.quote,
       timestamp: moment.utc(TimeStamp).valueOf(),
       last: Last.toFixed(8),
-      dayHigh: High.toFixed(8),
-      dayLow: Low.toFixed(8),
-      dayVolume: BaseVolume.toFixed(8),
-      dayChange: (Last - PrevDay).toFixed(8),
-      dayChangePercent: ((Last - PrevDay) / PrevDay).toFixed(8),
+      open: PrevDay.toFixed(8),
+      high: High.toFixed(8),
+      low: Low.toFixed(8),
+      volume: BaseVolume.toFixed(8),
+      quoteVolume: Volume.toFixed(8),
+      change: change.toFixed(8),
+      changePercent: percentChange.toFixed(8),
       bid: Bid.toFixed(8),
       ask: Ask.toFixed(8),
     });

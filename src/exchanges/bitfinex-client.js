@@ -153,32 +153,22 @@ class BitfinexClient extends BasicClient {
   }
 
   _onTicker(msg) {
-    let [
-      chanId,
-      bid,
-      bidSize,
-      ask,
-      askSize,
-      dayChange,
-      dayChangePercent,
-      last,
-      dayVolume,
-      dayHigh,
-      dayLow,
-    ] = msg;
+    let [chanId, bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msg;
     let remote_id = this._channels[chanId].pair;
     let market = this._tickerSubs.get(remote_id);
+    let open = last + change;
     let ticker = new Ticker({
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
       timestamp: Date.now(),
       last: last.toFixed(8),
-      dayHigh: dayHigh.toFixed(8),
-      dayLow: dayLow.toFixed(8),
-      dayVolume: dayVolume.toFixed(8),
-      dayChange: dayChange.toFixed(8),
-      dayChangePercent: dayChangePercent.toFixed(2),
+      open: open.toFixed(8),
+      high: high.toFixed(8),
+      low: low.toFixed(8),
+      volume: volume.toFixed(8),
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(2),
       bid: bid.toFixed(8),
       bidVolume: bidSize.toFixed(8),
       ask: ask.toFixed(8),

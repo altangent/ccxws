@@ -121,21 +121,23 @@ class HuobiClient extends BasicClient {
   }
 
   _constructTicker(remoteId, data) {
-    let { open, close, high, low, vol } = data;
+    let { open, close, high, low, vol, amount } = data;
     let market = this._tickerSubs.get(remoteId);
     let dayChange = close - open;
-    let dayChangePercent = (close - open) / open;
+    let dayChangePercent = (close - open) / open * 100;
     return new Ticker({
       exchange: "Huobi",
       base: market.base,
       quote: market.quote,
       timestamp: Date.now(),
       last: close.toFixed(8),
-      dayHigh: high.toFixed(8),
-      dayLow: low.toFixed(8),
-      dayVolume: vol.toFixed(8),
-      dayChange: dayChange.toFixed(8),
-      dayChangePercent: dayChangePercent.toFixed(8),
+      open: open.toFixed(8),
+      high: high.toFixed(8),
+      low: low.toFixed(8),
+      volume: amount.toFixed(8),
+      quoteVolume: vol.toFixed(8),
+      change: dayChange.toFixed(8),
+      changePercent: dayChangePercent.toFixed(8),
     });
   }
 

@@ -109,7 +109,16 @@ class BitFlyerClient extends BasicClient {
   }
 
   _createTicker(remoteId, data) {
-    let { timestamp, best_bid, best_ask, best_bid_size, best_ask_size, ltp, volume } = data;
+    let {
+      timestamp,
+      best_bid,
+      best_ask,
+      best_bid_size,
+      best_ask_size,
+      ltp,
+      volume,
+      volume_by_product,
+    } = data;
     let market = this._tickerSubs.get(remoteId);
     return new Ticker({
       exchange: "bitFlyer",
@@ -117,7 +126,8 @@ class BitFlyerClient extends BasicClient {
       quote: market.quote,
       timestamp: moment.utc(timestamp).valueOf(),
       last: ltp.toFixed(8),
-      dayVolume: volume.toFixed(8),
+      volume: volume.toFixed(8),
+      quoteVolume: volume_by_product.toFixed(8),
       bid: best_bid.toFixed(8),
       bidVolume: best_bid_size.toFixed(8),
       ask: best_ask.toFixed(8),

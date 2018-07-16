@@ -136,22 +136,20 @@ class GdaxClient extends BasicClient {
       time,
     } = msg;
     let market = this._tickerSubs.get(product_id);
-    let dayChange = (parseFloat(price) - parseFloat(open_24h)).toFixed(8);
-    let dayChangePercent = (
-      (parseFloat(price) - parseFloat(open_24h)) /
-      parseFloat(open_24h)
-    ).toFixed(8);
+    let change = parseFloat(price) - parseFloat(open_24h);
+    let changePercent = (parseFloat(price) - parseFloat(open_24h)) / parseFloat(open_24h) * 100;
     return new Ticker({
       exchange: "GDAX",
       base: market.base,
       quote: market.quote,
       timestamp: moment.utc(time).valueOf(),
       last: price,
-      dayHigh: high_24h,
-      dayLow: low_24h,
-      dayVolume: volume_24h,
-      dayChange,
-      dayChangePercent,
+      open: open_24h,
+      high: high_24h,
+      low: low_24h,
+      volume: volume_24h,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(8),
       bid: best_bid,
       ask: best_ask,
     });
