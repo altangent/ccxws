@@ -225,7 +225,7 @@ class BinanceClient extends EventEmitter {
   }
 
   _constructTradeFromMessage({ data }) {
-    let { s: symbol, p: price, q: size, f: trade_id, T: time, m: buyer } = data;
+    let { s: symbol, a: trade_id, p: price, q: size, T: time, m: buyer } = data;
 
     let market = this._tradeSubs.get(symbol.toLowerCase());
 
