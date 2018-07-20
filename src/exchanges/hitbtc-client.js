@@ -118,8 +118,8 @@ class HitBTCClient extends BasicClient {
         datum.symbol = msg.params.symbol;
         let trade = this._constructTradesFromMessage(datum);
         this.emit("trade", trade);
-        return;
       }
+      return;
     }
 
     if (msg.method === "snapshotOrderbook") {
