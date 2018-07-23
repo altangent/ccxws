@@ -9,7 +9,7 @@ const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
 
 class BinanceClient extends EventEmitter {
-  constructor({ useAggTrades = true }) {
+  constructor({ useAggTrades = true } = {}) {
     super();
     this._name = "Binance";
     this._tickerSubs = new Map();

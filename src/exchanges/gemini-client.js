@@ -106,7 +106,7 @@ class GeminiClient extends EventEmitter {
       winston.warn(`${remote_id} is not subscribed`);
       return;
     }
-    this._startReconnectWatcher();
+    this._startReconnectWatcher(subscription);
   }
 
   /**
