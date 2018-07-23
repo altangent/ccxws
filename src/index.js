@@ -12,6 +12,7 @@ const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 
 module.exports = {
+  // export all legacy exchange names
   Binance: binance,
   Bitfinex: bitfinex,
   Bitflyer: bitflyer,
@@ -25,6 +26,7 @@ module.exports = {
   OKEx: okex,
   Poloniex: poloniex,
 
+  // export all exchanges
   binance,
   bitfinex,
   bitflyer,
@@ -37,4 +39,19 @@ module.exports = {
   huobi,
   okex,
   poloniex,
+
+  // export all types
+  Auction: require("./auction"),
+  BasicClient: require("./basic-client"),
+  BlockTrade: require("./block-trade"),
+  Level2Point: require("./level2-point"),
+  Level2Snapshot: require("./level2-snapshot"),
+  Level2Update: require("./level2-update"),
+  Level3Point: require("./level3-point"),
+  Level3Snapshot: require("./level3-snapshot"),
+  Level3Update: require("./level3-update"),
+  SmartWss: require("./smart-wss"),
+  Ticker: require("./ticker"),
+  Trade: require("./trade"),
+  Watcher: require("./watcher"),
 };
