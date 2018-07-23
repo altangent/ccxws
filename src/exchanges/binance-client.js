@@ -9,7 +9,7 @@ const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
 
 class BinanceClient extends EventEmitter {
-  constructor() {
+  constructor({ useAggTrades = true }) {
     super();
     this._name = "Binance";
     this._tickerSubs = new Map();
@@ -19,6 +19,7 @@ class BinanceClient extends EventEmitter {
     this._wss = undefined;
     this._reconnectDebounce = undefined;
 
+    this.useAggTrades = useAggTrades;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
@@ -123,7 +124,9 @@ class BinanceClient extends EventEmitter {
   _connect() {
     if (!this._wss) {
       let streams = [].concat(
-        Array.from(this._tradeSubs.keys()).map(p => p + "@aggTrade"),
+        Array.from(this._tradeSubs.keys()).map(
+          p => p + (this.useAggTrades ? "@aggTrade" : "@trade")
+        ),
         Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
         Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
       );
@@ -168,8 +171,8 @@ class BinanceClient extends EventEmitter {
     }
 
     // trades
-    if (msg.stream.endsWith("aggTrade")) {
-      let trade = this._constructTradeFromMessage(msg);
+    if (msg.stream.toLowerCase().endsWith("trade")) {
+      let trade = this.useAggTrades ? this._constructAggTrade(msg) : this._constructRawTrade(msg);
       this.emit("trade", trade);
     }
 
@@ -224,15 +227,12 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _constructTradeFromMessage({ data }) {
+  _constructAggTrade({ data }) {
     let { s: symbol, a: trade_id, p: price, q: size, T: time, m: buyer } = data;
-
     let market = this._tradeSubs.get(symbol.toLowerCase());
-
     let unix = time;
     let amount = size;
     let side = buyer ? "buy" : "sell";
-
     return new Trade({
       exchange: "Binance",
       base: market.base,
@@ -242,6 +242,35 @@ class BinanceClient extends EventEmitter {
       side,
       price,
       amount,
+    });
+  }
+
+  _constructRawTrade({ data }) {
+    let {
+      s: symbol,
+      t: trade_id,
+      p: price,
+      q: size,
+      b: buyOrderId,
+      a: sellOrderId,
+      T: time,
+      m: buyer,
+    } = data;
+    let market = this._tradeSubs.get(symbol.toLowerCase());
+    let unix = time;
+    let amount = size;
+    let side = buyer ? "buy" : "sell";
+    return new Trade({
+      exchange: "Binance",
+      base: market.base,
+      quote: market.quote,
+      tradeId: trade_id,
+      unix,
+      side,
+      price,
+      amount,
+      buyOrderId,
+      sellOrderId,
     });
   }
 
