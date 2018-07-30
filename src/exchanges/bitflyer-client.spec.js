@@ -73,6 +73,8 @@ test(
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
       expect(typeof trade.amount).toBe("string");
+      expect(typeof trade.buyOrderId).toBe("string");
+      expect(typeof trade.sellOrderId).toBe("string");
       expect(parseFloat(trade.price)).toBeGreaterThan(0);
       expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();

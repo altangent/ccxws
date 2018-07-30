@@ -136,7 +136,15 @@ class BitFlyerClient extends BasicClient {
   }
 
   _createTrades(remoteId, datum) {
-    let { size, side, exec_date, price, id } = datum;
+    let {
+      size,
+      side,
+      exec_date,
+      price,
+      id,
+      buy_child_order_acceptance_id,
+      sell_child_order_acceptance_id,
+    } = datum;
     let market = this._tradeSubs.get(remoteId);
 
     side = side.toLowerCase();
@@ -151,6 +159,8 @@ class BitFlyerClient extends BasicClient {
       side: side.toLowerCase(),
       price: price.toFixed(8),
       amount: size.toFixed(8),
+      buyOrderId: buy_child_order_acceptance_id,
+      sellOrderId: sell_child_order_acceptance_id,
     });
   }
 
