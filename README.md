@@ -45,7 +45,7 @@ binance.subscribeTrades(market);
 binance.subscribeLevel2Snapshots(market);
 ```
 
-## Exchanges
+## Exchanges - 13
 
 | Exchange | Class    | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | -------- | -------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
@@ -61,6 +61,7 @@ binance.subscribeLevel2Snapshots(market);
 | Huobi    | huobi    | Support | Support | Support        | -             | -              | -             |
 | OKEx     | okex     | Support | Support | Support        | Support       | -              | -             |
 | Poloniex | poloniex | Support | Support | -              | Support\*     | -              | -             |
+| ZB       | zb       | Support | Support | -              | Support       | -              | -             |
 
 Notes:
 
@@ -244,11 +245,13 @@ The trade class is the result of a `trade` event emitted from a client.
 * `exchange: string` - the name of the exchange
 * `base: string` - the normalized base symbol for the market
 * `quote: string` - the normalized quote symbol for the market
-* `tradeId: int` - the unique trade identifer from the exchanges feed
+* `tradeId: string` - the unique trade identifer from the exchanges feed
 * `unix: int` - the unix timestamp in milliseconds for when the trade executed
 * `side: string` - whether the buyer `buy` or seller `sell` was the maker for the match
 * `price: string` - the price at which the match executed
 * `amount: string` - the amount executed in the match
+* `buyOrderId: string` - the order id of the buy side
+* `sellOrderId: string` - the order id of the sell side
 
 ### `Level2Point`
 
