@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.13.2",
+  "version": "0.14.0",
   "description": "Cryptocurrency exchange websocket feeds",
   "keywords": [
     "cryptocurrency",
@@ -16,8 +16,8 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --coverage",
-    "test:ci": "jest --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "jest --testEnvironment=node --coverage",
+    "test:ci": "jest --testEnvironment=node --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": "altangent/ccxws",
   "dependencies": {
@@ -31,9 +31,9 @@
     "ws": "^5.1.1"
   },
   "devDependencies": {
-    "coveralls": "^3.0.1",
+    "coveralls": "^3.0.2",
     "eslint": "^4.19.1",
-    "jest": "^22.4.3",
-    "prettier": "^1.12.1"
+    "jest": "^22.4.4",
+    "prettier": "^1.14.0"
   }
 }
