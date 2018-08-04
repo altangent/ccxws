@@ -213,7 +213,7 @@ class BittrexClient extends EventEmitter {
       connected: this._onConnected.bind(this),
       disconnected: this._onDisconnected.bind(this),
       messageReceived: this._onMessage.bind(this),
-      onerror: err => winston.error("error", err).error,
+      onerror: err => winston.error("error", err),
       connectionlost: err => winston.error("connectionlost", err),
       connectfailed: err => winston.error("connectfailed", err),
       reconnecting: () => true, // disables reconnection
