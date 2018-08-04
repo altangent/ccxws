@@ -68,7 +68,7 @@ test(
       expect(trade.exchange).toMatch("bitFlyer");
       expect(trade.base).toMatch("BTC");
       expect(trade.quote).toMatch("JPY");
-      expect(trade.tradeId).toBeGreaterThan(0);
+      expect(trade.tradeId).toBeGreaterThanOrEqual(0);
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
