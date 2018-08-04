@@ -10,65 +10,79 @@ class HuobiClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
+    this.remoteIdMap = new Map();
   }
 
   _sendSubTicker(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
-        channel: `${remote_id}_ticker`,
+        channel: `${wss_remote_id}_ticker`,
       })
     );
   }
 
   _sendUnsubTicker(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
-        channel: `${remote_id}_ticker`,
+        channel: `${wss_remote_id}_ticker`,
       })
     );
   }
 
   _sendSubTrades(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
-        channel: `${remote_id}_trades`,
+        channel: `${wss_remote_id}_trades`,
       })
     );
   }
 
   _sendUnsubTrades(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
-        channel: `${remote_id}_trades`,
+        channel: `${wss_remote_id}_trades`,
       })
     );
   }
 
   _sendSubLevel2Updates(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
-        channel: `${remote_id}_depth`,
+        channel: `${wss_remote_id}_depth`,
       })
     );
   }
 
   _sendUnsubLevel2Updates(remote_id) {
+    let wss_remote_id = remote_id.replace(/_/, "");
+    this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
-        channel: `${remote_id}_depth`,
+        channel: `${wss_remote_id}_depth`,
       })
     );
   }
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-    let [remoteId, type] = msg.channel.split("_");
+    let [wssRemoteId, type] = msg.channel.split("_");
+    let remoteId = this.remoteIdMap.get(wssRemoteId);
 
     // tickers
     if (type === "ticker") {
