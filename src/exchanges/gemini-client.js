@@ -139,7 +139,7 @@ class GeminiClient extends EventEmitter {
    * Reconnects the socket
    */
   _reconnect(subscription) {
-    this._close(subscription.wss);
+    this._close(subscription);
     subscription.wss = this._connect(subscription.remoteId);
     this.emit("reconnected", subscription.remoteId);
   }
