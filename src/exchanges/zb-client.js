@@ -84,6 +84,11 @@ class HuobiClient extends BasicClient {
     let [wssRemoteId, type] = msg.channel.split("_");
     let remoteId = this.remoteIdMap.get(wssRemoteId);
 
+    // prevent errors from crashing the party
+    if (msg.success === false) {
+      return;
+    }
+
     // tickers
     if (type === "ticker") {
       let ticker = this._constructTicker(remoteId, msg);
