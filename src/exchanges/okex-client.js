@@ -114,52 +114,55 @@ class OKExClient extends BasicClient {
 
   _onMessage(raw) {
     let msgs = JSON.parse(raw);
-    if (!Array.isArray(msgs)) return;
 
-    for (let msg of msgs) {
-      // clear semaphore
-      if (msg.data.result) {
-        this._sem.leave();
-        continue;
+    if (Array.isArray(msgs)) {
+      for (let msg of msgs) {
+        this._processsMessage(msg);
       }
+    } else {
+      this._processsMessage(msgs);
+    }
+  }
 
-      // trades
-      if (msg.product === "spot" && msg.type === "deal") {
-        let { base, quote } = msg;
-        let remote_id = `${base}_${quote}`;
-        for (let datum of msg.data) {
-          let trade = this._constructTradesFromMessage(remote_id, datum);
-          this.emit("trade", trade);
-        }
-        return;
+  _processsMessage(msg) {
+    // clear semaphore
+    if (msg.data.result) {
+      this._sem.leave();
+      return;
+    }
+
+    // trades
+    if (msg.product === "spot" && msg.type === "deal") {
+      let { base, quote } = msg;
+      let remote_id = `${base}_${quote}`;
+      for (let datum of msg.data) {
+        let trade = this._constructTradesFromMessage(remote_id, datum);
+        this.emit("trade", trade);
       }
+      return;
+    }
 
-      if (!msg.channel) return;
+    if (!msg.channel) return;
 
-      // tickers
-      if (msg.channel.endsWith("_ticker")) {
-        let ticker = this._constructTicker(msg);
-        this.emit("ticker", ticker);
-        return;
-      }
+    // tickers
+    if (msg.channel.endsWith("_ticker")) {
+      let ticker = this._constructTicker(msg);
+      this.emit("ticker", ticker);
+      return;
+    }
 
-      // l2 snapshots
-      if (
-        msg.channel.endsWith("_5") ||
-        msg.channel.endsWith("_10") ||
-        msg.channel.endsWith("_20")
-      ) {
-        let snapshot = this._constructLevel2Snapshot(msg);
-        this.emit("l2snapshot", snapshot);
-        return;
-      }
+    // l2 snapshots
+    if (msg.channel.endsWith("_5") || msg.channel.endsWith("_10") || msg.channel.endsWith("_20")) {
+      let snapshot = this._constructLevel2Snapshot(msg);
+      this.emit("l2snapshot", snapshot);
+      return;
+    }
 
-      // l2 updates
-      if (msg.channel.endsWith("depth")) {
-        let update = this._constructoL2Update(msg);
-        this.emit("l2update", update);
-        return;
-      }
+    // l2 updates
+    if (msg.channel.endsWith("depth")) {
+      let update = this._constructoL2Update(msg);
+      this.emit("l2update", update);
+      return;
     }
   }
 
@@ -184,7 +187,7 @@ class OKExClient extends BasicClient {
     let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
     let market = this._tickerSubs.get(remoteId);
     let { open, vol, last, buy, change, sell, dayLow, dayHigh, timestamp } = msg.data;
-    let dayChangePercent = parseFloat(change) / parseFloat(open) * 100;
+    let dayChangePercent = (parseFloat(change) / parseFloat(open)) * 100;
     return new Ticker({
       exchange: "OKEx",
       base: market.base,
