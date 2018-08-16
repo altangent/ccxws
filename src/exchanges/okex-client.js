@@ -126,7 +126,7 @@ class OKExClient extends BasicClient {
 
   _processsMessage(msg) {
     // clear semaphore
-    if (msg.data.result) {
+    if (msg.data && msg.data.result) {
       this._sem.leave();
       return;
     }
