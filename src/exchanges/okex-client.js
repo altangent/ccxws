@@ -131,6 +131,12 @@ class OKExClient extends BasicClient {
       return;
     }
 
+    // prevent failed messages from
+    if (msg.data && msg.data.result === false) {
+      console.log("warn: failure response", JSON.stringify(msg));
+      return;
+    }
+
     // trades
     if (msg.product === "spot" && msg.type === "deal") {
       let { base, quote } = msg;
