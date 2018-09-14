@@ -4,6 +4,7 @@ const bitflyer = require("./exchanges/bitflyer-client");
 const bitmex = require("./exchanges/bitmex-client");
 const bitstamp = require("./exchanges/bitstamp-client");
 const bittrex = require("./exchanges/bittrex-client");
+const coinex = require("./exchanges/coinex-client");
 const gdax = require("./exchanges/gdax-client");
 const gemini = require("./exchanges/gemini-client");
 const hitbtc = require("./exchanges/hitbtc-client");
@@ -34,6 +35,7 @@ module.exports = {
   bitmex,
   bitstamp,
   bittrex,
+  coinex,
   gdax,
   gemini,
   hitbtc,
