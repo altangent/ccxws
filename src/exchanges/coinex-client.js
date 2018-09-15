@@ -11,12 +11,9 @@ class CoinexClient extends BasicMultiClient {
   constructor() {
     super(CoinexSingleClient);
 
-    // Do we need these properties here???
     this.hasTickers = true;
     this.hasTrades = true;
-    this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
-    this.hasLevel3Updates = false;
   }
 }
 
@@ -89,46 +86,46 @@ class CoinexSingleClient extends BasicClient {
 
     let { method, params } = msg;
 
-    // if params is defined, then this is a response to an event that was subscribed to, otherwise this is the initial connection response
-    if (params) {
-      if (method === "state.update") {
-        let marketId = Object.keys(params[0])[0];
+    // if params is not defined, then this is a response to an event that we don't care about (like the initial connection event)
+    if (!params) return;
 
-        if (this._tickerSubs.has(marketId)) {
-          let market = this._tickerSubs.get(marketId);
+    if (method === "state.update") {
+      let marketId = Object.keys(params[0])[0];
 
-          let ticker = this._constructTicker(params[0][marketId], market);
-          this.emit("ticker", ticker);
-        }
+      if (this._tickerSubs.has(marketId)) {
+        let market = this._tickerSubs.get(marketId);
+
+        let ticker = this._constructTicker(params[0][marketId], market);
+        this.emit("ticker", ticker);
       }
+    }
 
-      if (method === "deals.update") {
-        let marketId = params[0];
+    if (method === "deals.update") {
+      let marketId = params[0];
 
-        if (this._tradeSubs.has(marketId)) {
-          let market = this._tradeSubs.get(marketId);
+      if (this._tradeSubs.has(marketId)) {
+        let market = this._tradeSubs.get(marketId);
 
-          params[1].forEach(t => {
-            let trade = this._constructTrade(t, market);
-            this.emit("trade", trade);
-          });
-        }
+        params[1].forEach(t => {
+          let trade = this._constructTrade(t, market);
+          this.emit("trade", trade);
+        });
       }
+    }
 
-      if (method === "depth.update") {
-        let marketId = params[2];
+    if (method === "depth.update") {
+      let marketId = params[2];
 
-        if (this._level2UpdateSubs.has(marketId)) {
-          let market = this._level2UpdateSubs.get(marketId),
-            isLevel2Snapshot = params[0];
+      if (this._level2UpdateSubs.has(marketId)) {
+        let market = this._level2UpdateSubs.get(marketId),
+          isLevel2Snapshot = params[0];
 
-          if (isLevel2Snapshot) {
-            let l2snapshot = this._constructLevel2Snapshot(params[1], market);
-            this.emit("l2snapshot", l2snapshot);
-          } else {
-            let l2update = this._constructLevel2Update(params[1], market);
-            this.emit("l2update", l2update);
-          }
+        if (isLevel2Snapshot) {
+          let l2snapshot = this._constructLevel2Snapshot(params[1], market);
+          this.emit("l2snapshot", l2snapshot);
+        } else {
+          let l2update = this._constructLevel2Update(params[1], market);
+          this.emit("l2update", l2update);
         }
       }
     }
@@ -192,8 +189,8 @@ class CoinexSingleClient extends BasicClient {
 
   _constructLevel2Update(rawUpdate, market) {
     let { bids, asks } = rawUpdate,
-      structuredBids = bids ? bids.map(([price, size]) => new Level2Point(price, size)) : null,
-      structuredAsks = asks ? asks.map(([price, size]) => new Level2Point(price, size)) : null;
+      structuredBids = bids ? bids.map(([price, size]) => new Level2Point(price, size)) : [],
+      structuredAsks = asks ? asks.map(([price, size]) => new Level2Point(price, size)) : [];
 
     return new Level2Update({
       exchange: "Coinex",

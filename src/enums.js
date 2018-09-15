@@ -1,4 +1,4 @@
-var MarketObjectTypes = Object.freeze({
+const MarketObjectTypes = Object.freeze({
   ticker: 1,
   trade: 2,
   level2snapshot: 3,
