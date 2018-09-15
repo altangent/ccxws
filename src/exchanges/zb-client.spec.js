@@ -1,5 +1,6 @@
 const ZBClient = require("./zb-client");
 jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.retryTimes(3);
 
 let client;
 let market = {

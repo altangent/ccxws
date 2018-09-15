@@ -1,5 +1,6 @@
 const Coinex = require("./coinex-client");
 jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.retryTimes(3);
 
 let client;
 let market1 = {

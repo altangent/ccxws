@@ -1,5 +1,6 @@
 const Binance = require("./binance-client");
 jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.retryTimes(3);
 
 let client;
 let market = {
@@ -58,8 +59,8 @@ test("should subscribe and emit ticker events", done => {
     expect(parseFloat(ticker.low)).toBeGreaterThan(0);
     expect(parseFloat(ticker.volume)).toBeGreaterThan(0);
     expect(parseFloat(ticker.quoteVolume)).toBeGreaterThan(0);
-    expect(Math.abs(parseFloat(ticker.change))).toBeGreaterThan(0);
-    expect(Math.abs(parseFloat(ticker.changePercent))).toBeGreaterThan(0);
+    expect(isNaN(parseFloat(ticker.change))).toBeFalsy();
+    expect(isNaN(parseFloat(ticker.changePercent))).toBeFalsy();
     expect(parseFloat(ticker.bid)).toBeGreaterThan(0);
     expect(parseFloat(ticker.bidVolume)).toBeGreaterThan(0);
     expect(parseFloat(ticker.ask)).toBeGreaterThan(0);

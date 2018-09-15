@@ -1,5 +1,6 @@
 const Bitstamp = require("./bitstamp-client");
 jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
+jest.retryTimes(3);
 
 let client;
 let market = {
@@ -51,7 +52,7 @@ test(
       done();
     });
   },
-  30000
+  60000
 );
 
 test("should subscribe and emit level2 snapshots", done => {
