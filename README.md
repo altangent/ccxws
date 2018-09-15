@@ -55,6 +55,7 @@ binance.subscribeLevel2Snapshots(market);
 | BitMEX   | bitmex   |         | Support | -              | Support\*     | -              | -             |
 | Bitstamp | bitstamp | -       | Support | Support        | Support       | -              | Support       |
 | Bittrex  | bittrex  | Support | Support | -              | Support\*     | -              | -             |
+| Coinex   | coinex   | Support | Support | -              | Support\*     | -              | -             |
 | GDAX     | gdax     | Support | Support | -              | Support\*     | -              | Support       |
 | Gemini   | gemini   | -       | Support | -              | Support\*     | -              | -             |
 | HitBTC   | hitbtc   | Support | Support | -              | Support\*     | -              | -             |
@@ -65,7 +66,7 @@ binance.subscribeLevel2Snapshots(market);
 
 Notes:
 
-* Support\*: Broadcasts a snapshot event at startup
+- Support\*: Broadcasts a snapshot event at startup
 
 ## Definitions
 
@@ -83,9 +84,9 @@ Markets are used as input to many of the client functions. Markets can be genera
 
 The following properties are used by CCXWS.
 
-* `id: string` - the identifier used by the remote exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
+- `id: string` - the identifier used by the remote exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
 
 ### `Client`
 
@@ -217,23 +218,23 @@ The ticker class is the result of a `ticker` event.
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `timestamp: int` - the unix timestamp in milliseconds
-* `last: string` - the last price of a match that caused a tick
-* `open: string` - the price 24 hours ago
-* `low: string` - the highest price in the last 24 hours
-* `high: string` - the lowest price in the last 24 hours
-* `volume: string` - the base volume traded in the last 24 hours
-* `quoteVolume: string` - the quote volume traded in the last 24 hours
-* `change: string` - the price change (last - open)
-* `changePercent: string` - the price change in percent (last - open) / open \* 100
-* `bid: string` - the best bid price
-* `bidVolume: string` - the volume at the best bid price
-* `ask: string` - the best ask price
-* `askVolume: string` - the volume at the best ask price
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `timestamp: int` - the unix timestamp in milliseconds
+- `last: string` - the last price of a match that caused a tick
+- `open: string` - the price 24 hours ago
+- `low: string` - the highest price in the last 24 hours
+- `high: string` - the lowest price in the last 24 hours
+- `volume: string` - the base volume traded in the last 24 hours
+- `quoteVolume: string` - the quote volume traded in the last 24 hours
+- `change: string` - the price change (last - open)
+- `changePercent: string` - the price change in percent (last - open) / open \* 100
+- `bid: string` - the best bid price
+- `bidVolume: string` - the volume at the best bid price
+- `ask: string` - the best ask price
+- `askVolume: string` - the volume at the best ask price
 
 ### `Trade`
 
@@ -241,17 +242,17 @@ The trade class is the result of a `trade` event emitted from a client.
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `tradeId: string` - the unique trade identifer from the exchanges feed
-* `unix: int` - the unix timestamp in milliseconds for when the trade executed
-* `side: string` - whether the buyer `buy` or seller `sell` was the maker for the match
-* `price: string` - the price at which the match executed
-* `amount: string` - the amount executed in the match
-* `buyOrderId: string` - the order id of the buy side
-* `sellOrderId: string` - the order id of the sell side
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `tradeId: string` - the unique trade identifer from the exchanges feed
+- `unix: int` - the unix timestamp in milliseconds for when the trade executed
+- `side: string` - whether the buyer `buy` or seller `sell` was the maker for the match
+- `price: string` - the price at which the match executed
+- `amount: string` - the amount executed in the match
+- `buyOrderId: string` - the order id of the buy side
+- `sellOrderId: string` - the order id of the sell side
 
 ### `Level2Point`
 
@@ -259,9 +260,9 @@ Represents a price point in a level 2 orderbook
 
 #### Properties
 
-* `price: string` - price
-* `size: string` - aggregated volume for all orders at this price point
-* `count: int` - optional number of orders aggregated into the price point
+- `price: string` - price
+- `size: string` - aggregated volume for all orders at this price point
+- `count: int` - optional number of orders aggregated into the price point
 
 ### `Level2Snapshot`
 
@@ -269,14 +270,14 @@ The level 2 snapshot class is the result of a `l2snapshot` or `l2update` event e
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `timestampMs: int` - optional timestamp in milliseconds for the snapshot
-* `sequenceId: int` - optional sequence identifier for the snapshot
-* `asks: [Level2Point]` - the ask (seller side) price points
-* `bids: [Level2Point]` - the bid (buyer side) price points
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `timestampMs: int` - optional timestamp in milliseconds for the snapshot
+- `sequenceId: int` - optional sequence identifier for the snapshot
+- `asks: [Level2Point]` - the ask (seller side) price points
+- `bids: [Level2Point]` - the bid (buyer side) price points
 
 ### `Level2Update`
 
@@ -284,14 +285,14 @@ The level 2 update class is a result of a `l2update` event emitted from the clie
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `timestampMs: int` - optional timestamp in milliseconds for the snapshot
-* `sequenceId: int` - optional sequence identifier for the snapshot
-* `asks: [Level2Point]` - the ask (seller side) price points
-* `bids: [Level2Point]` - the bid (buyer side) price points
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `timestampMs: int` - optional timestamp in milliseconds for the snapshot
+- `sequenceId: int` - optional sequence identifier for the snapshot
+- `asks: [Level2Point]` - the ask (seller side) price points
+- `bids: [Level2Point]` - the bid (buyer side) price points
 
 ### `Level3Point`
 
@@ -299,10 +300,10 @@ Represents a price point in a level 3 orderbook
 
 #### Properties
 
-* `orderId: string` - identifier for the order
-* `price: string` - price
-* `size: string` - volume of the order
-* `meta: object` - optional exchange specific metadata with additional information about the update.
+- `orderId: string` - identifier for the order
+- `price: string` - price
+- `size: string` - volume of the order
+- `meta: object` - optional exchange specific metadata with additional information about the update.
 
 ### `Level3Snapshot`
 
@@ -310,14 +311,14 @@ The level 3 snapshot class is the result of a `l3snapshot` or `l3update` event e
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `timestampMs: int` - optional timestamp in milliseconds for the snapshot
-* `sequenceId: int` - optional sequence identifier for the snapshot
-* `asks: [Level3Point]` - the ask (seller side) price points
-* `bids: [Level3Point]` - the bid (buyer side) price points
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `timestampMs: int` - optional timestamp in milliseconds for the snapshot
+- `sequenceId: int` - optional sequence identifier for the snapshot
+- `asks: [Level3Point]` - the ask (seller side) price points
+- `bids: [Level3Point]` - the bid (buyer side) price points
 
 ### `Level3Update`
 
@@ -327,11 +328,11 @@ Additional metadata is often provided in the `meta` property that has more detai
 
 #### Properties
 
-* `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
-* `exchange: string` - the name of the exchange
-* `base: string` - the normalized base symbol for the market
-* `quote: string` - the normalized quote symbol for the market
-* `timestampMs: int` - optional timestamp in milliseconds for the snapshot
-* `sequenceId: int` - optional sequence identifier for the snapshot
-* `asks: [Level3Point]` - the ask (seller side) price points
-* `bids: [Level3Point]` - the bid (buyer side) price points
+- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
+- `exchange: string` - the name of the exchange
+- `base: string` - the normalized base symbol for the market
+- `quote: string` - the normalized quote symbol for the market
+- `timestampMs: int` - optional timestamp in milliseconds for the snapshot
+- `sequenceId: int` - optional sequence identifier for the snapshot
+- `asks: [Level3Point]` - the ask (seller side) price points
+- `bids: [Level3Point]` - the bid (buyer side) price points
