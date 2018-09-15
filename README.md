@@ -45,7 +45,7 @@ binance.subscribeTrades(market);
 binance.subscribeLevel2Snapshots(market);
 ```
 
-## Exchanges - 13
+## Exchanges
 
 | Exchange | Class    | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | -------- | -------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
