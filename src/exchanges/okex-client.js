@@ -19,7 +19,8 @@ class OKExClient extends BasicClient {
   }
 
   _resetSemaphore() {
-    this._sem = semaphore(10);
+    this._sem = semaphore(5);
+    this._hasSnapshot = new Set();
   }
 
   _sendPing() {
@@ -148,7 +149,10 @@ class OKExClient extends BasicClient {
       return;
     }
 
-    if (!msg.channel) return;
+    if (!msg.channel) {
+      if (msg.event !== "pong") console.log(msg);
+      return;
+    }
 
     // tickers
     if (msg.channel.endsWith("_ticker")) {
@@ -159,15 +163,23 @@ class OKExClient extends BasicClient {
 
     // l2 snapshots
     if (msg.channel.endsWith("_5") || msg.channel.endsWith("_10") || msg.channel.endsWith("_20")) {
-      let snapshot = this._constructLevel2Snapshot(msg);
+      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
+      let snapshot = this._constructLevel2Snapshot(msg, remote_id);
       this.emit("l2snapshot", snapshot);
       return;
     }
 
     // l2 updates
     if (msg.channel.endsWith("depth")) {
-      let update = this._constructoL2Update(msg);
-      this.emit("l2update", update);
+      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
+      if (!this._hasSnapshot.has(remote_id)) {
+        let snapshot = this._constructLevel2Snapshot(msg, remote_id);
+        this.emit("l2snapshot", snapshot);
+        this._hasSnapshot.add(remote_id);
+      } else {
+        let update = this._constructoL2Update(msg, remote_id);
+        this.emit("l2update", update);
+      }
       return;
     }
   }
@@ -249,7 +261,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg) {
+  _constructLevel2Snapshot(msg, remote_id) {
     /*
     [{
         "binary": 0,
@@ -274,8 +286,7 @@ class OKExClient extends BasicClient {
         }
     }]
     */
-    let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
-    let market = this._level2SnapshotSubs.get(remote_id);
+    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
     return new Level2Snapshot({
@@ -288,7 +299,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructoL2Update(msg) {
+  _constructoL2Update(msg, remote_id) {
     /*
     [{
         "binary": 0,
@@ -313,7 +324,6 @@ class OKExClient extends BasicClient {
         }
     }]
     */
-    let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
     let market = this._level2UpdateSubs.get(remote_id);
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
