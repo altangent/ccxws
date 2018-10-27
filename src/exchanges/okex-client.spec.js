@@ -92,41 +92,66 @@ test(
   30000
 );
 
-test("should subscribe and emit level2 snapshots", done => {
-  client.subscribeLevel2Snapshots(market);
-  client.on("l2snapshot", snapshot => {
-    expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
-    expect(snapshot.exchange).toMatch("OKEx");
-    expect(snapshot.base).toMatch("BTC");
-    expect(snapshot.quote).toMatch("USDT");
-    expect(snapshot.sequenceId).toBeUndefined();
-    expect(snapshot.timestampMs).toBeGreaterThan(0);
-    expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.asks[0].count).toBeUndefined();
-    expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.bids[0].count).toBeUndefined();
-    done();
-  });
-});
+test(
+  "should subscribe and emit level2 updates",
+  done => {
+    let hasSnapshot = false;
+    client.subscribeLevel2Updates(market);
+    client.on("l2snapshot", snapshot => {
+      hasSnapshot = true;
+      expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
+      expect(snapshot.exchange).toMatch("OKEx");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USDT");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(snapshot.timestampMs).toBeGreaterThan(0);
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.asks[0].count).toBeUndefined();
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.bids[0].count).toBeUndefined();
+    });
+    client.on("l2update", update => {
+      expect(hasSnapshot).toBeTruthy();
+      expect(update.fullId).toMatch("OKEx:BTC/USD");
+      expect(update.exchange).toMatch("OKEx");
+      expect(update.base).toMatch("BTC");
+      expect(update.quote).toMatch("USD");
+      expect(update.sequenceId).toBeUndefined();
+      expect(update.timestampMs).toBeGreaterThan(0);
+      let point = update.asks[0] || update.bids[0];
+      expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
+      expect(point.count).toBeUndefined();
+      done();
+    });
+  },
+  30000
+);
 
-test("should subscribe and emit level2 updates", done => {
-  client.subscribeLevel2Updates(market);
-  client.on("l2update", update => {
-    expect(update.fullId).toMatch("OKEx:BTC/USD");
-    expect(update.exchange).toMatch("OKEx");
-    expect(update.base).toMatch("BTC");
-    expect(update.quote).toMatch("USD");
-    expect(update.sequenceId).toBeUndefined();
-    expect(update.timestampMs).toBeGreaterThan(0);
-    let point = update.asks[0] || update.bids[0];
-    expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-    expect(point.count).toBeUndefined();
-    done();
-  });
-});
+test(
+  "should subscribe and emit level2 snapshots",
+  done => {
+    client.subscribeLevel2Snapshots(market);
+    client.on("l2snapshot", snapshot => {
+      expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
+      expect(snapshot.exchange).toMatch("OKEx");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USDT");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(snapshot.timestampMs).toBeGreaterThan(0);
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.asks[0].count).toBeUndefined();
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.bids[0].count).toBeUndefined();
+      done();
+    });
+  },
+  30000
+);
 
 test("should unsubscribe from tickers", () => {
   client.unsubscribeTicker(market);
