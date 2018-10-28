@@ -2,14 +2,14 @@ const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
-const Level2Update = require("../level2-update");
+const Level2Snapshot = require("../level2-snapshot");
 
 class HuobiClient extends BasicClient {
   constructor() {
     super("wss://api.zb.cn:9999/websocket ", "ZB");
     this.hasTickers = true;
     this.hasTrades = true;
-    this.hasLevel2Updates = true;
+    this.hasLevel2Snapshots = true;
     this.remoteIdMap = new Map();
   }
 
@@ -57,7 +57,7 @@ class HuobiClient extends BasicClient {
     );
   }
 
-  _sendSubLevel2Updates(remote_id) {
+  _sendSubLevel2Snapshots(remote_id) {
     let wss_remote_id = remote_id.replace(/_/, "");
     this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
@@ -68,7 +68,7 @@ class HuobiClient extends BasicClient {
     );
   }
 
-  _sendUnsubLevel2Updates(remote_id) {
+  _sendUnsubLevel2Snapshots(remote_id) {
     let wss_remote_id = remote_id.replace(/_/, "");
     this.remoteIdMap.set(wss_remote_id, remote_id);
     this._wss.send(
@@ -105,10 +105,10 @@ class HuobiClient extends BasicClient {
       return;
     }
 
-    // level2updates
+    // level2snapshots
     if (type === "depth") {
-      let snapshot = this._constructLevel2Update(remoteId, msg);
-      this.emit("l2update", snapshot);
+      let snapshot = this._constructLevel2Snapshot(remoteId, msg);
+      this.emit("l2snapshot", snapshot);
       return;
     }
   }
@@ -150,12 +150,12 @@ class HuobiClient extends BasicClient {
     });
   }
 
-  _constructLevel2Update(remoteId, msg) {
-    let market = this._level2UpdateSubs.get(remoteId);
+  _constructLevel2Snapshot(remoteId, msg) {
+    let market = this._level2SnapshotSubs.get(remoteId);
     let { timestamp, asks, bids } = msg;
     asks = asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     bids = bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
-    return new Level2Update({
+    return new Level2Snapshot({
       exchange: "ZB",
       base: market.base,
       quote: market.quote,
