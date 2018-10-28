@@ -62,7 +62,7 @@ binance.subscribeLevel2Snapshots(market);
 | Huobi    | huobi    | Support | Support | Support        | -             | -              | -             |
 | OKEx     | okex     | Support | Support | Support        | Support\*     | -              | -             |
 | Poloniex | poloniex | Support | Support | -              | Support\*     | -              | -             |
-| ZB       | zb       | Support | Support | -              | Support       | -              | -             |
+| ZB       | zb       | Support | Support | Support        | -             | -              | -             |
 
 Notes:
 
