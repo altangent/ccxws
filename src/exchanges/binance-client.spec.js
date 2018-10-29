@@ -91,6 +91,46 @@ test(
   30000
 );
 
+test("should subscribe and emit level2 updates", done => {
+  let hasSnapshot = false;
+  let hasUpdates = false;
+  client.subscribeLevel2Updates(market);
+  client.on("l2snapshot", snapshot => {
+    hasSnapshot = true;
+    expect(snapshot.fullId).toMatch("Binance:ETH/BTC");
+    expect(snapshot.exchange).toMatch("Binance");
+    expect(snapshot.base).toMatch("ETH");
+    expect(snapshot.quote).toMatch("BTC");
+    expect(snapshot.sequenceId).toBeGreaterThan(0);
+    expect(snapshot.timestampMs).toBeUndefined();
+    expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+    expect(snapshot.asks[0].count).toBeUndefined();
+    expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+    expect(snapshot.bids[0].count).toBeUndefined();
+    if (hasSnapshot && hasUpdates) done();
+  });
+  client.on("l2update", update => {
+    hasUpdates = true;
+    expect(update.fullId).toMatch("Binance:ETH/BTC");
+    expect(update.exchange).toMatch("Binance");
+    expect(update.base).toMatch("ETH");
+    expect(update.quote).toMatch("BTC");
+    expect(update.sequenceId).toBeGreaterThan(0);
+    expect(update.lastSequenceId).toBeGreaterThanOrEqual(update.sequenceId);
+    if (update.asks.length) {
+      expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
+    }
+    if (update.bids.length) {
+      expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
+    }
+    if (hasSnapshot && hasUpdates) done();
+  });
+});
+
 test("should subscribe and emit level2 snapshots", done => {
   client.subscribeLevel2Snapshots(market);
   client.on("l2snapshot", snapshot => {
@@ -106,27 +146,6 @@ test("should subscribe and emit level2 snapshots", done => {
     expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
     expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
     expect(snapshot.bids[0].count).toBeUndefined();
-    done();
-  });
-});
-
-test("should subscribe and emit level2 updates", done => {
-  client.subscribeLevel2Updates(market);
-  client.on("l2update", update => {
-    expect(update.fullId).toMatch("Binance:ETH/BTC");
-    expect(update.exchange).toMatch("Binance");
-    expect(update.base).toMatch("ETH");
-    expect(update.quote).toMatch("BTC");
-    expect(update.sequenceId).toBeGreaterThan(0);
-    expect(update.lastSequenceId).toBeGreaterThanOrEqual(update.sequenceId);
-    if (update.asks.length) {
-      expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
-      expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
-    }
-    if (update.bids.length) {
-      expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
-      expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
-    }
     done();
   });
 });
