@@ -15,7 +15,7 @@ function wait(ms) {
 }
 
 class BinanceClient extends EventEmitter {
-  constructor({ useAggTrades = true } = {}) {
+  constructor({ useAggTrades = true, requestSnapshot = true } = {}) {
     super();
     this._name = "Binance";
     this._tickerSubs = new Map();
@@ -25,6 +25,7 @@ class BinanceClient extends EventEmitter {
     this._wss = undefined;
     this._reconnectDebounce = undefined;
 
+    this.requestSnapshot = requestSnapshot;
     this.useAggTrades = useAggTrades;
     this.hasTickers = true;
     this.hasTrades = true;
@@ -158,8 +159,10 @@ class BinanceClient extends EventEmitter {
     this._sem = semaphore(1);
     this._watcher.start();
     this.emit("connected");
-    for (let market of this._level2UpdateSubs.values()) {
-      this._requestLevel2Snapshot(market);
+    if (this.requestSnapshot) {
+      for (let market of this._level2UpdateSubs.values()) {
+        this._requestLevel2Snapshot(market);
+      }
     }
   }
 
