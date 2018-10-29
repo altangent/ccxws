@@ -1,5 +1,7 @@
 const { EventEmitter } = require("events");
 const winston = require("winston");
+const semaphore = require("semaphore");
+const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
@@ -7,6 +9,10 @@ const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 class BinanceClient extends EventEmitter {
   constructor({ useAggTrades = true } = {}) {
@@ -28,6 +34,7 @@ class BinanceClient extends EventEmitter {
     this.hasLevel3Updates = false;
 
     this._watcher = new Watcher(this, 30000);
+    this._sem;
   }
 
   //////////////////////////////////////////////
@@ -148,8 +155,12 @@ class BinanceClient extends EventEmitter {
   // ABSTRACT
 
   _onConnected() {
+    this._sem = semaphore(1);
     this._watcher.start();
     this.emit("connected");
+    for (let market of this._level2UpdateSubs.values()) {
+      this._requestLevel2Snapshot(market);
+    }
   }
 
   _onDisconnected() {
@@ -280,7 +291,7 @@ class BinanceClient extends EventEmitter {
     let sequenceId = msg.data.lastUpdateId;
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
-    return new Level2Update({
+    return new Level2Snapshot({
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
@@ -297,7 +308,7 @@ class BinanceClient extends EventEmitter {
     let lastSequenceId = msg.data.u;
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.b.map(p => new Level2Point(p[0], p[1]));
-    return new Level2Snapshot({
+    return new Level2Update({
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
@@ -305,6 +316,35 @@ class BinanceClient extends EventEmitter {
       lastSequenceId,
       asks,
       bids,
+    });
+  }
+
+  async _requestLevel2Snapshot(market) {
+    this._sem.take(async () => {
+      try {
+        winston.info(`requesting snapshot for ${market.id}`);
+        let remote_id = market.id;
+        let uri = `https://api.binance.com/api/v1/depth?limit=1000&symbol=${remote_id}`;
+        let raw = await https.get(uri);
+        let sequenceId = raw.lastUpdateId;
+        let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
+        let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
+        let snapshot = new Level2Snapshot({
+          exchange: "Binance",
+          base: market.base,
+          quote: market.quote,
+          sequenceId,
+          asks,
+          bids,
+        });
+        this.emit("l2snapshot", snapshot);
+      } catch (ex) {
+        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this._requestLevel2Snapshot(market);
+      } finally {
+        await wait(200);
+        this._sem.leave();
+      }
     });
   }
 }
