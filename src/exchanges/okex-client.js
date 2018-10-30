@@ -1,4 +1,5 @@
 const semaphore = require("semaphore");
+const zlib = require("zlib");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -114,15 +115,24 @@ class OKExClient extends BasicClient {
   }
 
   _onMessage(raw) {
-    let msgs = JSON.parse(raw);
-
-    if (Array.isArray(msgs)) {
-      for (let msg of msgs) {
-        this._processsMessage(msg);
+    zlib.inflateRaw(raw, (err, msgs) => {
+      if (err) {
+        console.warn(`failed to deflate: ${err.message}`);
+        return;
       }
-    } else {
-      this._processsMessage(msgs);
-    }
+      try {
+        msgs = JSON.parse(msgs);
+        if (Array.isArray(msgs)) {
+          for (let msg of msgs) {
+            this._processsMessage(msg);
+          }
+        } else {
+          this._processsMessage(msgs);
+        }
+      } catch (ex) {
+        console.warn(`failed to parse json ${ex.message}`);
+      }
+    });
   }
 
   _processsMessage(msg) {
