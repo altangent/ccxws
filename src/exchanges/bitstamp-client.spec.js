@@ -55,6 +55,42 @@ test(
   60000
 );
 
+test("should subscribe and emit level2 updates", done => {
+  let hasSnapshot = false;
+  let hasUpdate = false;
+  client.subscribeLevel2Updates(market);
+  client.on("l2snapshot", snapshot => {
+    hasSnapshot = true;
+    expect(snapshot.fullId).toMatch("Bitstamp:BTC/USD");
+    expect(snapshot.exchange).toMatch("Bitstamp");
+    expect(snapshot.base).toMatch("BTC");
+    expect(snapshot.quote).toMatch("USD");
+    expect(snapshot.sequenceId).toBeUndefined();
+    expect(snapshot.timestampMs).toBeGreaterThan(0);
+    expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+    expect(snapshot.asks[0].count).toBeUndefined();
+    expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+    expect(snapshot.bids[0].count).toBeUndefined();
+    if (hasSnapshot && hasUpdate) done();
+  });
+  client.on("l2update", update => {
+    hasUpdate = true;
+    expect(update.fullId).toMatch("Bitstamp:BTC/USD");
+    expect(update.exchange).toMatch("Bitstamp");
+    expect(update.base).toMatch("BTC");
+    expect(update.quote).toMatch("USD");
+    expect(update.sequenceId).toBeUndefined();
+    expect(update.timestampMs).toBeGreaterThan(0);
+    let point = update.asks[0] || update.bids[0];
+    expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
+    expect(point.count).toBeUndefined();
+    if (hasSnapshot && hasUpdate) done();
+  });
+});
+
 test("should subscribe and emit level2 snapshots", done => {
   client.subscribeLevel2Snapshots(market);
   client.on("l2snapshot", snapshot => {
@@ -70,23 +106,6 @@ test("should subscribe and emit level2 snapshots", done => {
     expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
     expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
     expect(snapshot.bids[0].count).toBeUndefined();
-    done();
-  });
-});
-
-test("should subscribe and emit level2 updates", done => {
-  client.subscribeLevel2Updates(market);
-  client.on("l2update", update => {
-    expect(update.fullId).toMatch("Bitstamp:BTC/USD");
-    expect(update.exchange).toMatch("Bitstamp");
-    expect(update.base).toMatch("BTC");
-    expect(update.quote).toMatch("USD");
-    expect(update.sequenceId).toBeUndefined();
-    expect(update.timestampMs).toBeGreaterThan(0);
-    let point = update.asks[0] || update.bids[0];
-    expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-    expect(point.count).toBeUndefined();
     done();
   });
 });

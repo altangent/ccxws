@@ -1,6 +1,7 @@
 const { EventEmitter } = require("events");
 const winston = require("winston");
 const semaphore = require("semaphore");
+const { wait } = require("../util");
 const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -9,10 +10,6 @@ const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
-
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
 
 class BinanceClient extends EventEmitter {
   constructor({ useAggTrades = true, requestSnapshot = true } = {}) {
@@ -35,7 +32,8 @@ class BinanceClient extends EventEmitter {
     this.hasLevel3Updates = false;
 
     this._watcher = new Watcher(this, 30000);
-    this._sem;
+    this._restSem = semaphore(1);
+    this.REST_REQUEST_DELAY_MS = 250;
   }
 
   //////////////////////////////////////////////
@@ -156,14 +154,9 @@ class BinanceClient extends EventEmitter {
   // ABSTRACT
 
   _onConnected() {
-    this._sem = semaphore(1);
     this._watcher.start();
+    this._requestLevel2Snapshots(); // now that we're connected...
     this.emit("connected");
-    if (this.requestSnapshot) {
-      for (let market of this._level2UpdateSubs.values()) {
-        this._requestLevel2Snapshot(market);
-      }
-    }
   }
 
   _onDisconnected() {
@@ -322,8 +315,16 @@ class BinanceClient extends EventEmitter {
     });
   }
 
+  _requestLevel2Snapshots() {
+    if (this.requestSnapshot) {
+      for (let market of this._level2UpdateSubs.values()) {
+        this._requestLevel2Snapshot(market);
+      }
+    }
+  }
+
   async _requestLevel2Snapshot(market) {
-    this._sem.take(async () => {
+    this._restSem.take(async () => {
       try {
         winston.info(`requesting snapshot for ${market.id}`);
         let remote_id = market.id;
@@ -345,8 +346,8 @@ class BinanceClient extends EventEmitter {
         winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
         this._requestLevel2Snapshot(market);
       } finally {
-        await wait(200);
-        this._sem.leave();
+        await wait(this.REST_REQUEST_DELAY_MS);
+        this._restSem.leave();
       }
     });
   }

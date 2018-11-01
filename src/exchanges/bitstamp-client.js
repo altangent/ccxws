@@ -1,6 +1,9 @@
 const { EventEmitter } = require("events");
+const semaphore = require("semaphore");
 const winston = require("winston");
 const Pusher = require("pusher-js");
+const { wait } = require("../util");
+const https = require("../https");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
@@ -22,6 +25,9 @@ class BitstampClient extends EventEmitter {
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = true;
+
+    this._restSem = semaphore(1);
+    this.REST_REQUEST_DELAY_MS = 250;
   }
 
   subscribeTrades(market) {
@@ -225,6 +231,7 @@ class BitstampClient extends EventEmitter {
     let channelName = remote_id === "btcusd" ? "diff_order_book" : `diff_order_book_${remote_id}`;
     let channel = this._pusher.subscribe(channelName);
     channel.bind("data", this._onLevel2Update.bind(this, remote_id));
+    this._requestLevel2Snapshot(this._level2UpdateSubs.get(remote_id));
   }
 
   _sendUnsubLevel2Updates(remote_id) {
@@ -320,6 +327,38 @@ class BitstampClient extends EventEmitter {
     });
 
     this.emit("l3update", update);
+  }
+
+  async _requestLevel2Snapshot(market) {
+    this._restSem.take(async () => {
+      try {
+        winston.info(`requesting snapshot for ${market.id}`);
+        let remote_id = market.id;
+        let uri =
+          remote_id === "btcusd"
+            ? "https://www.bitstamp.net/api/order_book/?group=1"
+            : `https://www.bitstamp.net/api/v2/order_book/${remote_id}?group=1`;
+        let raw = await https.get(uri);
+        let timestampMs = raw.timestamp * 1000;
+        let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
+        let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
+        let snapshot = new Level2Snapshot({
+          exchange: "Bitstamp",
+          base: market.base,
+          quote: market.quote,
+          timestampMs,
+          asks,
+          bids,
+        });
+        this.emit("l2snapshot", snapshot);
+      } catch (ex) {
+        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this._requestLevel2Snapshot(market);
+      } finally {
+        await wait(this.REST_REQUEST_DELAY_MS);
+        this._restSem.leave();
+      }
+    });
   }
 }
 
