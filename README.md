@@ -49,11 +49,11 @@ binance.subscribeLevel2Snapshots(market);
 
 | Exchange | Class    | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | -------- | -------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Binance  | binance  | Support | Support | Support        | Support\**    | -              | -             |
+| Binance  | binance  | Support | Support | Support        | Support\*\*   | -              | -             |
 | Bitfinex | bitfinex | Support | Support | -              | Support\*     | -              | Support\*     |
-| bitFlyer | bitflyer | Support | Support | -              | Support       | -              | -             |
+| bitFlyer | bitflyer | Support | Support | -              | Support\*\*   | -              | -             |
 | BitMEX   | bitmex   |         | Support | -              | Support\*     | -              | -             |
-| Bitstamp | bitstamp | -       | Support | Support        | Support       | -              | Support       |
+| Bitstamp | bitstamp | -       | Support | Support        | Support\*\*   | -              | Support       |
 | Bittrex  | bittrex  | Support | Support | -              | Support\*     | -              | -             |
 | Coinex   | coinex   | Support | Support | -              | Support\*     | -              | -             |
 | GDAX     | gdax     | Support | Support | -              | Support\*     | -              | Support       |
