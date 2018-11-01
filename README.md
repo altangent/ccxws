@@ -49,7 +49,7 @@ binance.subscribeLevel2Snapshots(market);
 
 | Exchange | Class    | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | -------- | -------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Binance  | binance  | Support | Support | Support        | Support       | -              | -             |
+| Binance  | binance  | Support | Support | Support        | Support\**    | -              | -             |
 | Bitfinex | bitfinex | Support | Support | -              | Support\*     | -              | Support\*     |
 | bitFlyer | bitflyer | Support | Support | -              | Support       | -              | -             |
 | BitMEX   | bitmex   |         | Support | -              | Support\*     | -              | -             |
@@ -67,6 +67,7 @@ binance.subscribeLevel2Snapshots(market);
 Notes:
 
 - Support\*: Broadcasts a snapshot event at startup
+- Support\*\*: Broadcasts a snapshot by using the REST API
 
 ## Definitions
 
