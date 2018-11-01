@@ -85,8 +85,11 @@ test(
 );
 
 test("should subscribe and emit level2 updates", done => {
+  let hasSnapshot = true;
+  let hasUpdate = true;
   client.subscribeLevel2Updates(market);
-  client.on("l2update", update => {
+  client.on("l2snapshot", update => {
+    hasSnapshot = true;
     expect(update.fullId).toMatch("bitFlyer:BTC/JPY");
     expect(update.exchange).toMatch("bitFlyer");
     expect(update.base).toMatch("BTC");
@@ -99,7 +102,23 @@ test("should subscribe and emit level2 updates", done => {
     expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
     expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
     expect(point.count).toBeUndefined();
-    done();
+    if (hasSnapshot && hasUpdate) done();
+  });
+  client.on("l2update", update => {
+    hasUpdate = true;
+    expect(update.fullId).toMatch("bitFlyer:BTC/JPY");
+    expect(update.exchange).toMatch("bitFlyer");
+    expect(update.base).toMatch("BTC");
+    expect(update.quote).toMatch("JPY");
+    expect(update.sequenceId).toBeUndefined();
+    expect(update.timestampMs).toBeUndefined();
+    let point = update.asks[0] || update.bids[0];
+    expect(typeof point.price).toBe("string");
+    expect(typeof point.size).toBe("string");
+    expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
+    expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
+    expect(point.count).toBeUndefined();
+    if (hasSnapshot && hasUpdate) done();
   });
 });
 

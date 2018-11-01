@@ -1,8 +1,13 @@
 const BasicClient = require("../basic-client");
+const winston = require("winston");
+const semaphore = require("semaphore");
+const { wait } = require("../util");
+const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
+const Level2Snapshot = require("../level2-snapshot");
 const moment = require("moment");
 
 class BitFlyerClient extends BasicClient {
@@ -11,6 +16,9 @@ class BitFlyerClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
+    this.requestSnapshot = true;
+    this._restSem = semaphore(1);
+    this.REST_REQUEST_DELAY_MS = 250;
   }
 
   _sendSubTicker(remote_id) {
@@ -47,6 +55,8 @@ class BitFlyerClient extends BasicClient {
   }
 
   _sendSubLevel2Updates(remote_id) {
+    // this method is trigger on connections events... so safe to send snapshot request here
+    if (this.requestSnapshot) this._requestLevel2Snapshot(this._level2UpdateSubs.get(remote_id));
     this._wss.send(
       JSON.stringify({
         method: "subscribe",
@@ -175,6 +185,33 @@ class BitFlyerClient extends BasicClient {
       quote: market.quote,
       asks,
       bids,
+    });
+  }
+
+  async _requestLevel2Snapshot(market) {
+    this._restSem.take(async () => {
+      try {
+        winston.info(`requesting snapshot for ${market.id}`);
+        let remote_id = market.id;
+        let uri = `https://api.bitflyer.com/v1/board?product_code=${remote_id}`;
+        let raw = await https.get(uri);
+        let asks = raw.asks.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
+        let bids = raw.bids.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
+        let snapshot = new Level2Snapshot({
+          exchange: "bitFlyer",
+          base: market.base,
+          quote: market.quote,
+          asks,
+          bids,
+        });
+        this.emit("l2snapshot", snapshot);
+      } catch (ex) {
+        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this._requestLevel2Snapshot(market);
+      } finally {
+        await wait(this.REST_REQUEST_DELAY_MS);
+        this._restSem.leave();
+      }
     });
   }
 }
