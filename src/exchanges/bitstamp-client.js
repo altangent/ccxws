@@ -20,6 +20,7 @@ class BitstampClient extends EventEmitter {
     this._level2UpdateSubs = new Map();
     this._level3UpdateSubs = new Map();
 
+    this.requestSnapshot = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
@@ -67,6 +68,8 @@ class BitstampClient extends EventEmitter {
   }
 
   subscribeLevel2Updates(market) {
+    // already connected... so make snapshot request here
+    if (this._pusher) this._requestLevel2Snapshot(market);
     this._subscribe(
       market,
       this._level2UpdateSubs,
@@ -115,7 +118,16 @@ class BitstampClient extends EventEmitter {
   _connect() {
     if (!this._pusher) {
       this._pusher = new Pusher("de504dc5763aeef9ff52");
+
+      // connected should trigger events even during reconnection
+      // refer to https://pusher.com/docs/client_api_guide/client_connect#available-states
+      this._pusher.connection.bind("connected", this._connected.bind(this));
     }
+  }
+
+  _connected() {
+    this._requestLevel2Snapshots();
+    this.emit("connected");
   }
 
   _subscribe(market, map, msg, subFn) {
@@ -327,6 +339,14 @@ class BitstampClient extends EventEmitter {
     });
 
     this.emit("l3update", update);
+  }
+
+  _requestLevel2Snapshots() {
+    if (this.requestSnapshot) {
+      for (let market of this._level2UpdateSubs.values()) {
+        this._requestLevel2Snapshot(market);
+      }
+    }
   }
 
   async _requestLevel2Snapshot(market) {
