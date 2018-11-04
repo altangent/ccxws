@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.16.0",
+  "version": "0.16.1",
   "description": "Cryptocurrency exchange websocket feeds",
   "keywords": [
     "cryptocurrency",
@@ -22,7 +22,7 @@
   "repository": "altangent/ccxws",
   "dependencies": {
     "cloudscraper": "^1.5.0",
-    "jsonic": "^0.3.0",
+    "jsonic": "^0.3.1",
     "moment": "^2.22.1",
     "pusher-js": "^4.3.1",
     "semaphore": "^1.1.0",
@@ -35,6 +35,6 @@
     "eslint": "^4.19.1",
     "jest": "^23.6.0",
     "jest-circus": "^23.6.0",
-    "prettier": "^1.14.2"
+    "prettier": "^1.14.3"
   }
 }

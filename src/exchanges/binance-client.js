@@ -325,6 +325,7 @@ class BinanceClient extends EventEmitter {
 
   async _requestLevel2Snapshot(market) {
     this._restSem.take(async () => {
+      let failed = false;
       try {
         winston.info(`requesting snapshot for ${market.id}`);
         let remote_id = market.id;
@@ -344,10 +345,11 @@ class BinanceClient extends EventEmitter {
         this.emit("l2snapshot", snapshot);
       } catch (ex) {
         winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
-        this._requestLevel2Snapshot(market);
+        failed = true;
       } finally {
         await wait(this.REST_REQUEST_DELAY_MS);
         this._restSem.leave();
+        if (failed) this._requestLevel2Snapshot(market);
       }
     });
   }
