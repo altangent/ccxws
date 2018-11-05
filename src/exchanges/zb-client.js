@@ -153,7 +153,7 @@ class HuobiClient extends BasicClient {
   _constructLevel2Snapshot(remoteId, msg) {
     let market = this._level2SnapshotSubs.get(remoteId);
     let { timestamp, asks, bids } = msg;
-    asks = asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
+    asks = asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8))).reverse();
     bids = bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     return new Level2Snapshot({
       exchange: "ZB",
