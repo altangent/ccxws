@@ -202,13 +202,10 @@ class BitfinexClient extends BasicClient {
     let market = this._level2UpdateSubs.get(remote_id); // this message will be coming from an l2update
     let bids = [];
     let asks = [];
-    for (let val of msg[1]) {
-      let result = new Level2Point(
-        val[0].toFixed(8),
-        Math.abs(val[2]).toFixed(8),
-        val[1].toFixed(0)
-      );
-      if (val[2] > 0) bids.push(result);
+    for (let [price, count, size] of msg[1]) {
+      let isBid = size > 0;
+      let result = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
+      if (isBid) bids.push(result);
       else asks.push(result);
     }
     let result = new Level2Snapshot({
@@ -222,14 +219,21 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Update(msg) {
-    let remote_id = this._channels[msg[0]].pair;
+    let [channel, price, count, size] = msg;
+    let remote_id = this._channels[channel].pair;
     let market = this._level2UpdateSubs.get(remote_id);
-    if (!msg[1].toFixed) console.log(msg);
-    let point = new Level2Point(msg[1].toFixed(8), Math.abs(msg[3]).toFixed(8), msg[2].toFixed(0));
+    if (!price.toFixed) console.log(msg);
+    let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
     let asks = [];
     let bids = [];
-    if (msg[3] > 0) bids.push(point);
+
+    let isBid = size > 0;
+    if (isBid) bids.push(point);
     else asks.push(point);
+
+    let isDelete = count === 0;
+    if (isDelete) point.size = (0).toFixed(8); // reset the size to 0, comes in as 1 or -1 to indicate bid/ask
+
     let update = new Level2Update({
       exchange: "Bitfinex",
       base: market.base,
