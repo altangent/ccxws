@@ -8,9 +8,9 @@ const Level2Update = require("../level2-update");
 const Level3Point = require("../level3-point");
 const Level3Update = require("../level3-update");
 
-class GdaxClient extends BasicClient {
+class CoinbaseProClient extends BasicClient {
   constructor() {
-    super("wss://ws-feed.gdax.com", "GDAX");
+    super("wss://ws-feed.pro.coinbase.com", "CoinbasePro");
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Spotshots = false;
@@ -137,9 +137,9 @@ class GdaxClient extends BasicClient {
     } = msg;
     let market = this._tickerSubs.get(product_id);
     let change = parseFloat(price) - parseFloat(open_24h);
-    let changePercent = (parseFloat(price) - parseFloat(open_24h)) / parseFloat(open_24h) * 100;
+    let changePercent = ((parseFloat(price) - parseFloat(open_24h)) / parseFloat(open_24h)) * 100;
     return new Ticker({
-      exchange: "GDAX",
+      exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
       timestamp: moment.utc(time).valueOf(),
@@ -169,7 +169,7 @@ class GdaxClient extends BasicClient {
     let sellOrderId = side === "sell" ? maker_order_id : taker_order_id;
 
     return new Trade({
-      exchange: "GDAX",
+      exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
       tradeId: trade_id,
@@ -191,7 +191,7 @@ class GdaxClient extends BasicClient {
     asks = asks.map(([price, size]) => new Level2Point(price, size));
 
     return new Level2Snapshot({
-      exchange: "GDAX",
+      exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
       bids,
@@ -213,7 +213,7 @@ class GdaxClient extends BasicClient {
     });
 
     return new Level2Update({
-      exchange: "GDAX",
+      exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
       asks,
@@ -275,7 +275,7 @@ class GdaxClient extends BasicClient {
     else bids.push(point);
 
     return new Level3Update({
-      exchange: "GDAX",
+      exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
       sequenceId,
@@ -286,4 +286,4 @@ class GdaxClient extends BasicClient {
   }
 }
 
-module.exports = GdaxClient;
+module.exports = CoinbaseProClient;

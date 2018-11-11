@@ -1,4 +1,4 @@
-const GDAX = require("./gdax-client");
+const Client = require("./coinbasepro-client");
 jest.mock("winston", () => ({ info: jest.fn(), warn: jest.fn(), error: jest.fn() }));
 jest.retryTimes(3);
 
@@ -10,7 +10,7 @@ let market = {
 };
 
 beforeAll(() => {
-  client = new GDAX();
+  client = new Client();
 });
 
 test("it should support tickers", () => {
@@ -42,7 +42,7 @@ test(
   done => {
     client.subscribeTicker(market);
     client.on("ticker", ticker => {
-      expect(ticker.fullId).toMatch("GDAX:BTC/USD");
+      expect(ticker.fullId).toMatch("CoinbasePro:BTC/USD");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
       expect(typeof ticker.open).toBe("string");
@@ -75,8 +75,8 @@ test(
   done => {
     client.subscribeTrades(market);
     client.on("trade", trade => {
-      expect(trade.fullId).toMatch("GDAX:BTC/USD");
-      expect(trade.exchange).toMatch("GDAX");
+      expect(trade.fullId).toMatch("CoinbasePro:BTC/USD");
+      expect(trade.exchange).toMatch("CoinbasePro");
       expect(trade.base).toMatch("BTC");
       expect(trade.quote).toMatch("USD");
       expect(trade.tradeId).toBeGreaterThan(0);
@@ -100,8 +100,8 @@ test("should subscribe and emit level2 snapshot and updates", done => {
   client.subscribeLevel2Updates(market);
   client.on("l2snapshot", snapshot => {
     hasSnapshot = true;
-    expect(snapshot.fullId).toMatch("GDAX:BTC/USD");
-    expect(snapshot.exchange).toMatch("GDAX");
+    expect(snapshot.fullId).toMatch("CoinbasePro:BTC/USD");
+    expect(snapshot.exchange).toMatch("CoinbasePro");
     expect(snapshot.base).toMatch("BTC");
     expect(snapshot.quote).toMatch("USD");
     expect(snapshot.sequenceId).toBeUndefined();
@@ -115,8 +115,8 @@ test("should subscribe and emit level2 snapshot and updates", done => {
   });
   client.on("l2update", update => {
     expect(hasSnapshot).toBeTruthy();
-    expect(update.fullId).toMatch("GDAX:BTC/USD");
-    expect(update.exchange).toMatch("GDAX");
+    expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
+    expect(update.exchange).toMatch("CoinbasePro");
     expect(update.base).toMatch("BTC");
     expect(update.quote).toMatch("USD");
     expect(update.sequenceId).toBeUndefined();
@@ -137,8 +137,8 @@ test(
     client.subscribeLevel3Updates(market);
     client.on("l3update", update => {
       try {
-        expect(update.fullId).toMatch("GDAX:BTC/USD");
-        expect(update.exchange).toMatch("GDAX");
+        expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
+        expect(update.exchange).toMatch("CoinbasePro");
         expect(update.base).toMatch("BTC");
         expect(update.quote).toMatch("USD");
         expect(update.sequenceId).toBeGreaterThan(0);

@@ -4,8 +4,8 @@ const bitflyer = require("./exchanges/bitflyer-client");
 const bitmex = require("./exchanges/bitmex-client");
 const bitstamp = require("./exchanges/bitstamp-client");
 const bittrex = require("./exchanges/bittrex-client");
+const coinbasepro = require("./exchanges/coinbasepro-client");
 const coinex = require("./exchanges/coinex-client");
-const gdax = require("./exchanges/gdax-client");
 const gemini = require("./exchanges/gemini-client");
 const hitbtc = require("./exchanges/hitbtc-client");
 const huobi = require("./exchanges/huobi-client");
@@ -21,7 +21,6 @@ module.exports = {
   BitMEX: bitmex,
   Bitstamp: bitstamp,
   Bittrex: bittrex,
-  GDAX: gdax,
   Gemini: gemini,
   HitBTC: hitbtc,
   Huobi: huobi,
@@ -35,8 +34,8 @@ module.exports = {
   bitmex,
   bitstamp,
   bittrex,
+  coinbasepro,
   coinex,
-  gdax,
   gemini,
   hitbtc,
   huobi,
