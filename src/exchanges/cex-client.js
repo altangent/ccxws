@@ -1,4 +1,6 @@
 const crypto = require("crypto");
+const Ticker = require("../ticker");
+//const winston = require("winston");
 const BasicClient = require("../basic-client");
 
 class CexClient extends BasicClient {
@@ -6,6 +8,7 @@ class CexClient extends BasicClient {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
     this.hasTickers = true;
+    this.hasTrades = false;
   }
 
   createSignature(timestamp, apiKey, apiSecret) {
@@ -63,6 +66,15 @@ class CexClient extends BasicClient {
     }
   }
 
+  _sendAuthorizeRequest() {
+    this._wss.send(
+      JSON.stringify({
+        e: "auth",
+        auth: this.createAuthToken(this.auth.apiKey, this.auth.apiSecret),
+      })
+    );
+  }
+
   _sendSubTicker() {
     this._wss.send(
       JSON.stringify({
@@ -74,20 +86,31 @@ class CexClient extends BasicClient {
 
   _sendUnsubTicker() {}
 
-  _sendAuthorizeRequest() {
-    this._wss.send(
-      JSON.stringify({
-        e: "auth",
-        auth: this.createAuthToken(this.auth.apiKey, this.auth.apiSecret),
-      })
-    );
+  _constructTicker(rawTick, market) {
+    let { open24, price, volume } = rawTick,
+      change = parseFloat(price) - parseFloat(open24),
+      changePercent =
+        open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
+
+    return new Ticker({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      timestamp: Date.now(),
+      last: price,
+      open: open24,
+      high: null,
+      low: null,
+      volume: volume,
+      quoteVolume: null,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(8),
+    });
   }
 
   _onMessage(raw) {
     let message = JSON.parse(raw);
     let { e, data } = message;
-
-    console.log(raw);
 
     if (e === "ping") {
       this._sendPong();
@@ -97,13 +120,20 @@ class CexClient extends BasicClient {
     if (e === "auth") {
       if (data.ok === "ok") {
         this._onAuthorized();
+      } else {
+        throw "Authentication error";
       }
       return;
     }
 
     if (e === "tick") {
-      //let ticker = this._constructTicker(params[0][marketId], market);
-      //this.emit("ticker", ticker);
+      // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
+      let marketId = data.symbol1 + "-" + data.symbol2;
+      if (this._tickerSubs.has(marketId)) {
+        let market = this._tickerSubs.get(marketId);
+        let ticker = this._constructTicker(data, market);
+        this.emit("ticker", ticker);
+      }
       return;
     }
   }

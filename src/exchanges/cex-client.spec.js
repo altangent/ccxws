@@ -13,8 +13,12 @@ beforeAll(() => {
   client = new CexClient();
 });
 
+test("it should support tickers", () => {
+  expect(client.hasTickers).toBeTruthy();
+});
+
 test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
+  expect(client.hasTrades).toBeFalsy();
 });
 
 test("it should not support level2 snapshots", () => {
