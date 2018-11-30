@@ -5,7 +5,6 @@ class CexClient extends BasicClient {
   constructor(auth) {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
-    this.hasAuthorize = true;
     this.hasTickers = true;
   }
 
@@ -24,7 +23,58 @@ class CexClient extends BasicClient {
     };
   }
 
+  /**
+   * This method is fired anytime the socket is opened, whether
+   * the first time, or any subsequent reconnects.
+   * Since this is an authenticated feed, we just send an authenticate
+   * request, and the normal subscriptions happen after authentication.
+   */
+  _onConnected() {
+    this.emit("connected");
+    this._sendAuthorizeRequest();
+  }
+
+  /**
+   * This event implements what _onConnect normally does.
+   */
+  _onAuthorized() {
+    this.emit("authorized");
+    for (let marketSymbol of this._tickerSubs.keys()) {
+      this._sendSubTicker(marketSymbol);
+    }
+    for (let marketSymbol of this._tradeSubs.keys()) {
+      this._sendSubTrades(marketSymbol);
+    }
+    for (let marketSymbol of this._level2SnapshotSubs.keys()) {
+      this._sendSubLevel2Snapshots(marketSymbol);
+    }
+    for (let marketSymbol of this._level2UpdateSubs.keys()) {
+      this._sendSubLevel2Updates(marketSymbol);
+    }
+    for (let marketSymbol of this._level3UpdateSubs.keys()) {
+      this._sendSubLevel3Updates(marketSymbol);
+    }
+    this._watcher.start();
+  }
+
+  _sendPong() {
+    if (this._wss) {
+      this._wss.send(JSON.stringify({ e: "pong" }));
+    }
+  }
+
   _sendSubTicker() {
+    this._wss.send(
+      JSON.stringify({
+        e: "subscribe",
+        rooms: ["tickers"],
+      })
+    );
+  }
+
+  _sendUnsubTicker() {}
+
+  _sendAuthorizeRequest() {
     this._wss.send(
       JSON.stringify({
         e: "auth",
@@ -33,27 +83,22 @@ class CexClient extends BasicClient {
     );
   }
 
-  // _auth() {
-  //   console.log("entry auth");
-  //   console.log(this.auth);
-  //   this._wss.send(
-  //     JSON.stringify({
-  //       e: "auth",
-  //       auth: this.auth,
-  //     })
-  //   );
-  // }
-
-  _sendUnsubTicker() {}
-
   _onMessage(raw) {
     let message = JSON.parse(raw);
-    let { e, action } = message;
+    let { e, data } = message;
 
     console.log(raw);
 
-    if (e === "connected") {
-      //this._auth();
+    if (e === "ping") {
+      this._sendPong();
+      return;
+    }
+
+    if (e === "auth") {
+      if (data.ok === "ok") {
+        this._onAuthorized();
+      }
+      return;
     }
 
     if (e === "tick") {
