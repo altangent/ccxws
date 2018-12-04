@@ -85,7 +85,15 @@ class CexClient extends BasicClient {
     );
   }
 
-  _sendUnsubTicker() {}
+  _sendUnsubTicker(market) {
+    let remote_id = market.id;
+    if (!this._tickerSubs.has(remote_id)) return;
+    winston.info("unsubscribing to ticker", "CEX", remote_id);
+    this._tickerSubs.delete(remote_id);
+    if (this._wss) {
+      this._sendUnsubTicker(remote_id);
+    }
+  }
 
   _constructTicker(data) {
     // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
@@ -136,6 +144,8 @@ class CexClient extends BasicClient {
       }
       return;
     }
+
+    console.log(message);
   }
 }
 
