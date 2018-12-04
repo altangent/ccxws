@@ -1,6 +1,6 @@
 const crypto = require("crypto");
 const Ticker = require("../ticker");
-//const winston = require("winston");
+const winston = require("winston");
 const BasicClient = require("../basic-client");
 
 class CexClient extends BasicClient {
@@ -11,17 +11,17 @@ class CexClient extends BasicClient {
     this.hasTrades = false;
   }
 
-  createSignature(timestamp, apiKey, apiSecret) {
-    var hmac = crypto.createHmac("sha256", apiSecret);
-    hmac.update(timestamp + apiKey);
+  createSignature(timestamp) {
+    var hmac = crypto.createHmac("sha256", this.auth.apiSecret);
+    hmac.update(timestamp + this.auth.apiKey);
     return hmac.digest("hex");
   }
 
-  createAuthToken(apiKey, apiSecret) {
+  createAuthToken() {
     var timestamp = Math.floor(Date.now() / 1000); // Note: java and javascript timestamp presented in miliseconds
     return {
-      key: apiKey,
-      signature: this.createSignature(timestamp, apiKey, apiSecret),
+      key: this.auth.apiKey,
+      signature: this.createSignature(timestamp),
       timestamp: timestamp,
     };
   }
@@ -42,6 +42,7 @@ class CexClient extends BasicClient {
    */
   _onAuthorized() {
     this.emit("authorized");
+    winston.info("authorized", "CEX");
     for (let marketSymbol of this._tickerSubs.keys()) {
       this._sendSubTicker(marketSymbol);
     }
@@ -70,7 +71,7 @@ class CexClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         e: "auth",
-        auth: this.createAuthToken(this.auth.apiKey, this.auth.apiSecret),
+        auth: this.createAuthToken(),
       })
     );
   }
@@ -86,23 +87,22 @@ class CexClient extends BasicClient {
 
   _sendUnsubTicker() {}
 
-  _constructTicker(rawTick, market) {
-    let { open24, price, volume } = rawTick,
+  _constructTicker(data) {
+    // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
+    let { open24, price, volume } = data.raw,
+      { base, quote } = data.market,
       change = parseFloat(price) - parseFloat(open24),
       changePercent =
         open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
 
     return new Ticker({
       exchange: "CEX",
-      base: market.base,
-      quote: market.quote,
+      base: base,
+      quote: quote,
       timestamp: Date.now(),
       last: price,
       open: open24,
-      high: null,
-      low: null,
       volume: volume,
-      quoteVolume: null,
       change: change.toFixed(8),
       changePercent: changePercent.toFixed(8),
     });
@@ -121,7 +121,7 @@ class CexClient extends BasicClient {
       if (data.ok === "ok") {
         this._onAuthorized();
       } else {
-        throw "Authentication error";
+        throw new Error("Authentication error");
       }
       return;
     }
@@ -131,7 +131,7 @@ class CexClient extends BasicClient {
       let marketId = data.symbol1 + "-" + data.symbol2;
       if (this._tickerSubs.has(marketId)) {
         let market = this._tickerSubs.get(marketId);
-        let ticker = this._constructTicker(data, market);
+        let ticker = this._constructTicker({ raw: data, market: market });
         this.emit("ticker", ticker);
       }
       return;
