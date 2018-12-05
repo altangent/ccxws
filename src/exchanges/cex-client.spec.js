@@ -18,7 +18,7 @@ test("it should support tickers", () => {
 });
 
 test("it should support trades", () => {
-  expect(client.hasTrades).toBeFalsy();
+  expect(client.hasTrades).toBeTruthy();
 });
 
 test("it should not support level2 snapshots", () => {

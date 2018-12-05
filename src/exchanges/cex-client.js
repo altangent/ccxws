@@ -8,7 +8,7 @@ class CexClient extends BasicClient {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
     this.hasTickers = true;
-    this.hasTrades = false;
+    this.hasTrades = true;
   }
 
   createSignature(timestamp) {
@@ -47,7 +47,7 @@ class CexClient extends BasicClient {
       this._sendSubTicker(marketSymbol);
     }
     for (let marketSymbol of this._tradeSubs.keys()) {
-      this._sendSubTrades(marketSymbol);
+      this._sendSubTrades(`pair-${marketSymbol}`);
     }
     for (let marketSymbol of this._level2SnapshotSubs.keys()) {
       this._sendSubLevel2Snapshots(marketSymbol);
@@ -85,15 +85,20 @@ class CexClient extends BasicClient {
     );
   }
 
-  _sendUnsubTicker(market) {
-    let remote_id = market.id;
-    if (!this._tickerSubs.has(remote_id)) return;
-    winston.info("unsubscribing to ticker", "CEX", remote_id);
-    this._tickerSubs.delete(remote_id);
-    if (this._wss) {
-      this._sendUnsubTicker(remote_id);
-    }
+  _sendUnsubTicker() {}
+
+  _sendSubTrades(remote_id) {
+    let localRemote_id = remote_id; //`pair-${remote_id}`;
+    winston.info("subscribing to trades", "CEX", localRemote_id);
+    this._wss.send(
+      JSON.stringify({
+        e: "subscribe",
+        rooms: [remote_id],
+      })
+    );
   }
+
+  _sendUnsubTrades() {}
 
   _constructTicker(data) {
     // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
@@ -125,6 +130,12 @@ class CexClient extends BasicClient {
       return;
     }
 
+    if (e === "subscribe") {
+      if (message.error) {
+        throw new Error(`CEX error: ${message.error}`);
+      }
+    }
+
     if (e === "auth") {
       if (data.ok === "ok") {
         this._onAuthorized();
@@ -136,7 +147,7 @@ class CexClient extends BasicClient {
 
     if (e === "tick") {
       // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-      let marketId = data.symbol1 + "-" + data.symbol2;
+      let marketId = `${data.symbol1}-${data.symbol2}`;
       if (this._tickerSubs.has(marketId)) {
         let market = this._tickerSubs.get(marketId);
         let ticker = this._constructTicker({ raw: data, market: market });
@@ -145,7 +156,50 @@ class CexClient extends BasicClient {
       return;
     }
 
-    console.log(message);
+    if (e === "md") {
+      /**
+       * {
+          "e": "md",
+          "data": {
+            "id": 366842056,
+            "buy": [
+              [
+                3935.4,
+                19100000
+              ]
+            ],
+            "sell": [
+              [
+                3944.6,
+                22944000
+              ]
+            ],
+            "buy_total": 218699714,
+            "sell_total": 125005271195,
+            "pair": "BTC:USD"
+          }
+        }
+      *  */
+      //winston.info("order book", "CEX");
+    }
+
+    if (e === "history-update") {
+      /*
+      {
+        "e": "history-update",
+        "data": [
+          [
+            "buy",
+            "1543967891439",
+            "4110282",
+            "3928.1",
+            "9437977"
+          ]
+        ]
+      }
+      */
+      //winston.info("history update", "CEX");
+    }
   }
 }
 
