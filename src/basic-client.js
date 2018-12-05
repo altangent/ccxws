@@ -188,7 +188,8 @@ class BasicTradeClient extends EventEmitter {
   _unsubscribe(market, map, msg, sendFn) {
     let remote_id = market.id;
     if (map.has(remote_id)) {
-      winston.info("unsubscribing from", this._name, remote_id);
+      let emitMsg = msg ? msg : "unscribing from";
+      winston.info(emitMsg, this._name, remote_id);
       map.delete(remote_id);
 
       if (this._wss.isConnected) {
