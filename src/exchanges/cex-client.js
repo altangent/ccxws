@@ -1,6 +1,8 @@
 const crypto = require("crypto");
-const Ticker = require("../ticker");
 const winston = require("winston");
+const moment = require("moment");
+const Ticker = require("../ticker");
+const Trade = require("../trade");
 const BasicClient = require("../basic-client");
 
 class CexClient extends BasicClient {
@@ -121,6 +123,24 @@ class CexClient extends BasicClient {
     });
   }
 
+  _constructTrade(data, market) {
+    //["buy","1543967891439","4110282","3928.1","9437977"]
+    //format: sell/buy, timestamp_ms, amount, price, transaction_id
+    let [side, timestamp_ms, amount, price, tradeId] = data;
+
+    winston.warn("TRADE TIMESTAMP MAY BE WRONG", "CEX", market);
+    return new Trade({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      tradeId: tradeId,
+      unix: moment.utc(timestamp_ms / 1000).valueOf(),
+      side: side,
+      price: price,
+      amount: amount,
+    });
+  }
+
   _onMessage(raw) {
     let message = JSON.parse(raw);
     let { e, data } = message;
@@ -184,21 +204,14 @@ class CexClient extends BasicClient {
     }
 
     if (e === "history-update") {
-      /*
-      {
-        "e": "history-update",
-        "data": [
-          [
-            "buy",
-            "1543967891439",
-            "4110282",
-            "3928.1",
-            "9437977"
-          ]
-        ]
+      let marketId = `BTC-USD`;
+      let market = this._tickerSubs.get(marketId);
+      winston.warn("junk implementation of update - hard coded market pairing", "CEX", market);
+      for (let rawTrade of data) {
+        let trade = this._constructTrade(rawTrade, market);
+        this.emit("trade", trade);
       }
-      */
-      //winston.info("history update", "CEX");
+      return;
     }
   }
 }
