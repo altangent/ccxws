@@ -1,6 +1,5 @@
 const crypto = require("crypto");
 const winston = require("winston");
-const moment = require("moment");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const BasicClient = require("../basic-client");
@@ -123,18 +122,43 @@ class CexClient extends BasicClient {
     });
   }
 
+  _constructOderbook() {
+    /**
+       * {
+          "e": "md",
+          "data": {
+            "id": 366842056,
+            "buy": [
+              [
+                3935.4,
+                19100000
+              ]
+            ],
+            "sell": [
+              [
+                3944.6,
+                22944000
+              ]
+            ],
+            "buy_total": 218699714,
+            "sell_total": 125005271195,
+            "pair": "BTC:USD"
+          }
+        }
+      *  */
+    throw new Error("not implemented");
+  }
   _constructTrade(data, market) {
     //["buy","1543967891439","4110282","3928.1","9437977"]
     //format: sell/buy, timestamp_ms, amount, price, transaction_id
     let [side, timestamp_ms, amount, price, tradeId] = data;
 
-    winston.warn("TRADE TIMESTAMP MAY BE WRONG", "CEX", market);
     return new Trade({
       exchange: "CEX",
       base: market.base,
       quote: market.quote,
       tradeId: tradeId,
-      unix: moment.utc(timestamp_ms / 1000).valueOf(),
+      unix: parseInt(timestamp_ms),
       side: side,
       price: price,
       amount: amount,
@@ -177,36 +201,25 @@ class CexClient extends BasicClient {
     }
 
     if (e === "md") {
-      /**
-       * {
-          "e": "md",
-          "data": {
-            "id": 366842056,
-            "buy": [
-              [
-                3935.4,
-                19100000
-              ]
-            ],
-            "sell": [
-              [
-                3944.6,
-                22944000
-              ]
-            ],
-            "buy_total": 218699714,
-            "sell_total": 125005271195,
-            "pair": "BTC:USD"
-          }
-        }
-      *  */
       //winston.info("order book", "CEX");
+    }
+
+    if (e === "history") {
+      let marketId = `BTC-USD`;
+      let market = this._tickerSubs.get(marketId);
+      // sell/buy:timestamp_ms:amount:price:transaction_id
+      winston.info("trade history snapshot", "CEX", market);
+      data.forEach(key => {
+        let tradeData = key.split(":");
+        let trade = this._constructTrade(tradeData, market);
+        this.emit("trade", trade);
+      });
+      return;
     }
 
     if (e === "history-update") {
       let marketId = `BTC-USD`;
       let market = this._tickerSubs.get(marketId);
-      winston.warn("junk implementation of update - hard coded market pairing", "CEX", market);
       for (let rawTrade of data) {
         let trade = this._constructTrade(rawTrade, market);
         this.emit("trade", trade);
