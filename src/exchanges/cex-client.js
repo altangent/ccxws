@@ -218,11 +218,11 @@ class CexClient extends BasicClient {
       let marketId = `BTC-USD`;
       let market = this._tradeSubs.get(marketId);
       // sell/buy:timestamp_ms:amount:price:transaction_id
-      data.forEach(key => {
-        let tradeData = key.split(":");
+      for (let rawTrade of data) {
+        let tradeData = rawTrade.split(":");
         let trade = this._constructTrade(tradeData, market);
         this.emit("trade", trade);
-      });
+      }
       return;
     }
 
