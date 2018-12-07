@@ -137,31 +137,7 @@ class CexClient extends BasicClient {
   }
 
   _constructevel2Snapshot(msg) {
-    /**
-       * {
-          "e": "md",
-          "data": {
-            "id": 366842056,
-            "buy": [
-              [
-                3935.4,
-                19100000
-              ]
-            ],
-            "sell": [
-              [
-                3944.6,
-                22944000
-              ]
-            ],
-            "buy_total": 218699714,
-            "sell_total": 125005271195,
-            "pair": "BTC:USD"
-          }
-        }
-      *  */
-
-    let marketId = msg.pair.replace(":", "-"); // sub is for BTC-USD, but the order book returns BTC:USD
+    let marketId = msg.pair.replace(":", "-"); // api has an inconsistent delimeter between subscribe and order book.
     let market = this._level2SnapshotSubs.get(marketId);
     winston.info("Market", market);
     let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
