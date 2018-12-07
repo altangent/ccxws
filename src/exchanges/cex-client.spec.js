@@ -4,7 +4,7 @@ jest.retryTimes(3);
 
 let client;
 let market = {
-  id: "btcusd",
+  id: "BTC-USD",
   base: "BTC",
   quote: "USD",
 };
@@ -21,8 +21,8 @@ test("it should support trades", () => {
   expect(client.hasTrades).toBeTruthy();
 });
 
-test("it should not support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeFalsy();
+test("it should support level2 snapshots", () => {
+  expect(client.hasLevel2Snapshots).toBeTruthy();
 });
 
 test("it should support level2 updates", () => {

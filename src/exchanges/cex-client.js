@@ -2,6 +2,8 @@ const crypto = require("crypto");
 const winston = require("winston");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
 const BasicClient = require("../basic-client");
 
 class CexClient extends BasicClient {
@@ -10,6 +12,7 @@ class CexClient extends BasicClient {
     this.auth = auth;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
   }
 
   createSignature(timestamp) {
@@ -19,7 +22,7 @@ class CexClient extends BasicClient {
   }
 
   createAuthToken() {
-    var timestamp = Math.floor(Date.now() / 1000); // Note: java and javascript timestamp presented in miliseconds
+    var timestamp = Math.floor(Date.now() / 1000);
     return {
       key: this.auth.apiKey,
       signature: this.createSignature(timestamp),
@@ -101,6 +104,17 @@ class CexClient extends BasicClient {
 
   _sendUnsubTrades() {}
 
+  _sendSubLevel2Snapshots(remote_id) {
+    let localRemote_id = remote_id;
+    winston.info("subscribing to level2 snapshots", "CEX", localRemote_id);
+    this._wss.send(
+      JSON.stringify({
+        e: "subscribe",
+        rooms: [remote_id],
+      })
+    );
+  }
+
   _constructTicker(data) {
     // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
     let { open24, price, volume } = data.raw,
@@ -122,7 +136,7 @@ class CexClient extends BasicClient {
     });
   }
 
-  _constructOderbook() {
+  _constructevel2Snapshot(msg) {
     /**
        * {
           "e": "md",
@@ -146,8 +160,23 @@ class CexClient extends BasicClient {
           }
         }
       *  */
-    throw new Error("not implemented");
+
+    let marketId = msg.pair.replace(":", "-"); // sub is for BTC-USD, but the order book returns BTC:USD
+    let market = this._level2SnapshotSubs.get(marketId);
+    winston.info("Market", market);
+    let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
+    let bids = msg.buy.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
+
+    return new Level2Snapshot({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      sequenceId: msg.id,
+      asks,
+      bids,
+    });
   }
+
   _constructTrade(data, market) {
     //["buy","1543967891439","4110282","3928.1","9437977"]
     //format: sell/buy, timestamp_ms, amount, price, transaction_id
@@ -201,14 +230,18 @@ class CexClient extends BasicClient {
     }
 
     if (e === "md") {
-      //winston.info("order book", "CEX");
+      let marketId = data.pair.replace(":", "-");
+      if (this._level2SnapshotSubs.has(marketId)) {
+        let result = this._constructevel2Snapshot(data);
+        this.emit("l2snapshot", result);
+        return;
+      }
     }
 
     if (e === "history") {
       let marketId = `BTC-USD`;
-      let market = this._tickerSubs.get(marketId);
+      let market = this._tradeSubs.get(marketId);
       // sell/buy:timestamp_ms:amount:price:transaction_id
-      winston.info("trade history snapshot", "CEX", market);
       data.forEach(key => {
         let tradeData = key.split(":");
         let trade = this._constructTrade(tradeData, market);
@@ -219,7 +252,7 @@ class CexClient extends BasicClient {
 
     if (e === "history-update") {
       let marketId = `BTC-USD`;
-      let market = this._tickerSubs.get(marketId);
+      let market = this._tradeSubs.get(marketId);
       for (let rawTrade of data) {
         let trade = this._constructTrade(rawTrade, market);
         this.emit("trade", trade);
