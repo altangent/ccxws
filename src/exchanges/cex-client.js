@@ -10,6 +10,7 @@ class CexClient extends BasicClient {
   constructor(auth) {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
+    this.market = auth.market;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
@@ -197,7 +198,7 @@ class CexClient extends BasicClient {
     if (e === "tick") {
       // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
       let marketId = `${data.symbol1}-${data.symbol2}`;
-      if (this._tickerSubs.has(marketId)) {
+      if (this._tickerSubs.has(marketId) && marketId === this.market.id) {
         let market = this._tickerSubs.get(marketId);
         let ticker = this._constructTicker({ raw: data, market: market });
         this.emit("ticker", ticker);
@@ -207,7 +208,7 @@ class CexClient extends BasicClient {
 
     if (e === "md") {
       let marketId = data.pair.replace(":", "-");
-      if (this._level2SnapshotSubs.has(marketId)) {
+      if (this._level2SnapshotSubs.has(marketId) && marketId === this.market.id) {
         let result = this._constructevel2Snapshot(data);
         this.emit("l2snapshot", result);
         return;
@@ -215,7 +216,7 @@ class CexClient extends BasicClient {
     }
 
     if (e === "history") {
-      let marketId = `BTC-USD`;
+      let marketId = this.market.id;
       let market = this._tradeSubs.get(marketId);
       // sell/buy:timestamp_ms:amount:price:transaction_id
       for (let rawTrade of data) {
@@ -227,7 +228,7 @@ class CexClient extends BasicClient {
     }
 
     if (e === "history-update") {
-      let marketId = `BTC-USD`;
+      let marketId = this.market.id;
       let market = this._tradeSubs.get(marketId);
       for (let rawTrade of data) {
         let trade = this._constructTrade(rawTrade, market);
