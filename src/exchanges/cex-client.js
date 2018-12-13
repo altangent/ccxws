@@ -1,12 +1,11 @@
-const crypto = require("crypto");
 const winston = require("winston");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const BasicClient = require("../basic-client");
+const BasicAuthClient = require("../basic-auth-client");
 
-class CexClient extends BasicClient {
+class CexClient extends BasicAuthClient {
   constructor(auth) {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
@@ -16,69 +15,10 @@ class CexClient extends BasicClient {
     this.hasLevel2Snapshots = true;
   }
 
-  createSignature(timestamp) {
-    var hmac = crypto.createHmac("sha256", this.auth.apiSecret);
-    hmac.update(timestamp + this.auth.apiKey);
-    return hmac.digest("hex");
-  }
-
-  createAuthToken() {
-    var timestamp = Math.floor(Date.now() / 1000);
-    return {
-      key: this.auth.apiKey,
-      signature: this.createSignature(timestamp),
-      timestamp: timestamp,
-    };
-  }
-
-  /**
-   * This method is fired anytime the socket is opened, whether
-   * the first time, or any subsequent reconnects.
-   * Since this is an authenticated feed, we just send an authenticate
-   * request, and the normal subscriptions happen after authentication.
-   */
-  _onConnected() {
-    this.emit("connected");
-    this._sendAuthorizeRequest();
-  }
-
-  /**
-   * This event implements what _onConnect normally does.
-   */
-  _onAuthorized() {
-    this.emit("authorized");
-    winston.info("authorized", "CEX");
-    for (let marketSymbol of this._tickerSubs.keys()) {
-      this._sendSubTicker(marketSymbol);
-    }
-    for (let marketSymbol of this._tradeSubs.keys()) {
-      this._sendSubTrades(`pair-${marketSymbol}`);
-    }
-    for (let marketSymbol of this._level2SnapshotSubs.keys()) {
-      this._sendSubLevel2Snapshots(marketSymbol);
-    }
-    for (let marketSymbol of this._level2UpdateSubs.keys()) {
-      this._sendSubLevel2Updates(marketSymbol);
-    }
-    for (let marketSymbol of this._level3UpdateSubs.keys()) {
-      this._sendSubLevel3Updates(marketSymbol);
-    }
-    this._watcher.start();
-  }
-
   _sendPong() {
     if (this._wss) {
       this._wss.send(JSON.stringify({ e: "pong" }));
     }
-  }
-
-  _sendAuthorizeRequest() {
-    this._wss.send(
-      JSON.stringify({
-        e: "auth",
-        auth: this.createAuthToken(),
-      })
-    );
   }
 
   _sendSubTicker() {
