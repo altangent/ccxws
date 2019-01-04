@@ -17,7 +17,8 @@ Provide the URL for the documentation of the exchange's realtime API
 
 ---
 
-Requirements:
+Refer to [Contributing Guide](https://github.com/altangent/ccxws/blob/master/CONTRIBUTING.md) for additional information.
+
 - Create client in `src/exchanges` that follows CCXWS library interface (refer to README)
 - Create client test suite in `src/exchanges` to validate subscribe/unsubscribe methods and that data parsing is correct
 - Add a lowercase export to `index.js`
@@ -29,4 +30,3 @@ Requirements:
   - should default to highest limit and highest resolution interval
   - determine if exchange supports snapshots, updates, or both
   - if exchange supports broadcasting depth updates, CCXWS should initiate a snapshot request when subscribe for a market is called and broadcast a snapshot event
- 
