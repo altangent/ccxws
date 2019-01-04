@@ -5,11 +5,11 @@
 The following tips are useful when implementing exchanges:
 
 ### Clients
-- Add client and the corresponding integration test fil to `src/exchanges` folder
+- Add client and the corresponding integration test file to `src/exchanges` folder
 - Client that support multiple market subscriptions on the same websocket should implement `base-client.js`, refer to `hitbtc-client.js`, `zb-client.js`, etc for some examples.
 - `base-client.js` implements the correct external interface for CCXWS, reconnection logic, and dead connection logic for a single connection. This largely takes the heavy lifting of implementing an exchange out of your hands for exchanges that implement a decent multi-market per socket API.
 - Some exchange only support a single market per socket. You can implement `basic-multiclient.js` which uses `basic-client.js` under the covers.  `basic-multi-client.js` creates a new `basic-client.js` implementation for each market that is connected to it. Refer to `coinex-client.js` or `cex-client.js`.
-- The subscribe methods (`subsribeTrades`, `subscribeTicker`, etc) take a single market as the argument. The client should expect that a subscribe method will be called with many markets in quick succession. Some exchanges will drop the connection if too many messages are sent in quick succession.  You can use a semaphore to throttle the sending of messages. Refer to `hitbtc-client.js`, `okex-client.js` as examples of implementing semaphore.  Be sure to clear out semaphores on connection events!
+- The subscribe methods (`subscribeTrades`, `subscribeTicker`, etc) take a single market as the argument. The client should expect that a subscribe method will be called with many markets in quick succession. Some exchanges will drop the connection if too many messages are sent in quick succession.  You can use a semaphore to throttle the sending of messages. Refer to `hitbtc-client.js`, `okex-client.js` as examples of implementing semaphore.  Be sure to clear out semaphores on connection events!
 
 ### Order Books
 - Order books can be level 1 (top bid/ask), level 2 (volume aggregated by price), or level 3 (raw orders)
@@ -20,7 +20,7 @@ The following tips are useful when implementing exchanges:
 
 ## Testing
 
-Always add unit tests to validate the conditions of the You can run a specific test by running 
+Always add unit tests to validate the conditions. You can run a specific test by running 
 
 ```bash
 $(npm bin)/mocha src/exchanges/hitbtc-client.spec.js
