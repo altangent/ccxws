@@ -3,11 +3,11 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const { EventEmitter } = require("events");
-const MarketObjectTypes = require("../enums");
 const BasicAuthClient = require("../basic-auth-client");
+const BasicMultiClient = require("../basic-multiclient");
+const MarketObjectTypes = require("../enums");
 
-class CexClient extends EventEmitter {
+class CexClient extends BasicMultiClient {
   constructor(auth) {
     super();
     this._clients = new Map();
@@ -20,49 +20,6 @@ class CexClient extends EventEmitter {
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
-  }
-
-  subscribeTicker(market) {
-    this._subscribe(market, this._clients, MarketObjectTypes.ticker, "subscribing to ticker");
-  }
-
-  unsubscribeTicker(market) {
-    if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeTicker(market);
-    }
-  }
-
-  subscribeTrades(market) {
-    this._subscribe(market, this._clients, MarketObjectTypes.trade, "subscribing to trades");
-  }
-
-  unsubscribeTrades(market) {
-    if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeTrades(market);
-    }
-  }
-
-  subscribeLevel2Updates(market) {
-    this._subscribe(
-      market,
-      this._clients,
-      MarketObjectTypes.l2update,
-      "subscribing to level 2 snapshots"
-    );
-  }
-
-  unsubscribeLevel2Updates(market) {
-    if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeLevel2Updates(market);
-    }
-  }
-
-  close(emitClosed = true) {
-    this._clients.forEach(c => {
-      c.close();
-    });
-
-    if (emitClosed) this.emit("closed");
   }
 
   _subscribe(market, map, marketObjectType, msg) {
