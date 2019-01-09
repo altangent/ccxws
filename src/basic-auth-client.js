@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const BasicClient = require("./basic-client");
+const winston = require("winston");
 
 /**
  * Single websocket connection client with
@@ -12,6 +13,7 @@ const BasicClient = require("./basic-client");
 class BasicAuthTradeClient extends BasicClient {
   constructor(wssPath, name) {
     super(wssPath, name);
+    this.name = name;
   }
 
   createSignature(timestamp) {
@@ -45,6 +47,7 @@ class BasicAuthTradeClient extends BasicClient {
    */
   _onAuthorized() {
     this.emit("authorized");
+    winston.info("authenticated ", this.name);
     for (let marketSymbol of this._tickerSubs.keys()) {
       this._sendSubTicker(marketSymbol);
     }

@@ -3,9 +3,119 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
+const { EventEmitter } = require("events");
+const MarketObjectTypes = require("../enums");
 const BasicAuthClient = require("../basic-auth-client");
 
-class CexClient extends BasicAuthClient {
+class CexClient extends EventEmitter {
+  constructor(auth) {
+    super();
+    this._clients = new Map();
+
+    this.singleClientType = SingleCexClient;
+    this._name = "CEX_MULTI";
+    this.auth = auth;
+    this.hasTickers = true;
+    this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
+    this.hasLevel2Updates = true;
+    this.hasLevel3Updates = false;
+  }
+
+  subscribeTicker(market) {
+    this._subscribe(market, this._clients, MarketObjectTypes.ticker, "subscribing to ticker");
+  }
+
+  unsubscribeTicker(market) {
+    if (this._clients.has(market.id)) {
+      this._clients.get(market.id).unsubscribeTicker(market);
+    }
+  }
+
+  subscribeTrades(market) {
+    this._subscribe(market, this._clients, MarketObjectTypes.trade, "subscribing to trades");
+  }
+
+  unsubscribeTrades(market) {
+    if (this._clients.has(market.id)) {
+      this._clients.get(market.id).unsubscribeTrades(market);
+    }
+  }
+
+  subscribeLevel2Updates(market) {
+    this._subscribe(
+      market,
+      this._clients,
+      MarketObjectTypes.l2update,
+      "subscribing to level 2 snapshots"
+    );
+  }
+
+  unsubscribeLevel2Updates(market) {
+    if (this._clients.has(market.id)) {
+      this._clients.get(market.id).unsubscribeLevel2Updates(market);
+    }
+  }
+
+  close(emitClosed = true) {
+    this._clients.forEach(c => {
+      c.close();
+    });
+
+    if (emitClosed) this.emit("closed");
+  }
+
+  _subscribe(market, map, marketObjectType, msg) {
+    let remote_id = market.id,
+      client = null;
+
+    if (!map.has(remote_id)) {
+      let clientAuth = { apiKey: this.auth.apiKey, apiSecret: this.auth.apiSecret, market: market };
+      client = new this.singleClientType(clientAuth);
+      console.log("Map adding remote_Id " + remote_id);
+      map.set(market, client);
+    } else {
+      console.log("Map already has remote_Id " + remote_id);
+      client = map.get(remote_id);
+    }
+
+    if (marketObjectType === MarketObjectTypes.ticker) {
+      winston.info(msg, this._name, remote_id);
+
+      client.subscribeTicker(market);
+
+      client.on("ticker", ticker => {
+        this.emit("ticker", ticker);
+      });
+    }
+
+    if (marketObjectType === MarketObjectTypes.trade) {
+      winston.info(msg, this._name, remote_id);
+
+      client.subscribeTrades(market);
+
+      client.on("trade", trade => {
+        this.emit("trade", trade);
+      });
+    }
+
+    if (marketObjectType === MarketObjectTypes.l2update) {
+      winston.info(msg, this._name, remote_id);
+
+      client.subscribeLevel2Updates(market);
+
+      client.on("l2snapshot", l2snapshot => {
+        this.emit("l2snapshot", l2snapshot);
+      });
+
+      client.on("l2update", l2update => {
+        this.emit("l2update", l2update);
+      });
+    }
+  }
+}
+
+class SingleCexClient extends BasicAuthClient {
   constructor(auth) {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = auth;
@@ -114,6 +224,8 @@ class CexClient extends BasicAuthClient {
   _onMessage(raw) {
     let message = JSON.parse(raw);
     let { e, data } = message;
+
+    winston.log(message);
 
     if (e === "ping") {
       this._sendPong();
