@@ -55,7 +55,7 @@ class BasicAuthTradeClient extends BasicClient {
       this._sendSubTrades(`pair-${marketSymbol}`);
     }
     for (let marketSymbol of this._level2SnapshotSubs.keys()) {
-      this._sendSubLevel2Snapshots(marketSymbol);
+      this._sendSubLevel2Snapshots(`pair-${marketSymbol}`);
     }
     for (let marketSymbol of this._level2UpdateSubs.keys()) {
       this._sendSubLevel2Updates(marketSymbol);

@@ -18,8 +18,23 @@ class CexClient extends BasicMultiClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
-    this.hasLevel2Updates = true;
-    this.hasLevel3Updates = false;
+  }
+
+  subscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Snapshots) return;
+    this._subscribe(
+      market,
+      this._clients,
+      MarketObjectTypes.level2snapshot,
+      "subscribing to level 2 snapshots"
+    );
+  }
+
+  unsubscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Snapshots) return;
+    if (this._clients.has(market.id)) {
+      this._clients.get(market.id).unsubscribeLevel2Snapshots(market);
+    }
   }
 
   _subscribe(market, map, marketObjectType, msg) {
@@ -56,17 +71,23 @@ class CexClient extends BasicMultiClient {
       });
     }
 
-    if (marketObjectType === MarketObjectTypes.l2update) {
+    // if (marketObjectType === MarketObjectTypes.level2update) {
+    //   winston.info(msg, this._name, remote_id);
+
+    //   client.subscribeLevel2Updates(market);
+
+    //   client.on("l2update", l2update => {
+    //     this.emit("l2update", l2update);
+    //   });
+    // }
+
+    if (marketObjectType === MarketObjectTypes.level2snapshot) {
       winston.info(msg, this._name, remote_id);
 
-      client.subscribeLevel2Updates(market);
+      client.subscribeLevel2Snapshots(market);
 
       client.on("l2snapshot", l2snapshot => {
         this.emit("l2snapshot", l2snapshot);
-      });
-
-      client.on("l2update", l2update => {
-        this.emit("l2update", l2update);
       });
     }
   }
@@ -114,7 +135,7 @@ class SingleCexClient extends BasicAuthClient {
 
   _sendSubLevel2Snapshots(remote_id) {
     let localRemote_id = remote_id;
-    winston.info("subscribing to level2 snapshots", "CEX", localRemote_id);
+    winston.info("subscribing to level2 snapshots", "SINGLE CEX", localRemote_id);
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
@@ -147,7 +168,6 @@ class SingleCexClient extends BasicAuthClient {
   _constructevel2Snapshot(msg) {
     let marketId = msg.pair.replace(":", "-"); // api has an inconsistent delimeter between subscribe and order book.
     let market = this._level2SnapshotSubs.get(marketId);
-    winston.info("Market", market);
     let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     let bids = msg.buy.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
 
@@ -227,11 +247,13 @@ class SingleCexClient extends BasicAuthClient {
     if (e === "history") {
       let marketId = this.market.id;
       let market = this._tradeSubs.get(marketId);
-      // sell/buy:timestamp_ms:amount:price:transaction_id
-      for (let rawTrade of data) {
-        let tradeData = rawTrade.split(":");
-        let trade = this._constructTrade(tradeData, market);
-        this.emit("trade", trade);
+      if (this._tradeSubs.has(marketId)) {
+        // sell/buy:timestamp_ms:amount:price:transaction_id
+        for (let rawTrade of data) {
+          let tradeData = rawTrade.split(":");
+          let trade = this._constructTrade(tradeData, market);
+          this.emit("trade", trade);
+        }
       }
       return;
     }
