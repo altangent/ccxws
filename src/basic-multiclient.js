@@ -45,7 +45,7 @@ class BasicMultiClient extends EventEmitter {
     this._subscribe(
       market,
       this._clients,
-      MarketObjectTypes.l2update,
+      MarketObjectTypes.level2update,
       "subscribing to level 2 snapshots"
     );
   }
@@ -96,7 +96,7 @@ class BasicMultiClient extends EventEmitter {
       });
     }
 
-    if (marketObjectType === MarketObjectTypes.l2update) {
+    if (marketObjectType === MarketObjectTypes.level2update) {
       winston.info(msg, this._name, remote_id);
 
       client.subscribeLevel2Updates(market);
