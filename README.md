@@ -63,6 +63,7 @@ binance.subscribeLevel2Snapshots(market);
 | OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
 | Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |
+| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
 
 Notes:
 
