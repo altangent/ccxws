@@ -12,6 +12,7 @@ const huobi = require("./exchanges/huobi-client");
 const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 const zb = require("./exchanges/zb-client");
+const ethfinex = require("./exchanges/ethfinex-client");
 
 module.exports = {
   // export all legacy exchange names
@@ -26,6 +27,7 @@ module.exports = {
   Huobi: huobi,
   OKEx: okex,
   Poloniex: poloniex,
+  Ethfinex: ethfinex,
 
   // export all exchanges
   binance,
@@ -42,6 +44,7 @@ module.exports = {
   okex,
   poloniex,
   zb,
+  ethfinex,
 
   // export all types
   Auction: require("./auction"),
