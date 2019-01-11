@@ -12,6 +12,7 @@ const huobi = require("./exchanges/huobi-client");
 const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 const zb = require("./exchanges/zb-client");
+const ethfinex = require("./exchanges/ethfinex-client");
 const gateio = require("./exchanges/gateio-client");
 
 module.exports = {
@@ -27,6 +28,7 @@ module.exports = {
   Huobi: huobi,
   OKEx: okex,
   Poloniex: poloniex,
+  Ethfinex: ethfinex,
   Gateio: gateio,
 
   // export all exchanges
@@ -44,6 +46,7 @@ module.exports = {
   okex,
   poloniex,
   zb,
+  ethfinex,
   gateio,
 
   // export all types
