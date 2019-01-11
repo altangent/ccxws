@@ -154,9 +154,7 @@ class GateioSingleClient extends BasicClient {
   _constructTrade(rawTrade, market) {
     let { id, time, type, price, amount } = rawTrade;
 
-    let unix = moment.utc(time).valueOf() * 1000;
-    let buyOrderId = type === "buy" ? id : null;
-    let sellOrderId = type === "sell" ? id : null;
+    let unix = moment.utc(time * 1000).valueOf();
 
     return new Trade({
       exchange: "Gateio",
@@ -167,8 +165,6 @@ class GateioSingleClient extends BasicClient {
       side: type,
       price,
       amount,
-      buyOrderId,
-      sellOrderId,
     });
   }
 
