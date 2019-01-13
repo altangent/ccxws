@@ -64,6 +64,7 @@ binance.subscribeLevel2Snapshots(market);
 | Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |
 | Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
+| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
 
 Notes:
 

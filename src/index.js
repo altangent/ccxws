@@ -13,6 +13,7 @@ const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 const zb = require("./exchanges/zb-client");
 const ethfinex = require("./exchanges/ethfinex-client");
+const gateio = require("./exchanges/gateio-client");
 
 module.exports = {
   // export all legacy exchange names
@@ -28,6 +29,7 @@ module.exports = {
   OKEx: okex,
   Poloniex: poloniex,
   Ethfinex: ethfinex,
+  Gateio: gateio,
 
   // export all exchanges
   binance,
@@ -45,6 +47,7 @@ module.exports = {
   poloniex,
   zb,
   ethfinex,
+  gateio,
 
   // export all types
   Auction: require("./auction"),
