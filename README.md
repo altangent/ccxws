@@ -65,6 +65,7 @@ binance.subscribeLevel2Snapshots(market);
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |
 | Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
 | Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
+| Idex         | idex        | Support | Support | -              | -             | -              | -             |
 
 Notes:
 
