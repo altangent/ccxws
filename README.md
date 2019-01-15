@@ -49,6 +49,7 @@ binance.subscribeLevel2Snapshots(market);
 
 | Exchange     | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | ------------ | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
+| Bibox        | bibox       | Support | Support | -              | Support\*     | -              | -             |
 | Binance      | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
 | Bitfinex     | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
 | bitFlyer     | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
@@ -57,14 +58,14 @@ binance.subscribeLevel2Snapshots(market);
 | Bittrex      | bittrex     | Support | Support | -              | Support\*     | -              | -             |
 | Coinex       | coinex      | Support | Support | -              | Support\*     | -              | -             |
 | Coinbase Pro | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
+| Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
+| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
 | Gemini       | gemini      | -       | Support | -              | Support\*     | -              | -             |
 | HitBTC       | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
 | Huobi        | huobi       | Support | Support | Support        | -             | -              | -             |
 | OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
 | Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |
-| Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
 
 Notes:
 
