@@ -5,99 +5,26 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const BasicAuthClient = require("../basic-auth-client");
 const BasicMultiClient = require("../basic-multiclient");
-const MarketObjectTypes = require("../enums");
 
 class CexClient extends BasicMultiClient {
-  constructor(auth) {
-    super();
+  constructor(args) {
+    super({ auth: args, singleClientType: SingleCexClient });
     this._clients = new Map();
 
-    this.singleClientType = SingleCexClient;
     this._name = "CEX_MULTI";
-    this.auth = auth;
+    this.auth = args;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
   }
-
-  subscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Snapshots) return;
-    this._subscribe(
-      market,
-      this._clients,
-      MarketObjectTypes.level2snapshot,
-      "subscribing to level 2 snapshots"
-    );
-  }
-
-  unsubscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Snapshots) return;
-    if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeLevel2Snapshots(market);
-    }
-  }
-
-  _subscribe(market, map, marketObjectType, msg) {
-    let remote_id = market.id,
-      client = null;
-
-    if (!map.has(remote_id)) {
-      let clientAuth = { apiKey: this.auth.apiKey, apiSecret: this.auth.apiSecret, market: market };
-      client = new this.singleClientType(clientAuth);
-      console.log("Map adding remote_Id " + remote_id);
-      map.set(market, client);
-    } else {
-      console.log("Map already has remote_Id " + remote_id);
-      client = map.get(remote_id);
-    }
-
-    if (marketObjectType === MarketObjectTypes.ticker) {
-      winston.info(msg, this._name, remote_id);
-
-      client.subscribeTicker(market);
-
-      client.on("ticker", ticker => {
-        this.emit("ticker", ticker);
-      });
-    }
-
-    if (marketObjectType === MarketObjectTypes.trade) {
-      winston.info(msg, this._name, remote_id);
-
-      client.subscribeTrades(market);
-
-      client.on("trade", trade => {
-        this.emit("trade", trade);
-      });
-    }
-
-    // if (marketObjectType === MarketObjectTypes.level2update) {
-    //   winston.info(msg, this._name, remote_id);
-
-    //   client.subscribeLevel2Updates(market);
-
-    //   client.on("l2update", l2update => {
-    //     this.emit("l2update", l2update);
-    //   });
-    // }
-
-    if (marketObjectType === MarketObjectTypes.level2snapshot) {
-      winston.info(msg, this._name, remote_id);
-
-      client.subscribeLevel2Snapshots(market);
-
-      client.on("l2snapshot", l2snapshot => {
-        this.emit("l2snapshot", l2snapshot);
-      });
-    }
-  }
 }
 
 class SingleCexClient extends BasicAuthClient {
-  constructor(auth) {
+  constructor(args) {
     super("wss://ws.cex.io/ws", "CEX");
-    this.auth = auth;
-    this.market = auth.market;
+    this.auth = args.auth;
+    winston.info("SSC ", args.auth);
+    this.market = args.market;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
@@ -261,11 +188,13 @@ class SingleCexClient extends BasicAuthClient {
     if (e === "history-update") {
       let marketId = this.market.id;
       let market = this._tradeSubs.get(marketId);
-      for (let rawTrade of data) {
-        let trade = this._constructTrade(rawTrade, market);
-        this.emit("trade", trade);
+      if (this._tradeSubs.has(marketId)) {
+        for (let rawTrade of data) {
+          let trade = this._constructTrade(rawTrade, market);
+          this.emit("trade", trade);
+        }
+        return;
       }
-      return;
     }
   }
 }

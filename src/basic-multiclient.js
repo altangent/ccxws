@@ -3,18 +3,20 @@ const MarketObjectTypes = require("./enums");
 const winston = require("winston");
 
 class BasicMultiClient extends EventEmitter {
-  constructor(singleClientType) {
+  constructor(args) {
     super();
     this._clients = new Map();
 
-    this.singleClientType = singleClientType;
-
+    this.singleClientType = args.singleClientType;
+    this.auth = args.auth;
     this.hasTickers = false;
     this.hasTrades = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Updates = false;
   }
+
+  _createBasicClient() {}
 
   subscribeTicker(market) {
     if (!this.hasTickers) return;
@@ -46,7 +48,7 @@ class BasicMultiClient extends EventEmitter {
       market,
       this._clients,
       MarketObjectTypes.level2update,
-      "subscribing to level 2 snapshots"
+      "subscribing to level 2 updates"
     );
   }
 
@@ -54,6 +56,23 @@ class BasicMultiClient extends EventEmitter {
     if (!this.hasLevel2Updates) return;
     if (this._clients.has(market.id)) {
       this._clients.get(market.id).unsubscribeLevel2Updates(market);
+    }
+  }
+
+  subscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Snapshots) return;
+    this._subscribe(
+      market,
+      this._clients,
+      MarketObjectTypes.level2snapshot,
+      "subscribing to level 2 snapshots"
+    );
+  }
+
+  unsubscribeLevel2Snapshots(market) {
+    if (!this.hasLevel2Snapshots) return;
+    if (this._clients.has(market.id)) {
+      this._clients.get(market.id).unsubscribeLevel2Snapshots(market);
     }
   }
 
@@ -70,7 +89,8 @@ class BasicMultiClient extends EventEmitter {
       client = null;
 
     if (!map.has(remote_id)) {
-      client = new this.singleClientType();
+      let clientArgs = { auth: this.auth, market: market };
+      client = new this.singleClientType(clientArgs);
       map.set(remote_id, client);
     } else {
       client = map.get(remote_id);
@@ -101,12 +121,18 @@ class BasicMultiClient extends EventEmitter {
 
       client.subscribeLevel2Updates(market);
 
-      client.on("l2snapshot", l2snapshot => {
-        this.emit("l2snapshot", l2snapshot);
-      });
-
       client.on("l2update", l2update => {
         this.emit("l2update", l2update);
+      });
+    }
+
+    if (marketObjectType === MarketObjectTypes.level2snapshot) {
+      winston.info(msg, this._name, remote_id);
+
+      client.subscribeLevel2Snapshots(market);
+
+      client.on("l2snapshot", l2snapshot => {
+        this.emit("l2snapshot", l2snapshot);
       });
     }
   }
