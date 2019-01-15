@@ -9,12 +9,16 @@ const Level2Update = require("../level2-update");
 
 class GateioClient extends BasicMultiClient {
   constructor() {
-    super(GateioSingleClient);
+    super();
 
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
+  }
+
+  _createBasicClient() {
+    return new GateioSingleClient();
   }
 }
 
@@ -83,7 +87,6 @@ class GateioSingleClient extends BasicClient {
   }
 
   _onMessage(raw) {
-
     let msg = JSON.parse(raw);
     let { method, params } = msg;
 
@@ -96,7 +99,7 @@ class GateioSingleClient extends BasicClient {
       if (this._tickerSubs.has(marketId)) {
         let market = this._tickerSubs.get(marketId);
 
-        let ticker = this._constructTicker(params[1], market);//params[0][marketId] -> params[1]
+        let ticker = this._constructTicker(params[1], market); //params[0][marketId] -> params[1]
         this.emit("ticker", ticker);
       }
     }
@@ -112,7 +115,7 @@ class GateioSingleClient extends BasicClient {
         });
       }
     }
-    
+
     if (method === "depth.update") {
       let marketId = params[2];
 
@@ -133,7 +136,8 @@ class GateioSingleClient extends BasicClient {
 
   _constructTicker(rawTick, market) {
     let change = parseFloat(rawTick.last) - parseFloat(rawTick.open);
-    let changePercent = ((parseFloat(rawTick.last) - parseFloat(rawTick.open)) / parseFloat(rawTick.open)) * 100;
+    let changePercent =
+      ((parseFloat(rawTick.last) - parseFloat(rawTick.open)) / parseFloat(rawTick.open)) * 100;
 
     return new Ticker({
       exchange: "Gateio",
