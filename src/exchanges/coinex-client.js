@@ -9,7 +9,7 @@ const Level2Update = require("../level2-update");
 
 class CoinexClient extends BasicMultiClient {
   constructor() {
-    super({ singleClientType: CoinexSingleClient });
+    super();
 
     this.hasTickers = true;
     this.hasTrades = true;

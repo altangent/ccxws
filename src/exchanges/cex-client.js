@@ -8,7 +8,7 @@ const BasicMultiClient = require("../basic-multiclient");
 
 class CexClient extends BasicMultiClient {
   constructor(args) {
-    super({ auth: args, singleClientType: SingleCexClient });
+    super();
     this._clients = new Map();
 
     this._name = "CEX_MULTI";
@@ -17,13 +17,16 @@ class CexClient extends BasicMultiClient {
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
   }
+
+  _createBasicClient(clientArgs) {
+    return new SingleCexClient({ auth: this.auth, market: clientArgs.market });
+  }
 }
 
 class SingleCexClient extends BasicAuthClient {
   constructor(args) {
     super("wss://ws.cex.io/ws", "CEX");
     this.auth = args.auth;
-    winston.info("SSC ", args.auth);
     this.market = args.market;
     this.hasTickers = true;
     this.hasTrades = true;
@@ -128,8 +131,6 @@ class SingleCexClient extends BasicAuthClient {
   _onMessage(raw) {
     let message = JSON.parse(raw);
     let { e, data } = message;
-
-    winston.log(message);
 
     if (e === "ping") {
       this._sendPong();

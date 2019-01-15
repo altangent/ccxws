@@ -3,12 +3,10 @@ const MarketObjectTypes = require("./enums");
 const winston = require("winston");
 
 class BasicMultiClient extends EventEmitter {
-  constructor(args) {
+  constructor() {
     super();
     this._clients = new Map();
 
-    this.singleClientType = args.singleClientType;
-    this.auth = args.auth;
     this.hasTickers = false;
     this.hasTrades = false;
     this.hasLevel2Snapshots = false;
@@ -16,7 +14,12 @@ class BasicMultiClient extends EventEmitter {
     this.hasLevel3Updates = false;
   }
 
-  _createBasicClient() {}
+  ////// ABSTRACT
+  _createBasicClient() {
+    throw new Error("not implemented");
+  }
+
+  ////// PROTECTED
 
   subscribeTicker(market) {
     if (!this.hasTickers) return;
@@ -90,7 +93,7 @@ class BasicMultiClient extends EventEmitter {
 
     if (!map.has(remote_id)) {
       let clientArgs = { auth: this.auth, market: market };
-      client = new this.singleClientType(clientArgs);
+      client = this._createBasicClient(clientArgs);
       map.set(remote_id, client);
     } else {
       client = map.get(remote_id);
