@@ -1,6 +1,7 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
+const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
@@ -24,11 +25,25 @@ class CoinexClient extends BasicMultiClient {
 class CoinexSingleClient extends BasicClient {
   constructor() {
     super("wss://socket.coinex.com/", "Coinex");
+    this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
+    setInterval(this._sendPing.bind(this), 30000); // send ping every 30 sec
+  }
+
+  _sendPing() {
+    if (this._wss) {
+      this._wss.send(
+        JSON.stringify({
+          method: "server.ping",
+          params: [],
+          id: 11,
+        })
+      );
+    }
   }
 
   _sendSubTicker(remote_id) {
@@ -110,7 +125,7 @@ class CoinexSingleClient extends BasicClient {
       if (this._tradeSubs.has(marketId)) {
         let market = this._tradeSubs.get(marketId);
 
-        params[1].forEach(t => {
+        params[1].reverse().forEach(t => {
           let trade = this._constructTrade(t, market);
           this.emit("trade", trade);
         });
@@ -159,21 +174,19 @@ class CoinexSingleClient extends BasicClient {
   _constructTrade(rawTrade, market) {
     let { id, time, type, price, amount } = rawTrade;
 
-    let unix = moment.utc(time).valueOf() * 1000;
-    let buyOrderId = type === "buy" ? id : null;
-    let sellOrderId = type === "sell" ? id : null;
+    let unix = moment.utc(time * 1000).valueOf();
 
     return new Trade({
       exchange: "Coinex",
       base: market.base,
       quote: market.quote,
       tradeId: id,
-      unix,
+      unix: unix,
       side: type,
       price,
       amount,
-      buyOrderId,
-      sellOrderId,
+      buyOrderId: undefined,
+      sellOrderId: undefined,
     });
   }
 

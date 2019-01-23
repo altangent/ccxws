@@ -28,10 +28,10 @@ class BasicMultiClient extends EventEmitter {
     this._subscribe(market, this._clients, MarketObjectTypes.ticker, "subscribing to ticker");
   }
 
-  unsubscribeTicker(market) {
+  async unsubscribeTicker(market) {
     if (!this.hasTickers) return;
     if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeTicker(market);
+      (await this._clients.get(market.id)).unsubscribeTicker(market);
     }
   }
 
@@ -40,10 +40,10 @@ class BasicMultiClient extends EventEmitter {
     this._subscribe(market, this._clients, MarketObjectTypes.trade, "subscribing to trades");
   }
 
-  unsubscribeTrades(market) {
+  async unsubscribeTrades(market) {
     if (!this.hasTrades) return;
     if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeTrades(market);
+      (await this._clients.get(market.id)).unsubscribeTrades(market);
     }
   }
 
@@ -57,10 +57,10 @@ class BasicMultiClient extends EventEmitter {
     );
   }
 
-  unsubscribeLevel2Updates(market) {
+  async unsubscribeLevel2Updates(market) {
     if (!this.hasLevel2Updates) return;
     if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeLevel2Updates(market);
+      (await this._clients.get(market.id)).unsubscribeLevel2Updates(market);
     }
   }
 
@@ -74,17 +74,17 @@ class BasicMultiClient extends EventEmitter {
     );
   }
 
-  unsubscribeLevel2Snapshots(market) {
+  async unsubscribeLevel2Snapshots(market) {
     if (!this.hasLevel2Snapshots) return;
     if (this._clients.has(market.id)) {
-      this._clients.get(market.id).unsubscribeLevel2Snapshots(market);
+      (await this._clients.get(market.id)).unsubscribeLevel2Snapshots(market);
     }
   }
 
-  close(emitClosed = true) {
-    this._clients.forEach(c => {
-      c.close();
-    });
+  async close(emitClosed = true) {
+    for (let client of this._clients.values()) {
+      (await client).close();
+    }
 
     if (emitClosed) this.emit("closed");
   }

@@ -4,15 +4,15 @@ jest.retryTimes(3);
 
 let client;
 let market1 = {
-  id: "BTCBCH",
-  base: "BCH",
-  quote: "BTC",
+  id: "BTCUSDT",
+  base: "BTC",
+  quote: "USDT",
 };
 
 let market2 = {
   id: "LTCBTC",
-  base: "BTC",
-  quote: "LTC",
+  base: "LTC",
+  quote: "BTC",
 };
 
 beforeAll(() => {
@@ -48,7 +48,7 @@ test(
   done => {
     client.subscribeTicker(market1);
     client.on("ticker", function tickerHandler(ticker) {
-      expect(ticker.fullId).toMatch("Coinex:BCH/BTC");
+      expect(ticker.fullId).toMatch("Coinex:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
       expect(typeof ticker.open).toBe("string");
@@ -89,24 +89,16 @@ test(
   done => {
     client.subscribeTrades(market1);
     client.on("trade", function tradeHandler(trade) {
-      expect(trade.fullId).toMatch("Coinex:BCH/BTC");
+      expect(trade.fullId).toMatch("Coinex:BTC/USDT");
       expect(trade.exchange).toMatch("Coinex");
-      expect(trade.base).toMatch("BCH");
-      expect(trade.quote).toMatch("BTC");
+      expect(trade.base).toMatch("BTC");
+      expect(trade.quote).toMatch("USDT");
       expect(trade.tradeId).toBeGreaterThan(0);
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
       expect(typeof trade.amount).toBe("string");
       expect(parseFloat(trade.price)).toBeGreaterThan(0);
-
-      if (trade.side === "buy") {
-        expect(parseFloat(trade.buyOrderId)).toBeGreaterThan(0);
-        expect(trade.sellOrderId).toBeNull();
-      } else {
-        expect(trade.buyOrderId).toBeNull();
-        expect(parseFloat(trade.sellOrderId)).toBeGreaterThan(0);
-      }
 
       // Need to remove this listener, otherwise it is still running during subsequent tests
       client.removeListener("trade", tradeHandler);
@@ -123,10 +115,10 @@ test(
     client.subscribeLevel2Updates(market1);
 
     client.on("l2update", function level2UpdateHandler(update) {
-      expect(update.fullId).toMatch("Coinex:BCH/BTC");
+      expect(update.fullId).toMatch("Coinex:BTC/USDT");
       expect(update.exchange).toMatch("Coinex");
-      expect(update.base).toMatch("BCH");
-      expect(update.quote).toMatch("BTC");
+      expect(update.base).toMatch("BTC");
+      expect(update.quote).toMatch("USDT");
       expect(update.sequenceId).toBeUndefined();
       if (update.asks.length) {
         expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
@@ -149,18 +141,18 @@ test(
 test(
   "should subscribe and emit tickers for 2 markets",
   done => {
-    let receivedMarket1Update = false,
-      receivedMarket2Update = false;
+    let receivedMarket1Update = false;
+    let receivedMarket2Update = false;
 
     client.subscribeTicker(market1);
     client.subscribeTicker(market2);
 
     client.on("ticker", function tickerHandler(t) {
-      expect(t.base + t.quote).toMatch(/BCHBTC|BTCLTC/);
+      expect(t.base + t.quote).toMatch(/BTCUSDT|LTCBTC/);
 
-      if (t.base + t.quote === "BCHBTC") {
+      if (t.base + t.quote === "BTCUSDT") {
         receivedMarket1Update = true;
-      } else if (t.base + t.quote === "BTCLTC") {
+      } else if (t.base + t.quote === "LTCBTC") {
         receivedMarket2Update = true;
       }
 
@@ -173,58 +165,41 @@ test(
       }
     });
   },
-  90000
+  30000
 );
 
-// test(
-//   "should subscribe and emit tickers for tickers, trades, and l2updates for the same market",
-//   done => {
-//     let receivedTickerUpdate = false,
-//       receivedTradeUpdate = false,
-//       receivedL2Update = false,
-//       receivedTickerUpdateAfterOtherUpdates = false,
-//       receivedTradeUpdateAfterOtherUpdates = false,
-//       receivedL2UpdateAfterOtherUpdates = false;
+test(
+  "should subscribe and emit tickers for tickers, trades, and l2updates for the same market",
+  done => {
+    let receivedTickerUpdate = false;
+    let receivedTradeUpdate = false;
+    let receivedL2Update = false;
 
-//     client.subscribeTicker(market1);
-//     client.subscribeTrades(market1);
-//     client.subscribeLevel2Updates(market1);
+    client.subscribeTicker(market1);
+    client.subscribeTrades(market1);
+    client.subscribeLevel2Updates(market1);
 
-//     client.on("ticker", t => {
-//       expect(t.base + t.quote).toMatch("BCHBTC");
-//       receivedTickerUpdate = true;
-//       if (receivedTradeUpdate && receivedL2Update) {
-//         receivedTickerUpdateAfterOtherUpdates = true;
-//       }
-//     });
-//     client.on("trade", t => {
-//       expect(t.base + t.quote).toMatch("BCHBTC");
-//       receivedTradeUpdate = true;
-//       if (receivedTickerUpdate && receivedL2Update) {
-//         receivedTradeUpdateAfterOtherUpdates = true;
-//       }
-//     });
-//     client.on("l2update", t => {
-//       expect(t.base + t.quote).toMatch("BCHBTC");
-//       receivedL2Update = true;
-//       if (receivedTickerUpdate && receivedTradeUpdate) {
-//         receivedL2UpdateAfterOtherUpdates = true;
-//       }
-//     });
+    function check() {
+      if (receivedTickerUpdate && receivedTradeUpdate && receivedL2Update) {
+        done();
+      }
+    }
 
-//     var checkInterval = setInterval(() => {
-//       if (
-//         receivedTickerUpdateAfterOtherUpdates &&
-//         receivedTradeUpdateAfterOtherUpdates &&
-//         receivedL2UpdateAfterOtherUpdates
-//       ) {
-//         clearInterval(checkInterval);
-//         done();
-//       }
-//     }, 500);
-//   },
-//   90000
-// );
+    client.on("ticker", () => {
+      receivedTickerUpdate = true;
+      check();
+    });
+    client.on("trade", () => {
+      receivedTradeUpdate = true;
+      check();
+    });
+    client.on("l2update", () => {
+      receivedL2Update = true;
+      check();
+    });
+  },
+  90000
+);
 
 test("should close connections", done => {
   client.on("closed", done);
