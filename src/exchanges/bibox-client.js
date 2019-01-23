@@ -54,11 +54,10 @@ class BiboxClient extends BasicClient {
 
   _sendSubTrades(remote_id) {
     this._sem.take(() => {
-      let [base, quote] = remote_id.split("_");
       this._wss.send(
         JSON.stringify({
           event: "addChannel",
-          channel: "bibox_sub_spot_"+remote_id+"_deals",
+          channel: "bibox_sub_spot_" + remote_id + "_deals",
         })
       );
     });
@@ -68,7 +67,7 @@ class BiboxClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
-        channel: "bibox_sub_spot_"+remote_id+"_deals",
+        channel: "bibox_sub_spot_" + remote_id + "_deals",
       })
     );
   }
@@ -114,9 +113,8 @@ class BiboxClient extends BasicClient {
   }
 
   _onMessage(raw) {
-
     try {
-      let msgs = (typeof raw == "string")?JSON.parse(raw):raw;
+      let msgs = typeof raw == "string" ? JSON.parse(raw) : raw;
       if (Array.isArray(msgs)) {
         for (let msg of msgs) {
           this._processsMessage(msg);
@@ -128,16 +126,12 @@ class BiboxClient extends BasicClient {
       //console.log(raw);
       //console.warn(`failed to parse json ${ex.message}`);
     }
-
   }
 
   _processsMessage(msg) {
-
-
     if (typeof msg.data == "string") {
-
       let text = pako.inflate(Buffer.from(msg.data, "base64"), {
-          to: 'string'
+        to: "string",
       });
       msg.data = JSON.parse(text);
     }
@@ -191,7 +185,6 @@ class BiboxClient extends BasicClient {
   }
 
   _constructTicker(msg) {
-
     /*
     { channel: 'bibox_sub_spot_BIX_BTC_ticker',
       binary: 1,
@@ -212,7 +205,7 @@ class BiboxClient extends BasicClient {
         sell_amount: '880.0475',
         timestamp: 1547546988399 } }
      */
-    
+
     let { last, buy, sell, pair, vol, percent, low, high, timestamp } = msg.data;
     percent = percent.replace("%", "");
     let market = this._tickerSubs.get(pair);
@@ -285,7 +278,6 @@ class BiboxClient extends BasicClient {
     }]
     */
 
-    
     let remote_id = msg.data.pair;
     let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
     let asks = msg.data.asks.map(p => new Level2Point(p.price, p.volume));

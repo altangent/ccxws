@@ -1,5 +1,5 @@
 const semaphore = require("semaphore");
-const zlib = require("zlib");
+const pako = require("pako");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -115,24 +115,38 @@ class OKExClient extends BasicClient {
   }
 
   _onMessage(raw) {
-    zlib.inflateRaw(raw, (err, msgs) => {
-      if (err) {
-        console.warn(`failed to deflate: ${err.message}`);
-        return;
-      }
-      try {
-        msgs = JSON.parse(msgs);
-        if (Array.isArray(msgs)) {
-          for (let msg of msgs) {
-            this._processsMessage(msg);
-          }
-        } else {
-          this._processsMessage(msgs);
+    try {
+      let msgs = pako.inflateRaw(raw, { to: "string" });
+      msgs = JSON.parse(msgs);
+
+      if (Array.isArray(msgs)) {
+        for (let msg of msgs) {
+          this._processsMessage(msg);
         }
-      } catch (ex) {
-        console.warn(`failed to parse json ${ex.message}`);
+      } else {
+        this._processsMessage(msgs);
       }
-    });
+    } catch (err) {
+      console.warn(`failed to deflate ${err.message}`);
+    }
+    // pako.inflateRaw(raw, (err, msgs) => {
+    //   if (err) {
+    //     console.warn(`failed to deflate: ${err.message}`);
+    //     return;
+    //   }
+    //   try {
+    //     msgs = JSON.parse(msgs);
+    //     if (Array.isArray(msgs)) {
+    //       for (let msg of msgs) {
+    //         this._processsMessage(msg);
+    //       }
+    //     } else {
+    //       this._processsMessage(msgs);
+    //     }
+    //   } catch (ex) {
+    //     console.warn(`failed to parse json ${ex.message}`);
+    //   }
+    // });
   }
 
   _processsMessage(msg) {
