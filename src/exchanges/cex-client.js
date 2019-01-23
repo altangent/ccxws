@@ -5,6 +5,7 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const BasicAuthClient = require("../basic-auth-client");
 const BasicMultiClient = require("../basic-multiclient");
+const Watcher = require("../watcher");
 
 class CexClient extends BasicMultiClient {
   constructor(args) {
@@ -26,6 +27,7 @@ class CexClient extends BasicMultiClient {
 class SingleCexClient extends BasicAuthClient {
   constructor(args) {
     super("wss://ws.cex.io/ws", "CEX");
+    this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.auth = args.auth;
     this.market = args.market;
     this.hasTickers = true;

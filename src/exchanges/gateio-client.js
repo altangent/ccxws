@@ -1,6 +1,7 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
+const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
@@ -25,6 +26,7 @@ class GateioClient extends BasicMultiClient {
 class GateioSingleClient extends BasicClient {
   constructor() {
     super("wss://ws.gate.io/v3", "Gateio");
+    this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
