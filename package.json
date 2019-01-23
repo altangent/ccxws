@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Cryptocurrency exchange websocket feeds",
   "keywords": [
     "cryptocurrency",
