@@ -50,7 +50,7 @@ class BasicTradeClient extends EventEmitter {
 
   subscribeTicker(market) {
     if (!this.hasTickers) return;
-    this._subscribe(
+    return this._subscribe(
       market,
       this._tickerSubs,
       "subscribing to ticker",
@@ -70,7 +70,7 @@ class BasicTradeClient extends EventEmitter {
 
   subscribeTrades(market) {
     if (!this.hasTrades) return;
-    this._subscribe(
+    return this._subscribe(
       market,
       this._tradeSubs,
       "subscribing to trades",
@@ -90,7 +90,7 @@ class BasicTradeClient extends EventEmitter {
 
   subscribeLevel2Snapshots(market) {
     if (!this.hasLevel2Snapshots) return;
-    this._subscribe(
+    return this._subscribe(
       market,
       this._level2SnapshotSubs,
       "subscribing to level 2 snapshots",
@@ -110,7 +110,7 @@ class BasicTradeClient extends EventEmitter {
 
   subscribeLevel2Updates(market) {
     if (!this.hasLevel2Updates) return;
-    this._subscribe(
+    return this._subscribe(
       market,
       this._level2UpdateSubs,
       "subscribing to level 2 updates",
@@ -130,7 +130,7 @@ class BasicTradeClient extends EventEmitter {
 
   subscribeLevel3Updates(market) {
     if (!this.hasLevel3Updates) return;
-    this._subscribe(
+    return this._subscribe(
       market,
       this._level3UpdateSubs,
       "subscribing to level 3 updates",
@@ -159,6 +159,7 @@ class BasicTradeClient extends EventEmitter {
    * @param {Map}} map
    * @param {String} msg
    * @param {Function} sendFn
+   * @returns {Boolean} returns true when a new subscription event occurs
    */
   _subscribe(market, map, msg, sendFn) {
     this._connect();
@@ -173,7 +174,9 @@ class BasicTradeClient extends EventEmitter {
       if (this._wss.isConnected) {
         sendFn(remote_id);
       }
+      return true;
     }
+    return false;
   }
 
   /**

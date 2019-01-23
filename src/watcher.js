@@ -1,3 +1,5 @@
+const winston = require("winston");
+
 /**
  * Watcher subscribes to a client's messages and
  * will trigger a restart of the client if no
@@ -48,6 +50,7 @@ class Watcher {
    */
   _onCheck() {
     if (!this._lastMessage || this._lastMessage < Date.now() - this.intervalMs) {
+      winston.info("watcher initiating reconnection");
       this.client.reconnect();
       this.stop();
     }

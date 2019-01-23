@@ -1,4 +1,5 @@
 const { EventEmitter } = require("events");
+const semaphore = require("semaphore");
 const MarketObjectTypes = require("./enums");
 const winston = require("winston");
 
@@ -12,6 +13,7 @@ class BasicMultiClient extends EventEmitter {
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Updates = false;
+    this.sem = semaphore(3); // this can be overriden to allow more or less
   }
 
   ////// ABSTRACT
@@ -87,56 +89,75 @@ class BasicMultiClient extends EventEmitter {
     if (emitClosed) this.emit("closed");
   }
 
-  _subscribe(market, map, marketObjectType, msg) {
-    let remote_id = market.id,
-      client = null;
-
-    if (!map.has(remote_id)) {
-      let clientArgs = { auth: this.auth, market: market };
-      client = this._createBasicClient(clientArgs);
-      map.set(remote_id, client);
-    } else {
-      client = map.get(remote_id);
-    }
-
-    if (marketObjectType === MarketObjectTypes.ticker) {
-      winston.info(msg, this._name, remote_id);
-
-      client.subscribeTicker(market);
-
-      client.on("ticker", ticker => {
-        this.emit("ticker", ticker);
+  _createBasicClientThrottled(clientArgs) {
+    return new Promise(resolve => {
+      this.sem.take(() => {
+        let client = this._createBasicClient(clientArgs);
+        client._connect(); // manually perform a connection instead of waiting for a subscribe call
+        // construct a function so we can remove it...
+        let clearSem = () => {
+          this.sem.leave();
+          client.removeListener("connected", clearSem);
+          resolve(client);
+        };
+        client.on("connected", clearSem);
       });
-    }
+    });
+  }
 
-    if (marketObjectType === MarketObjectTypes.trade) {
-      winston.info(msg, this._name, remote_id);
+  async _subscribe(market, map, marketObjectType) {
+    try {
+      let remote_id = market.id,
+        client = null;
 
-      client.subscribeTrades(market);
+      // construct a client
+      if (!map.has(remote_id)) {
+        let clientArgs = { auth: this.auth, market: market };
+        client = this._createBasicClientThrottled(clientArgs);
+        // we MUST store the promise in here otherwise we will stack up duplicates
+        map.set(remote_id, client);
+      }
 
-      client.on("trade", trade => {
-        this.emit("trade", trade);
-      });
-    }
+      // wait for client to be made!
+      client = await map.get(remote_id);
 
-    if (marketObjectType === MarketObjectTypes.level2update) {
-      winston.info(msg, this._name, remote_id);
+      if (marketObjectType === MarketObjectTypes.ticker) {
+        let subscribed = client.subscribeTicker(market);
+        if (subscribed) {
+          client.on("ticker", ticker => {
+            this.emit("ticker", ticker);
+          });
+        }
+      }
 
-      client.subscribeLevel2Updates(market);
+      if (marketObjectType === MarketObjectTypes.trade) {
+        let subscribed = client.subscribeTrades(market);
+        if (subscribed) {
+          client.on("trade", trade => {
+            this.emit("trade", trade);
+          });
+        }
+      }
 
-      client.on("l2update", l2update => {
-        this.emit("l2update", l2update);
-      });
-    }
+      if (marketObjectType === MarketObjectTypes.level2update) {
+        let subscribed = client.subscribeLevel2Updates(market);
+        if (subscribed) {
+          client.on("l2update", l2update => {
+            this.emit("l2update", l2update);
+          });
+        }
+      }
 
-    if (marketObjectType === MarketObjectTypes.level2snapshot) {
-      winston.info(msg, this._name, remote_id);
-
-      client.subscribeLevel2Snapshots(market);
-
-      client.on("l2snapshot", l2snapshot => {
-        this.emit("l2snapshot", l2snapshot);
-      });
+      if (marketObjectType === MarketObjectTypes.level2snapshot) {
+        let subscribed = client.subscribeLevel2Snapshots(market);
+        if (subscribed) {
+          client.on("l2snapshot", l2snapshot => {
+            this.emit("l2snapshot", l2snapshot);
+          });
+        }
+      }
+    } catch (ex) {
+      winston.error("subscribe failed " + ex.message);
     }
   }
 }

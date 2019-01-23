@@ -148,6 +148,24 @@ Fired when a orderbook level 3 snapshot is received. Returns an instance of `Lev
 
 Fired when a level 3 update is recieved. Returns an instance of `Level3Update`.
 
+#### Connection Events
+
+##### `connected`
+
+Fires when a socket has connected. This event will fire when for reconnections.
+
+##### `closed`
+
+Fires when the client has closed its connection(s). This event is not fired during disconnections, it is fired when the `close` method is called and the connection(s) are successfully closed.
+
+##### `disconnected`
+
+Fires when a socket has been disconnected. Automatic reconnection should will be performed and the next event will be `reconnected` followed by a `connected` event when the reconnection is successful.
+
+##### `reconnected`
+
+Fires when a socket has initiated the reconnection process. This is fired at the start of thee reconnection process and is more aptly named `reconnecting`.
+
 #### Methods
 
 ##### `subscribeTicker(market): void`
