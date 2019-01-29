@@ -6,7 +6,7 @@ const Level2Snapshot = require("../level2-snapshot");
 
 class HuobiClient extends BasicClient {
   constructor() {
-    super("wss://api.zb.cn:9999/websocket ", "ZB");
+    super("wss://api.zb.cn/websocket ", "ZB");
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
