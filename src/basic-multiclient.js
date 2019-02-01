@@ -145,6 +145,9 @@ class BasicMultiClient extends EventEmitter {
           client.on("l2update", l2update => {
             this.emit("l2update", l2update);
           });
+          client.on("l2snapshot", l2snapshot => {
+            this.emit("l2snapshot", l2snapshot);
+          });
         }
       }
 
