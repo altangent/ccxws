@@ -11,7 +11,7 @@ class GeminiClient extends EventEmitter {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
-    this.reconnectIntervalMs = 90000;
+    this.reconnectIntervalMs = 600000;
 
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;

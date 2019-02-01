@@ -56,6 +56,7 @@ binance.subscribeLevel2Snapshots(market);
 | BitMEX       | bitmex      |         | Support | -              | Support\*     | -              | -             |
 | Bitstamp     | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
 | Bittrex      | bittrex     | Support | Support | -              | Support\*     | -              | -             |
+| Cex.io       | cex         | Support | Support | -              | Support\*     | -              | -             |
 | Coinex       | coinex      | Support | Support | -              | Support\*     | -              | -             |
 | Coinbase Pro | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
 | Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
