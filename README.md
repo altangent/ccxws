@@ -53,6 +53,7 @@ binance.subscribeLevel2Snapshots(market);
 | Binance      | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
 | Bitfinex     | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
 | bitFlyer     | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
+| Bitmart      | bitmart     | Support | Support | -              | Support       | -              | -             |
 | BitMEX       | bitmex      |         | Support | -              | Support\*     | -              | -             |
 | Bitstamp     | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
 | Bittrex      | bittrex     | Support | Support | -              | Support\*     | -              | -             |
