@@ -60,6 +60,7 @@ binance.subscribeLevel2Snapshots(market);
 | Coinex       | coinex      | Support | Support | -              | Support\*     | -              | -             |
 | Coinbase Pro | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
 | Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
+| Fatbtc       | fatbtc      | Support | Support | -              | Support       | -              | -             |
 | Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
 | Gemini       | gemini      | -       | Support | -              | Support\*     | -              | -             |
 | HitBTC       | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
