@@ -18,6 +18,21 @@ The following tips are useful when implementing exchanges:
 - Order book updates always need to start with an order book snapshot request. This makes order book maintenance simpler by broadcasting a snapshot event at the start of the update event stream.
 - Some exchanges do not support querying the order book snapshot via the WebSocket API, in that rare case, we will execute a REST query for the orderbook snapshot.
 
+### Numerics vs Strings
+
+CCXWS returns all numeric types as strings, with the exception of the unix timestamp. For reference, refer to the API documentation for [Ticker](https://github.com/altangent/ccxws#ticker), [Trade](https://github.com/altangent/ccxws#ticker), [Level2Point](https://github.com/altangent/ccxws#level2point), and [Level3Point](https://github.com/altangent/ccxws#level3point).  
+
+Numeric values are returned as strings to prevent data loss. JavaScript Numeric type is stored as an IEEE 754 floating point value. The maximum number of signicant digits is 15, meaning that large integers and floating point values will result in precision loss. 
+
+Many exchanges return API results with numeric values as strings already. In the event that an exchange does not return values as strings, you can take two options:
+
+1. Convert numerics to strings with `.toFixed(8)`
+2. Preprocess the raw message string and wrap numerics with double quotes prior to running `JSON.parse`
+
+The former method is preferred if an exchange does not return values that overflow (refer to the number of digits being sent).  The latter is required when data would overflow due to the exchange sending large numeric types.
+
+Lastly, when adding an exchange's unit tests, ensure that you perform type assertions to guarantee that results are returned as strings. 
+
 ## Testing
 
 Always add unit tests to validate the conditions. You can run a specific test by running 
@@ -26,6 +41,14 @@ Always add unit tests to validate the conditions. You can run a specific test by
 $(npm bin)/mocha src/exchanges/hitbtc-client.spec.js
 ```
 
+* Add a test to subscribe to a ticker
+* Add a test to subscribe to a trade stream
+* Add a test to subscribe to an orderbook stream
+* Add type assertions for all output
+* Add a test to subscribe to multiple trade streams at the same time
+* Add tests to unsubscribe from each stream
+
+### Additional testing
 It is often useful to create a `test.js` file (which is excluded from git) in the root of the application and directly exercise your code outside of unit tests
 code. For example:
 
