@@ -99,8 +99,8 @@ class UpbitSingleClient extends BasicClient {
 
     try {
       let msgs = raw.toString('utf8');
-      msgs = typeof msgs == "string" ? JSON.parse(msgs) : msgs;
-      
+      msgs = JSON.parse(msgs.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2'));
+
       if (Array.isArray(msgs)) {
         for (let msg of msgs) {
           this._processsMessage(msg);
@@ -110,7 +110,7 @@ class UpbitSingleClient extends BasicClient {
       }
     } catch (ex) {
       //console.log(raw);
-      //console.warn(`failed to parse json ${ex.message}`);
+      //console.warn(`failed to parse json ${raw}`);
     }
   }
 
@@ -156,28 +156,28 @@ class UpbitSingleClient extends BasicClient {
     /*
 { type: 'ticker',
   code: 'KRW-BTC',
-  opening_price: 3835000,
-  high_price: 3844000,
-  low_price: 3765000,
-  trade_price: 3790000,
-  prev_closing_price: 3835000,
-  acc_trade_price: 10290002627.02423,
-  change: 'FALL',
-  change_price: 45000,
-  signed_change_price: -45000,
-  change_rate: 0.0117340287,
-  signed_change_rate: -0.0117340287,
-  ask_bid: 'BID',
-  trade_volume: 0.28064032,
-  acc_trade_volume: 2710.12184111,
-  trade_date: '20190206',
-  trade_time: '114146',
-  trade_timestamp: 1549453306000,
-  acc_ask_volume: 1467.86621234,
-  acc_bid_volume: 1242.25562877,
-  highest_52_week_price: 14149000,
+  opening_price: '3980000.00000000',
+  high_price: '4017000.00000000',
+  low_price: '3967000.00000000',
+  trade_price: '3982000.0',
+  prev_closing_price: '3981000.00000000',
+  acc_trade_price: '10534309614.237530000',
+  change: 'RISE',
+  change_price: '1000.00000000',
+  signed_change_price: '1000.00000000',
+  change_rate: '0.0002511932',
+  signed_change_rate: '0.0002511932',
+  ask_bid: 'ASK',
+  trade_volume: '0.01562134',
+  acc_trade_volume: '2641.03667958',
+  trade_date: '20190213',
+  trade_time: '132020',
+  trade_timestamp: '1550064020000',
+  acc_ask_volume: '1232.55205784',
+  acc_bid_volume: '1408.48462174',
+  highest_52_week_price: '14149000.00000000',
   highest_52_week_date: '2018-02-20',
-  lowest_52_week_price: 3562000,
+  lowest_52_week_price: '3562000.00000000',
   lowest_52_week_date: '2018-12-15',
   trade_status: null,
   market_state: 'ACTIVE',
@@ -185,7 +185,7 @@ class UpbitSingleClient extends BasicClient {
   is_trading_suspended: false,
   delisting_date: null,
   market_warning: 'NONE',
-  timestamp: 1549453306573,
+  timestamp: '1550064020393',
   acc_trade_price_24h: null,
   acc_trade_volume_24h: null,
   stream_type: 'SNAPSHOT' }
@@ -198,7 +198,7 @@ class UpbitSingleClient extends BasicClient {
       exchange: "Upbit",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestamp: parseInt(timestamp),
       last: trade_price,
       open: opening_price,
       high: high_price,
@@ -242,7 +242,7 @@ class UpbitSingleClient extends BasicClient {
       quote: market.quote,
       tradeId: sequential_id,
       side: side,
-      unix: trade_timestamp,
+      unix: parseInt(trade_timestamp),
       price: trade_price,
       amount: trade_volume,
     });
@@ -276,7 +276,7 @@ class UpbitSingleClient extends BasicClient {
       exchange: "Upbit",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.timestamp,
+      timestampMs: parseInt(msg.timestamp),
       asks,
       bids,
     });
@@ -310,7 +310,7 @@ class UpbitSingleClient extends BasicClient {
       exchange: "Upbit",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.timestamp,
+      timestampMs: parseInt(msg.timestamp),
       asks,
       bids,
     });
