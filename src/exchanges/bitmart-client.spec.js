@@ -135,13 +135,13 @@ test(
     client.on("ticker", function tickerHandler(ticker) {
         expect(ticker.fullId).toMatch("Bitmart:"+market1.base+"/"+market1.quote);
         expect(ticker.timestamp).toBeGreaterThan(1531677480465);
-        expect(typeof ticker.last).not.toBe("undefined");
-        expect(typeof ticker.open).not.toBe("undefined");
-        expect(typeof ticker.high).not.toBe("undefined");
-        expect(typeof ticker.low).not.toBe("undefined");
-        expect(typeof ticker.volume).not.toBe("undefined");
+        expect(typeof ticker.last).toBe("string");
+        expect(typeof ticker.open).toBe("string");
+        expect(typeof ticker.high).toBe("string");
+        expect(typeof ticker.low).toBe("string");
+        expect(typeof ticker.volume).toBe("string");
         expect(typeof ticker.quoteVolume).toBe("undefined");
-        expect(typeof ticker.change).not.toBe("undefined");
+        expect(typeof ticker.change).toBe("string");
         expect(typeof ticker.changePercent).toBe("undefined");
         expect(typeof ticker.bid).toBe("undefined");
         expect(typeof ticker.bidVolume).toBe("undefined");
@@ -182,8 +182,8 @@ test(
         expect(trade.tradeId).toBe(undefined);
         expect(trade.unix).toBeGreaterThan(1522540800000);
         expect(trade.side).toMatch(/buy|sell/);
-        expect(typeof trade.price).not.toBe("undefined");
-        expect(typeof trade.amount).not.toBe("undefined");
+        expect(typeof trade.price).toBe("string");
+        expect(typeof trade.amount).toBe("string");
         expect(parseFloat(trade.price)).toBeGreaterThan(0);
 
       

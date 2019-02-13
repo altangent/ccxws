@@ -92,7 +92,12 @@ class BitmartSingleClient extends BasicClient {
   _onMessage(raw) {
 
     try {
-      let msgs = typeof raw === "string" ? JSON.parse(raw) : raw;
+      let msgs;
+      if(typeof raw === "string"){
+        msgs = JSON.parse(raw.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2'));
+      }
+
+      if(!msgs)return;
       
       if (Array.isArray(msgs)) {
         for (let msg of msgs) {
@@ -173,7 +178,7 @@ class BitmartSingleClient extends BasicClient {
       exchange: "Bitmart",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestamp: parseInt(timestamp),
       last: current_price,
       open: open_price,
       high: highest_price,
@@ -221,7 +226,7 @@ class BitmartSingleClient extends BasicClient {
       quote: market.quote,
       tradeId: undefined,
       side: side,
-      unix: time,
+      unix: parseInt(time),
       price: price,
       amount: amount,
     });
@@ -265,7 +270,7 @@ class BitmartSingleClient extends BasicClient {
       exchange: "Bitmart",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.timestamp,
+      timestampMs: undefined,
       asks,
       bids,
     });
