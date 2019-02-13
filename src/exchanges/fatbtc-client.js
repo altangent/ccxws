@@ -87,9 +87,10 @@ class FatbtcSingleClient extends BasicClient {
   }
 
   _onMessage(raw) {
-    let msg = JSON.parse(raw);
 
-   // console.log(msg);
+    let msg = JSON.parse(raw.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2'));
+
+    if(!msg.key || !msg.data)return;
 
 
     let method = msg.key;
@@ -171,15 +172,15 @@ class FatbtcSingleClient extends BasicClient {
       exchange: "Fatbtc",
       base: market.base,
       quote: market.quote,
-      timestamp: rawTick[0] * 1000,
-      last: last,
-      open: open,
-      high: rawTick[2],
-      low: rawTick[3],
+      timestamp: parseInt(rawTick[0]) * 1000,
+      last: last.toFixed(8),
+      open: open.toFixed(8),
+      high: rawTick[2].toFixed(8),
+      low: rawTick[3].toFixed(8),
       volume: undefined,
       quoteVolume: undefined,
-      change: change,
-      changePercent: changePercent,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(8),
     });
   }
 
@@ -204,7 +205,7 @@ class FatbtcSingleClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       tradeId: undefined,
-      unix: timestamp,
+      unix: parseInt(timestamp),
       side: taker,
       price: price,
       amount: volume,
@@ -213,8 +214,8 @@ class FatbtcSingleClient extends BasicClient {
 
   _constructLevel2Update(rawUpdate, market) {
     let { bids, asks } = rawUpdate,
-      structuredBids = bids ? bids.map(p => new Level2Point(p[0], p[1])) : [],
-      structuredAsks = asks ? asks.map(p => new Level2Point(p[0], p[1])) : [];
+      structuredBids = bids ? bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8))) : [],
+      structuredAsks = asks ? asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8))) : [];
 
     return new Level2Update({
       exchange: "Fatbtc",

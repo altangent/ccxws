@@ -133,14 +133,14 @@ test(
 
       expect(ticker.fullId).toMatch("Fatbtc:"+market1.base+"/"+market1.quote);
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
-      expect(typeof ticker.last).not.toBe("undefined");
-      expect(typeof ticker.open).not.toBe("undefined");
-      expect(typeof ticker.high).not.toBe("undefined");
-      expect(typeof ticker.low).not.toBe("undefined");
+      expect(typeof ticker.last).toBe("string");
+      expect(typeof ticker.open).toBe("string");
+      expect(typeof ticker.high).toBe("string");
+      expect(typeof ticker.low).toBe("string");
       expect(typeof ticker.volume).toBe("undefined");
       expect(typeof ticker.quoteVolume).toBe("undefined");
-      expect(typeof ticker.change).not.toBe("undefined");
-      expect(typeof ticker.changePercent).not.toBe("string");
+      expect(typeof ticker.change).toBe("string");
+      expect(typeof ticker.changePercent).toBe("string");
       expect(typeof ticker.bid).toBe("undefined");
       expect(typeof ticker.bidVolume).toBe("undefined");
       expect(typeof ticker.ask).toBe("undefined");
