@@ -1,29 +1,13 @@
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
-const BasicMultiClient = require("../basic-multiclient");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
-class UpbitClient extends BasicMultiClient {
-  constructor() {
-    super();
 
-    this.hasTickers = true;
-    this.hasTrades = true;
-    this.hasLevel2Snapshots = false;
-    this.hasLevel2Updates = true;
-  }
-
-  _createBasicClient() {
-    return new UpbitSingleClient();
-  }
-}
-
-
-class UpbitSingleClient extends BasicClient {
+class UpbitClient extends BasicClient {
   constructor() {
     super("wss://api.upbit.com/websocket/v1", "Upbit");
     this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
@@ -46,52 +30,60 @@ class UpbitSingleClient extends BasicClient {
     }
   }
 
-  _sendSubTicker(remote_id) {
-    //"codes":[remote_id] - upbit overwrites previous code with this one
+  _sendSubTicker() {
+
+    let codes = Array.from(this._tickerSubs.keys());
     this._sem.take(() => {
       this._wss.send(
-          JSON.stringify([{"ticket":"current"},{"type":"ticker","codes":[remote_id]}])
+          JSON.stringify([{"ticket":"current"},{"type":"ticker","codes":codes}])
       );
     });
   }
 
-  _sendUnsubTicker(remote_id) {
-    //since every pair has its own instance we can send an empty array
+  _sendUnsubTicker() {
+
+    let codes = Array.from(this._tickerSubs.keys());
     this._sem.take(() => {
       this._wss.send(
-        JSON.stringify([{"ticket":"concluded"},{"type":"ticker","codes":[]}])
+        JSON.stringify([{"ticket":"concluded"},{"type":"ticker","codes":codes}])
       );
     });
   }
 
-  _sendSubTrades(remote_id) {
-    //"codes":[remote_id] - upbit overwrites previous code with this one
+  _sendSubTrades() {
+
+    let codes = Array.from(this._tradeSubs.keys());
     this._sem.take(() => {
       this._wss.send(
-        JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":[remote_id]}])
+        JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":codes}])
       );
     });
   }
 
-  _sendUnsubTrades(remote_id) {
+  _sendUnsubTrades() {
+    
+    let codes = Array.from(this._tradeSubs.keys());
     //since every pair has its own instance we can send an empty array
     this._wss.send(
-      JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":[]}])
+      JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":codes}])
     );
   }
 
-  _sendSubLevel2Updates(remote_id) {
+  _sendSubLevel2Updates() {
+
+    let codes = Array.from(this._level2UpdateSubs.keys());
     this._sem.take(() => {
       this._wss.send(
-        JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":[remote_id]}])
+        JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":codes}])
       );
     });
   }
 
-  _sendUnsubLevel2Updates(remote_id) {
-    //since every pair has its own instance we can send an empty array
+  _sendUnsubLevel2Updates() {
+    
+    let codes = Array.from(this._level2UpdateSubs.keys());
     this._wss.send(
-      JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":[]}])
+      JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":codes}])
     );
   }
 
