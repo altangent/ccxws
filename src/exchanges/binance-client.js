@@ -33,7 +33,7 @@ class BinanceClient extends EventEmitter {
 
     this._watcher = new Watcher(this, 30000);
     this._restSem = semaphore(1);
-    this.REST_REQUEST_DELAY_MS = 250;
+    this.REST_REQUEST_DELAY_MS = 1000;
   }
 
   //////////////////////////////////////////////
