@@ -11,7 +11,7 @@ class GeminiClient extends EventEmitter {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
-    this.reconnectIntervalMs = 600000;
+    this.reconnectIntervalMs = 30 * 1000;
 
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
@@ -88,7 +88,7 @@ class GeminiClient extends EventEmitter {
    * the subscribed markets.
    */
   _connect(remote_id) {
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id;
+    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
     let wss = new SmartWss(wssPath);
     wss.on("open", () => this._onConnected(remote_id));
     wss.on("message", raw => this._onMessage(remote_id, raw));
@@ -168,7 +168,10 @@ class GeminiClient extends EventEmitter {
    * date to the last receieved message date
    */
   _onReconnectCheck(subscription) {
-    if (subscription.lastMessage < Date.now() - this.reconnectIntervalMs) {
+    if (
+      !subscription.lastMessage ||
+      subscription.lastMessage < Date.now() - this.reconnectIntervalMs
+    ) {
       this._reconnect(subscription);
     }
   }
