@@ -54,8 +54,8 @@ class UpbitClient extends BasicClient {
   }
 
   _sendUnsubLevel2Snapshots() {
-    this._debouce("unsub-l2snapshots", () => {
-      let codes = Array.from(this._level2Upd_level2SnapshotSubsateSubs.keys());
+    this._debounce("unsub-l2snapshots", () => {
+      let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
         JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
       );
@@ -221,7 +221,7 @@ class UpbitClient extends BasicClient {
     */
 
     let remote_id = msg.code;
-    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
+    let market = this._level2SnapshotSubs.get(remote_id);
     let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
     let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));
     return new Level2Snapshot({
