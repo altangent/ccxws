@@ -1,4 +1,3 @@
-const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -6,136 +5,98 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
-
 class UpbitClient extends BasicClient {
   constructor() {
     super("wss://api.upbit.com/websocket/v1", "Upbit");
-    this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
-    this.on("connected", this._resetSemaphore.bind(this));
 
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
-  }
 
-  _resetSemaphore() {
-    this._sem = semaphore(5);
-    this._hasSnapshot = new Set();
-  }
-
-  _sendPing() {
-    if (this._wss) {
-      this._wss.send(JSON.stringify({ event: "ping" }));
-    }
+    this.debouceTimeoutHandles = new Map();
+    this.debounceWait = 200;
   }
 
   _sendSubTicker() {
-
-    let codes = Array.from(this._tickerSubs.keys());
-    this._sem.take(() => {
-      this._wss.send(
-          JSON.stringify([{"ticket":"current"},{"type":"ticker","codes":codes}])
-      );
+    this._debounce("sub-ticker", () => {
+      let codes = Array.from(this._tickerSubs.keys());
+      this._wss.send(JSON.stringify([{ ticket: "current" }, { type: "ticker", codes: codes }]));
     });
   }
 
   _sendUnsubTicker() {
-
-    let codes = Array.from(this._tickerSubs.keys());
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify([{"ticket":"concluded"},{"type":"ticker","codes":codes}])
-      );
+    this._debounce("unsub-ticker", () => {
+      let codes = Array.from(this._tickerSubs.keys());
+      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "ticker", codes: codes }]));
     });
   }
 
   _sendSubTrades() {
-
-    let codes = Array.from(this._tradeSubs.keys());
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":codes}])
-      );
+    this._debounce("sub-trades", () => {
+      let codes = Array.from(this._tradeSubs.keys());
+      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "trade", codes: codes }]));
     });
   }
 
   _sendUnsubTrades() {
-    
-    let codes = Array.from(this._tradeSubs.keys());
-    //since every pair has its own instance we can send an empty array
-    this._wss.send(
-      JSON.stringify([{"ticket":"concluded"},{"type":"trade","codes":codes}])
-    );
+    this._debounce("unsub-trades", () => {
+      let codes = Array.from(this._tradeSubs.keys());
+      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "trade", codes: codes }]));
+    });
   }
 
   _sendSubLevel2Updates() {
-
-    let codes = Array.from(this._level2UpdateSubs.keys());
-    this._sem.take(() => {
+    this._debounce("sub-l2updates", () => {
+      let codes = Array.from(this._level2UpdateSubs.keys());
       this._wss.send(
-        JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":codes}])
+        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
       );
     });
   }
 
   _sendUnsubLevel2Updates() {
-    
-    let codes = Array.from(this._level2UpdateSubs.keys());
-    this._wss.send(
-      JSON.stringify([{"ticket":"quotation"},{"type":"orderbook","codes":codes}])
-    );
+    this._debouce("unsub-l2updates", () => {
+      let codes = Array.from(this._level2UpdateSubs.keys());
+      this._wss.send(
+        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
+      );
+    });
+  }
+
+  _debounce(type, fn) {
+    clearTimeout(this.debouceTimeoutHandles.get(type));
+    this.debouceTimeoutHandles.set(type, setTimeout(fn, this.debounceWait));
   }
 
   _onMessage(raw) {
-
-    try {
-      let msgs = raw.toString('utf8');
-      msgs = JSON.parse(msgs.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2'));
-
-      if (Array.isArray(msgs)) {
-        for (let msg of msgs) {
-          this._processsMessage(msg);
-        }
-      } else {
-        this._processsMessage(msgs);
-      }
-    } catch (ex) {
-      //console.log(raw);
-      //console.warn(`failed to parse json ${raw}`);
-    }
+    let msgs = raw.toString("utf8");
+    msgs = JSON.parse(msgs.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2'));
+    this._processsMessage(msgs);
   }
 
   _processsMessage(msg) {
-
-      // clear semaphore
-      if (!msg.type) {
-        this._sem.leave();
-        return;
-      }
-      
+    // console.log(msg);
 
     // trades
-    if (msg.type === 'trade') {
+    if (msg.type === "trade") {
       let trade = this._constructTradesFromMessage(msg);
       this.emit("trade", trade);
       return;
     }
 
     // tickers
-    if (msg.type === 'ticker') {
+    if (msg.type === "ticker") {
       let ticker = this._constructTicker(msg);
       this.emit("ticker", ticker);
       return;
     }
 
     // l2 updates
-    if (msg.type === 'orderbook') {
-      let remote_id = msg.code;
-      if (msg.stream_type === 'SNAPSHOT') {
+    if (msg.type === "orderbook") {
+      if (msg.stream_type === "SNAPSHOT") {
         let snapshot = this._constructLevel2Snapshot(msg);
         this.emit("l2snapshot", snapshot);
-        this._hasSnapshot.add(remote_id);
       } else {
         let update = this._constructoL2Update(msg);
         this.emit("l2update", update);
@@ -183,8 +144,18 @@ class UpbitClient extends BasicClient {
   stream_type: 'SNAPSHOT' }
      */
 
-    let { opening_price, trade_price, acc_bid_volume, acc_ask_volume, code, trade_volume, acc_trade_volume, change_rate, change_price, low_price, high_price, timestamp } = msg;
-    
+    let {
+      opening_price,
+      trade_price,
+      code,
+      acc_trade_volume,
+      change_rate,
+      change_price,
+      low_price,
+      high_price,
+      timestamp,
+    } = msg;
+
     let market = this._tickerSubs.get(code);
     return new Ticker({
       exchange: "Upbit",
@@ -195,14 +166,10 @@ class UpbitClient extends BasicClient {
       open: opening_price,
       high: high_price,
       low: low_price,
-      volume: trade_volume,
+      volume: acc_trade_volume,
+      quoteVolume: (acc_trade_volume * trade_price).toFixed(8),
       change: change_price,
       changePercent: change_rate,
-      bid: undefined,
-      ask: undefined,
-      bidVolume: acc_bid_volume,
-      quoteVolume: acc_trade_volume,
-      askVolume: acc_ask_volume,
     });
   }
 
@@ -226,7 +193,7 @@ class UpbitClient extends BasicClient {
 
     let { code, trade_timestamp, trade_price, trade_volume, ask_bid, sequential_id } = datum;
     let market = this._tradeSubs.get(code);
-    let side = (ask_bid === 'BID') ? "buy" : "sell";
+    let side = ask_bid === "BID" ? "buy" : "sell";
 
     return new Trade({
       exchange: "Upbit",

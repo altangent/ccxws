@@ -42,7 +42,6 @@ test("it should not support level3 snapshots", () => {
 test("it should not support level3 updates", () => {
   expect(client.hasLevel3Updates).toBeFalsy();
 });
- 
 
 test(
   "should subscribe and emit tickers for tickers, trades, and l2updates for the same market",
@@ -60,7 +59,7 @@ test(
 
     client.on("ticker", t => {
       expect(t.base + t.quote).toMatch(/KRWBTT|KRWBTC/);
-      
+
       receivedTickerUpdate = true;
       if (receivedTradeUpdate && receivedL2Update) {
         receivedTickerUpdateAfterOtherUpdates = true;
@@ -95,7 +94,6 @@ test(
   50000
 );
 
-
 test(
   "should subscribe and emit tickers for 2 markets",
   done => {
@@ -126,14 +124,12 @@ test(
   60000
 );
 
-
 test(
   "should subscribe and emit ticker events",
   done => {
     client.subscribeTicker(market1);
     client.on("ticker", function tickerHandler(ticker) {
-
-      expect(ticker.fullId).toMatch("Upbit:"+market1.base+"/"+market1.quote);
+      expect(ticker.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
       expect(typeof ticker.open).toBe("string");
@@ -174,30 +170,17 @@ test(
   done => {
     client.subscribeTrades(market1);
     client.on("trade", function tradeHandler(trade) {
-
-      try{
-        expect(trade.fullId).toMatch("Upbit:"+market1.base+"/"+market1.quote);
-        expect(trade.exchange).toMatch("Upbit");
-        expect(trade.base).toMatch(market1.base);
-        expect(trade.quote).toMatch(market1.quote);
-        expect(trade.unix).toBeGreaterThan(1522540800000);
-        expect(trade.side).toMatch(/buy|sell/);
-        expect(typeof trade.price).toBe("string");
-        expect(typeof trade.amount).toBe("string");
-        expect(typeof trade.tradeId).toBe("string");
-        expect(parseFloat(trade.tradeId)).toBeGreaterThan(0);
-        expect(parseFloat(trade.price)).toBeGreaterThan(0);
-      }catch(e){
-        console.log(e)
-      }
-      
-      if (trade.side === "buy") {
-        //expect(parseFloat(trade.buyOrderId)).toBeGreaterThan(0);
-        //expect(trade.sellOrderId).toBeNull();
-      } else {
-        //expect(trade.buyOrderId).toBeNull();
-        //expect(parseFloat(trade.sellOrderId)).toBeGreaterThan(0);
-      }
+      expect(trade.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
+      expect(trade.exchange).toMatch("Upbit");
+      expect(trade.base).toMatch(market1.base);
+      expect(trade.quote).toMatch(market1.quote);
+      expect(trade.unix).toBeGreaterThan(1522540800000);
+      expect(trade.side).toMatch(/buy|sell/);
+      expect(typeof trade.price).toBe("string");
+      expect(typeof trade.amount).toBe("string");
+      expect(typeof trade.tradeId).toBe("string");
+      expect(parseFloat(trade.tradeId)).toBeGreaterThan(0);
+      expect(parseFloat(trade.price)).toBeGreaterThan(0);
 
       // Need to remove this listener, otherwise it is still running during subsequent tests
       client.removeListener("trade", tradeHandler);
@@ -214,23 +197,20 @@ test(
     client.subscribeLevel2Updates(market1);
 
     client.on("l2update", function level2UpdateHandler(update) {
-      try{
-        expect(update.fullId).toMatch("Upbit:"+market1.base+"/"+market1.quote);
-        expect(update.exchange).toMatch("Upbit");
-        expect(update.base).toMatch(market1.base);
-        expect(update.quote).toMatch(market1.quote);
-        expect(update.sequenceId).toBeUndefined();
-        if (update.asks.length) {
-          expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
-          expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
-        }
-        if (update.bids.length) {
-          expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
-          expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
-        }
-      }catch(e){
-        console.log(e)
+      expect(update.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
+      expect(update.exchange).toMatch("Upbit");
+      expect(update.base).toMatch(market1.base);
+      expect(update.quote).toMatch(market1.quote);
+      expect(update.sequenceId).toBeUndefined();
+      if (update.asks.length) {
+        expect(parseFloat(update.asks[0].price)).toBeGreaterThanOrEqual(0);
+        expect(parseFloat(update.asks[0].size)).toBeGreaterThanOrEqual(0);
       }
+      if (update.bids.length) {
+        expect(parseFloat(update.bids[0].price)).toBeGreaterThanOrEqual(0);
+        expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
+      }
+
       // Need to remove this listener, otherwise it is still running during subsequent tests
       client.removeListener("l2update", level2UpdateHandler);
       client.unsubscribeLevel2Updates(market1);
@@ -239,7 +219,6 @@ test(
   },
   30000
 );
-
 
 test("should close connections", done => {
   client.on("closed", done);
