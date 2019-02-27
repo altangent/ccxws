@@ -3,7 +3,6 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const Level2Update = require("../level2-update");
 
 class UpbitClient extends BasicClient {
   constructor() {
@@ -11,8 +10,7 @@ class UpbitClient extends BasicClient {
 
     this.hasTickers = true;
     this.hasTrades = true;
-    this.hasLevel2Snapshots = false;
-    this.hasLevel2Updates = true;
+    this.hasLevel2Snapshots = true;
 
     this.debouceTimeoutHandles = new Map();
     this.debounceWait = 200;
@@ -21,43 +19,43 @@ class UpbitClient extends BasicClient {
   _sendSubTicker() {
     this._debounce("sub-ticker", () => {
       let codes = Array.from(this._tickerSubs.keys());
-      this._wss.send(JSON.stringify([{ ticket: "current" }, { type: "ticker", codes: codes }]));
+      this._wss.send(JSON.stringify([{ ticket: "tickers" }, { type: "ticker", codes: codes }]));
     });
   }
 
   _sendUnsubTicker() {
     this._debounce("unsub-ticker", () => {
       let codes = Array.from(this._tickerSubs.keys());
-      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "ticker", codes: codes }]));
+      this._wss.send(JSON.stringify([{ ticket: "tickers" }, { type: "ticker", codes: codes }]));
     });
   }
 
   _sendSubTrades() {
     this._debounce("sub-trades", () => {
       let codes = Array.from(this._tradeSubs.keys());
-      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "trade", codes: codes }]));
+      this._wss.send(JSON.stringify([{ ticket: "trades" }, { type: "trade", codes: codes }]));
     });
   }
 
   _sendUnsubTrades() {
     this._debounce("unsub-trades", () => {
       let codes = Array.from(this._tradeSubs.keys());
-      this._wss.send(JSON.stringify([{ ticket: "concluded" }, { type: "trade", codes: codes }]));
+      this._wss.send(JSON.stringify([{ ticket: "trades" }, { type: "trade", codes: codes }]));
     });
   }
 
-  _sendSubLevel2Updates() {
-    this._debounce("sub-l2updates", () => {
-      let codes = Array.from(this._level2UpdateSubs.keys());
+  _sendSubLevel2Snapshots() {
+    this._debounce("sub-l2snapshots", () => {
+      let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
         JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
       );
     });
   }
 
-  _sendUnsubLevel2Updates() {
-    this._debouce("unsub-l2updates", () => {
-      let codes = Array.from(this._level2UpdateSubs.keys());
+  _sendUnsubLevel2Snapshots() {
+    this._debouce("unsub-l2snapshots", () => {
+      let codes = Array.from(this._level2Upd_level2SnapshotSubsateSubs.keys());
       this._wss.send(
         JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
       );
@@ -94,13 +92,8 @@ class UpbitClient extends BasicClient {
 
     // l2 updates
     if (msg.type === "orderbook") {
-      if (msg.stream_type === "SNAPSHOT") {
-        let snapshot = this._constructLevel2Snapshot(msg);
-        this.emit("l2snapshot", snapshot);
-      } else {
-        let update = this._constructoL2Update(msg);
-        this.emit("l2update", update);
-      }
+      let snapshot = this._constructLevel2Snapshot(msg);
+      this.emit("l2snapshot", snapshot);
       return;
     }
   }
@@ -232,40 +225,6 @@ class UpbitClient extends BasicClient {
     let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
     let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));
     return new Level2Snapshot({
-      exchange: "Upbit",
-      base: market.base,
-      quote: market.quote,
-      timestampMs: parseInt(msg.timestamp),
-      asks,
-      bids,
-    });
-  }
-
-  _constructoL2Update(msg) {
-    /*
- { type: 'orderbook',
-  code: 'KRW-BTT',
-  timestamp: 1549465904344,
-  total_ask_size: 1550925205.4196181,
-  total_bid_size: 2900599205.9702206,
-  orderbook_units:
-   [ { ask_price: 1.04,
-       bid_price: 1.03,
-       ask_size: 185206052.57158336,
-       bid_size: 354443748.7514278 },
-...
-     { ask_price: 1.13,
-       bid_price: 0.94,
-       ask_size: 198013382.3803366,
-       bid_size: 267304509.61145836 } ],
-  stream_type: 'REALTIME' }
-    */
-
-    let remote_id = msg.code;
-    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
-    let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
-    let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));
-    return new Level2Update({
       exchange: "Upbit",
       base: market.base,
       quote: market.quote,

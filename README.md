@@ -3,7 +3,7 @@
 [![CircleCI](https://circleci.com/gh/altangent/ccxws/tree/master.svg?style=shield)](https://circleci.com/gh/altangent/ccxws/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/altangent/ccxws/badge.svg?branch=master)](https://coveralls.io/github/altangent/ccxws?branch=master)
 
-A JavaScript library for connecting to realtime public APIs on all cryptocurrency exchanges. 
+A JavaScript library for connecting to realtime public APIs on all cryptocurrency exchanges.
 
 CCXWS is the web socket backbone for the free data analytics platform [Blocktap.io](https://www.blocktap.io).
 
@@ -68,7 +68,7 @@ binance.subscribeLevel2Snapshots(market);
 | Huobi        | huobi       | Support | Support | Support        | -             | -              | -             |
 | OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
 | Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
-| Upbit        | upbit       | Support | Support | -              | Support\*     | -              | -             |
+| Upbit        | upbit       | Support | Support | Support        | -             | -              | -             |
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |
 
 Notes:
