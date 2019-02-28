@@ -108,6 +108,25 @@ class BasicTradeClient extends EventEmitter {
     );
   }
 
+  subscribeLevel3Snapshots(market) {
+    if (!this.hasLevel3Snapshots) return;
+    return this._subscribe(
+      market,
+      this._level3SnapshotSubs,
+      "subscribing to level 3 snapshots",
+      this._sendSubLevel3Snapshots.bind(this)
+    );
+  }
+
+  unsubscribeLevel3Snapshots(market) {
+    if (!this.hasLevel3Snapshots) return;
+    this._unsubscribe(
+      market,
+      this._level3SnapshotSubs,
+      "unsubscribing from level 3 snapshots",
+      this._sendUnsubLevel3Snapshots.bind(this)
+    );
+  }
   subscribeLevel2Updates(market) {
     if (!this.hasLevel2Updates) return;
     return this._subscribe(
@@ -171,7 +190,7 @@ class BasicTradeClient extends EventEmitter {
       // perform the subscription if we're connected
       // and if not, then we'll reply on the _onConnected event
       // to send the signal to our server!
-      if (this._wss.isConnected) {
+      if (this._wss && this._wss.isConnected) {
         sendFn(remote_id);
       }
       return true;
@@ -195,7 +214,7 @@ class BasicTradeClient extends EventEmitter {
       winston.info(emitMsg, this._name, remote_id);
       map.delete(remote_id);
 
-      if (this._wss.isConnected) {
+      if (this._wss && this._wss.isConnected) {
         sendFn(remote_id);
       }
     }

@@ -66,6 +66,7 @@ binance.subscribeLevel2Snapshots(market);
 | Gemini       | gemini      | -       | Support | -              | Support\*     | -              | -             |
 | HitBTC       | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
 | Huobi        | huobi       | Support | Support | Support        | -             | -              | -             |
+| KuCoin       | kucoin      | Support | Support | Support        | Support\*\*   | -              | Support       |
 | OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
 | Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
 | ZB           | zb          | Support | Support | Support        | -             | -              | -             |

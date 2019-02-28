@@ -81,6 +81,42 @@ class BasicMultiClient extends EventEmitter {
     }
   }
 
+
+
+  subscribeLevel3Updates(market) {
+    if (!this.hasLevel3Updates) return;
+    this._subscribe(
+      market,
+      this._clients,
+      MarketObjectTypes.level3update,
+      "subscribing to level 3 updates"
+    );
+  }
+
+  async unsubscribeLevel3Updates(market) {
+    if (!this.hasLevel3Updates) return;
+    if (this._clients.has(market.id)) {
+      (await this._clients.get(market.id)).unsubscribeLevel3Updates(market);
+    }
+  }
+
+  subscribeLevel3Snapshots(market) {
+    if (!this.hasLevel3Snapshots) return;
+    this._subscribe(
+      market,
+      this._clients,
+      MarketObjectTypes.level3snapshot,
+      "subscribing to level 3 snapshots"
+    );
+  }
+
+  async unsubscribeLevel3Snapshots(market) {
+    if (!this.hasLevel3Snapshots) return;
+    if (this._clients.has(market.id)) {
+      (await this._clients.get(market.id)).unsubscribeLevel3Snapshots(market);
+    }
+  }
+
   async close(emitClosed = true) {
     for (let client of this._clients.values()) {
       (await client).close();
@@ -156,6 +192,27 @@ class BasicMultiClient extends EventEmitter {
         if (subscribed) {
           client.on("l2snapshot", l2snapshot => {
             this.emit("l2snapshot", l2snapshot);
+          });
+        }
+      }
+
+      if (marketObjectType === MarketObjectTypes.level3update) {
+        let subscribed = client.subscribeLevel3Updates(market);
+        if (subscribed) {
+          client.on("l3update", l3update => {
+            this.emit("l3update", l3update);
+          });
+          client.on("l3snapshot", l3snapshot => {
+            this.emit("l3snapshot", l3snapshot);
+          });
+        }
+      }
+
+      if (marketObjectType === MarketObjectTypes.level3snapshot) {
+        let subscribed = client.subscribeLevel3Snapshots(market);
+        if (subscribed) {
+          client.on("l3snapshot", l3snapshot => {
+            this.emit("l3snapshot", l3snapshot);
           });
         }
       }

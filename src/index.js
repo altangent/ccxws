@@ -13,6 +13,7 @@ const gateio = require("./exchanges/gateio-client");
 const gemini = require("./exchanges/gemini-client");
 const hitbtc = require("./exchanges/hitbtc-client");
 const huobi = require("./exchanges/huobi-client");
+const kucoin = require("./exchanges/kucoin-client");
 const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 const zb = require("./exchanges/zb-client");
@@ -31,6 +32,7 @@ module.exports = {
   Gemini: gemini,
   HitBTC: hitbtc,
   Huobi: huobi,
+  Kucoin: kucoin,
   OKEx: okex,
   Poloniex: poloniex,
 
@@ -50,6 +52,7 @@ module.exports = {
   gemini,
   hitbtc,
   huobi,
+  kucoin,
   okex,
   poloniex,
   zb,
