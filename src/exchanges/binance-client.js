@@ -96,7 +96,7 @@ class BinanceClient extends EventEmitter {
     let remote_id = market.id.toLowerCase();
     if (map.has(remote_id)) {
       winston.info(msg, this._name, remote_id);
-      map.delete(market);
+      map.delete(remote_id);
       this._reconnect();
     }
   }
