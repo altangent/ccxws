@@ -44,7 +44,6 @@ class HitBTCClient extends BasicClient {
         params: {
           symbol: remote_id,
         },
-        id: ++this._id,
       })
     );
   }
@@ -70,7 +69,6 @@ class HitBTCClient extends BasicClient {
         params: {
           symbol: remote_id,
         },
-        id: ++this._id,
       })
     );
   }
@@ -103,7 +101,18 @@ class HitBTCClient extends BasicClient {
   _onMessage(raw) {
     let msg = JSON.parse(raw);
 
-    if (msg.result) {
+    // We use semaphores to throttle connectivity. Once a connection is
+    // established we need to clear the semaphore so that the next
+    // connection can happen.
+    //
+    // The payload for a subscribe confirm will include the id that
+    // was attached in the JSON-RPC call creation.  For example:
+    // { jsonrpc: '2.0', result: true, id: 7 }
+    //
+    // For unsubscribe calls, we are not including an id
+    // so we can ignore messages that do not can an id value:
+    // { jsonrpc: '2.0', result: true, id: null }
+    if (msg.result && msg.id) {
       this._sem.leave();
       return;
     }
@@ -139,7 +148,9 @@ class HitBTCClient extends BasicClient {
     let { ask, bid, last, open, low, high, volume, volumeQuote, timestamp, symbol } = param;
     let market = this._tickerSubs.get(symbol);
     let change = (parseFloat(last) - parseFloat(open)).toFixed(8);
-    let changePercent = ((parseFloat(last) - parseFloat(open)) / parseFloat(open) * 100).toFixed(8);
+    let changePercent = (((parseFloat(last) - parseFloat(open)) / parseFloat(open)) * 100).toFixed(
+      8
+    );
     return new Ticker({
       exchange: "HitBTC",
       base: market.base,
