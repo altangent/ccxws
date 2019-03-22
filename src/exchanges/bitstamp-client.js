@@ -68,8 +68,6 @@ class BitstampClient extends EventEmitter {
   }
 
   subscribeLevel2Updates(market) {
-    // already connected... so make snapshot request here
-    if (this._pusher) this._requestLevel2Snapshot(market);
     this._subscribe(
       market,
       this._level2UpdateSubs,
