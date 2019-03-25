@@ -105,16 +105,14 @@ class KrakenClient extends BasicClient {
     @param {string} subName the subscription name passed to the
     JSON-RPC call
    */
-  _debounceSend(debounceKey, subMap, subscribe, subName) {
+  _debounceSend(debounceKey, subMap, subscribe, subscription) {
     this._debounce(debounceKey, () => {
       let wsSymbols = this._wsSymbolsFromSubMap(subMap);
       this._wss.send(
         JSON.stringify({
           event: subscribe ? "subscribe" : "unsubscribe",
           pair: wsSymbols,
-          subscription: {
-            name: subName,
-          },
+          subscription,
         })
       );
     });
@@ -131,7 +129,7 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendSubTicker() {
-    this._debounceSend("sub-ticker", this._tickerSubs, true, "ticker");
+    this._debounceSend("sub-ticker", this._tickerSubs, true, { name: "ticker" });
   }
 
   /**
@@ -145,7 +143,7 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendUnsubTicker() {
-    this._debounceSend("unsub-ticker", this._tickerSubs, false, "ticker");
+    this._debounceSend("unsub-ticker", this._tickerSubs, false, { name: "ticker" });
   }
 
   /**
@@ -159,7 +157,7 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendSubTrades() {
-    this._debounceSend("sub-trades", this._tradeSubs, true, "trade");
+    this._debounceSend("sub-trades", this._tradeSubs, true, { name: "trade" });
   }
 
   /**
@@ -173,7 +171,7 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendUnsubTrades() {
-    this._debounceSend("unsub-trades", this._tradeSubs, false, "trade");
+    this._debounceSend("unsub-trades", this._tradeSubs, false, { name: "trade" });
   }
 
   /**
@@ -187,7 +185,10 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendSubLevel2Updates() {
-    this._debounceSend("sub-l2updates", this._level2UpdateSubs, true, "book");
+    this._debounceSend("sub-l2updates", this._level2UpdateSubs, true, {
+      name: "book",
+      depth: 1000,
+    });
   }
 
   /**
@@ -201,7 +202,7 @@ class KrakenClient extends BasicClient {
     }
    */
   _sendUnsubLevel2Updates() {
-    this._debounceSend("unsub-l2updates", this._level2UpdateSubs, false, "book");
+    this._debounceSend("unsub-l2updates", this._level2UpdateSubs, false, { name: "book" });
   }
 
   /**
