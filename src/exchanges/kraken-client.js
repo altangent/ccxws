@@ -26,7 +26,7 @@ class KrakenClient extends BasicClient {
     This client will retrieve the market keys from those maps to
     determine the remoteIds to send to the server on all sub/unsub requests.
   */
-  constructor() {
+  constructor({ autoloadSymbolMaps = true } = {}) {
     super("wss://ws.kraken.com", "Kraken");
 
     this.hasTickers = true;
@@ -40,6 +40,10 @@ class KrakenClient extends BasicClient {
 
     this.fromRestMap = new Map();
     this.fromWsMap = new Map();
+
+    if (autoloadSymbolMaps) {
+      this.loadSymbolMaps().catch(winston.error);
+    }
   }
 
   /**
