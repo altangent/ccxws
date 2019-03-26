@@ -472,29 +472,27 @@ class KrakenClient extends BasicClient {
 
   /**
     Since Kraken doesn't send a trade id, we need to come up with a way
-    to generate one on our own. Fortunately they provide sub-ms timestamps
-    so we can use that as a proxy. This function will pad-right 9 places.
+    to generate one on our own. The REST API include the last trade id
+    which gives us the clue that it is the second timestamp + 9 sub-second
+    digits.
 
-    Because we are streaming and cannot guarantee the order of events, we can't
-    do any better than that. A consumer of this will need to come up with a
-    better mechanism for that.
+    The WS will provide timestamps with up to 6 decimals of precision.
+    The REST API only has timestamps with 4 decimal of precision.
+
+    To maintain consistency, we're going to use the following formula:
+      <integer part of unix timestamp> +
+      <first 4 digits of fractional part of unix timestamp> +
+      00000
+
+    This will result in collisions, but from our analysis it is rare.
+    Consumer code will need to account for this correctly.
    */
   _createTradeId(unix) {
-    const suffixMask = "000000000"; // Suffix should be 9 characters
-
-    let id = unix.toString();
-    let decimalIndex = id.indexOf(".");
-    let prefix = id;
-    let suffix = suffixMask;
-
-    if (decimalIndex >= 0) {
-      prefix = id.substr(0, decimalIndex); // Get the left side of the decimal point timestamp, which should always be 10 characters
-      suffix = id.substr(decimalIndex + 1); // Get the right side of the decimal point timestamp, which can be a variable number of characters
-      suffix += suffixMask.substr(suffix.length); // Make sure the suffix is at least 9 characters by APPENDING it with 0's
-    }
-
-    // Generate a new id by concatenating the prefix with the suffix
-    return prefix.concat(suffix);
+    let [integer, fractional] = unix.split(".");
+    fractional = parseFloat("0." + fractional) // parseFloat + toFixed rounds
+      .toFixed(4)
+      .substr(2);
+    return integer + fractional + "00000";
   }
 }
 
