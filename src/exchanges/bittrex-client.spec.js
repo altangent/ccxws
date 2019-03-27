@@ -9,37 +9,48 @@ let market = {
   quote: "USDT",
 };
 
-beforeAll(() => {
-  client = new Bittrex();
-});
+let market2 = {
+  id: "BTC-ETH",
+  base: "ETH",
+  quote: "BTC",
+};
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+let market3 = {
+  id: "BTC-LTC",
+  base: "LTC",
+  quote: "BTC",
+};
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+describe("BittrexClient", () => {
+  beforeAll(() => {
+    client = new Bittrex();
+  });
 
-test("it should not support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeFalsy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeFalsy();
+  });
 
-test("it should not support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeFalsy();
-});
+  test("it should support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeTruthy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
+
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
+  });
+
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
     client.on("ticker", ticker => {
       expect(ticker.fullId).toMatch("Bittrex:BTC/USDT");
@@ -68,13 +79,9 @@ test(
       expect(ticker.askVolume).toBeUndefined();
       done();
     });
-  },
-  90000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit level2 snapshot and updates",
-  done => {
+  test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
     client.on("l2snapshot", snapshot => {
@@ -112,19 +119,17 @@ test(
       expect(point.meta.type).toBeGreaterThanOrEqual(0);
       if (hasSnapshot) done();
     });
-  },
-  90000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
+    client.subscribeTrades(market2);
+    client.subscribeTrades(market3);
     client.on("trade", trade => {
-      expect(trade.fullId).toMatch("Bittrex:BTC/USDT");
+      expect(trade.fullId).toMatch(/Bittrex:BTC\/USDT|Bittrex:ETH\/BTC|Bittrex:LTC\/BTC/);
       expect(trade.exchange).toMatch("Bittrex");
-      expect(trade.base).toMatch("BTC");
-      expect(trade.quote).toMatch("USDT");
+      expect(trade.base).toMatch(/BTC|ETH|LTC/);
+      expect(trade.quote).toMatch(/USDT|BTC/);
       expect(trade.tradeId).toMatch(/^[0-9a-f]{32,32}$/);
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);
@@ -134,23 +139,22 @@ test(
       expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();
     });
-  },
-  90000
-);
+  }, 60000);
 
-test("should unsubscribe from tickers", () => {
-  client.unsubscribeTicker(market);
-});
+  test("should unsubscribe from tickers", () => {
+    client.unsubscribeTicker(market);
+  });
 
-test("should unsubscribe from trade events", () => {
-  client.unsubscribeTrades(market);
-});
+  test("should unsubscribe from trade events", () => {
+    client.unsubscribeTrades(market);
+  });
 
-test("should unsubscribe from level2 updates", () => {
-  client.unsubscribeLevel2Updates(market);
-});
+  test("should unsubscribe from level2 updates", () => {
+    client.unsubscribeLevel2Updates(market);
+  });
 
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

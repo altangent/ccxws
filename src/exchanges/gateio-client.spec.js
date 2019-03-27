@@ -10,42 +10,41 @@ let market1 = {
 };
 
 let market2 = {
-  id: "ETH_USDT",
+  id: "ETH_BTC",
   base: "ETH",
-  quote: "USDT",
+  quote: "BTC",
 };
 
-beforeAll(() => {
-  client = new Gateio();
-});
+describe("GateioClient", () => {
+  beforeAll(() => {
+    client = new Gateio();
+  });
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should not support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeFalsy();
-});
+  test("it should not support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeFalsy();
+  });
 
-test("it should support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeTruthy();
-});
+  test("it should support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeTruthy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
 
-test("it should not support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeFalsy();
-});
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
     client.on("ticker", function tickerHandler(ticker) {
       expect(ticker.fullId).toMatch("Gateio:BTC/USDT");
@@ -74,56 +73,56 @@ test(
       expect(parseFloat(ticker.bidVolume)).toBe(NaN);
       expect(parseFloat(ticker.ask)).toBe(NaN);
       expect(parseFloat(ticker.askVolume)).toBe(NaN);
-
-      // Need to remove this listener, otherwise it is still running during subsequent tests
-      client.removeListener("ticker", tickerHandler);
-      client.unsubscribeTicker(market1);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should unsubscribe from tickers", () => {
+    client.unsubscribeTicker(market1);
+  });
+
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
+    client.subscribeTrades(market2);
     client.on("trade", function tradeHandler(trade) {
-
-      expect(trade.fullId).toMatch("Gateio:BTC/USDT");
+      expect(trade.fullId).toMatch(/Gateio:BTC\/USDT|Gateio:ETH\/BTC/);
       expect(trade.exchange).toMatch("Gateio");
-      expect(trade.base).toMatch("BTC");
-      expect(trade.quote).toMatch("USDT");
+      expect(trade.base).toMatch(/BTC|ETH/);
+      expect(trade.quote).toMatch(/USDT|BTC/);
       expect(trade.tradeId).toBeGreaterThan(0);
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
       expect(typeof trade.amount).toBe("string");
       expect(parseFloat(trade.price)).toBeGreaterThan(0);
-
-      /*
-      if (trade.side === "buy") {
-        expect(parseFloat(trade.buyOrderId)).toBeGreaterThan(0);
-        expect(trade.sellOrderId).toBeNull();
-      } else {
-        expect(trade.buyOrderId).toBeNull();
-        expect(parseFloat(trade.sellOrderId)).toBeGreaterThan(0);
-      }*/
-
-      // Need to remove this listener, otherwise it is still running during subsequent tests
-      client.removeListener("trade", tradeHandler);
-      client.unsubscribeTrades(market1);
+      expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit level2 updates",
-  done => {
+  test("should unsubscribe from trades", () => {
+    client.unsubscribeTrades(market1);
+  });
+
+  test("should subscribe and emit level2 updates", done => {
     client.subscribeLevel2Updates(market1);
-
+    let hasSnapshot = true;
+    client.on("l2snapshot", snapshot => {
+      expect(snapshot.fullId).toMatch("Gateio:BTC/USDT");
+      expect(snapshot.exchange).toMatch("Gateio");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USDT");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(typeof snapshot.asks[0].price).toBe("string");
+      expect(typeof snapshot.asks[0].size).toBe("string");
+      expect(typeof snapshot.bids[0].price).toBe("string");
+      expect(typeof snapshot.bids[0].size).toBe("string");
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      hasSnapshot = true;
+    });
     client.on("l2update", function level2UpdateHandler(update) {
       expect(update.fullId).toMatch("Gateio:BTC/USDT");
       expect(update.exchange).toMatch("Gateio");
@@ -139,96 +138,18 @@ test(
         expect(parseFloat(update.bids[0].size)).toBeGreaterThanOrEqual(0);
       }
 
-      // Need to remove this listener, otherwise it is still running during subsequent tests
-      client.removeListener("l2update", level2UpdateHandler);
-      client.unsubscribeLevel2Updates(market1);
-      done();
-    });
-  },
-  30000
-);
-
-test(
-  "should subscribe and emit tickers for 2 markets",
-  done => {
-    let receivedMarket1Update = false,
-      receivedMarket2Update = false;
-
-    client.subscribeTicker(market1);
-    client.subscribeTicker(market2);
-
-    client.on("ticker", function tickerHandler(t) {
-      expect(t.base + t.quote).toMatch(/ETHUSDT|BTCUSDT/);
-
-      if (t.base + t.quote === "ETHUSDT") {
-        receivedMarket1Update = true;
-      } else if (t.base + t.quote === "BTCUSDT") {
-        receivedMarket2Update = true;
-      }
-
-      if (receivedMarket1Update && receivedMarket2Update) {
-        // Need to remove this listener, otherwise it is still running during subsequent tests
-        client.removeListener("ticker", tickerHandler);
-        client.unsubscribeTicker(market1);
-        client.unsubscribeTicker(market2);
+      if (hasSnapshot) {
         done();
       }
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit tickers for tickers, trades, and l2updates for the same market",
-  done => {
-    let receivedTickerUpdate = false,
-      receivedTradeUpdate = false,
-      receivedL2Update = false,
-      receivedTickerUpdateAfterOtherUpdates = false,
-      receivedTradeUpdateAfterOtherUpdates = false,
-      receivedL2UpdateAfterOtherUpdates = false;
+  it("should unsubscribe from level2 updates", () => {
+    client.unsubscribeLevel2Updates(market1);
+  });
 
-    client.subscribeTicker(market1);
-    client.subscribeTrades(market1);
-    client.subscribeLevel2Updates(market1);
-
-    client.on("ticker", t => {
-      expect(t.base + t.quote).toMatch("BTCUSDT");
-      receivedTickerUpdate = true;
-      if (receivedTradeUpdate && receivedL2Update) {
-        receivedTickerUpdateAfterOtherUpdates = true;
-      }
-    });
-    client.on("trade", t => {
-      expect(t.base + t.quote).toMatch("BTCUSDT");
-      receivedTradeUpdate = true;
-      if (receivedTickerUpdate && receivedL2Update) {
-        receivedTradeUpdateAfterOtherUpdates = true;
-      }
-    });
-    client.on("l2update", t => {
-      expect(t.base + t.quote).toMatch("BTCUSDT");
-      receivedL2Update = true;
-      if (receivedTickerUpdate && receivedTradeUpdate) {
-        receivedL2UpdateAfterOtherUpdates = true;
-      }
-    });
-
-    var checkInterval = setInterval(() => {
-      if (
-        receivedTickerUpdateAfterOtherUpdates &&
-        receivedTradeUpdateAfterOtherUpdates &&
-        receivedL2UpdateAfterOtherUpdates
-      ) {
-        clearInterval(checkInterval);
-        done();
-      }
-    }, 500);
-  },
-  30000
-);
-
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

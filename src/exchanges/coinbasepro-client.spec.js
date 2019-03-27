@@ -9,37 +9,36 @@ let market = {
   quote: "USD",
 };
 
-beforeAll(() => {
-  client = new Client();
-});
+describe("CoinbaseProClient", () => {
+  beforeAll(() => {
+    client = new Client();
+  });
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should not support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeFalsy();
-});
+  test("it should not support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeFalsy();
+  });
 
-test("it should support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeTruthy();
-});
+  test("it should support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeTruthy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
 
-test("it should support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeTruthy();
-});
+  test("it should support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeTruthy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
     client.on("ticker", ticker => {
       expect(ticker.fullId).toMatch("CoinbasePro:BTC/USD");
@@ -66,13 +65,9 @@ test(
       expect(ticker.askVolume).toBeUndefined();
       done();
     });
-  },
-  10000
-);
+  }, 10000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
     client.on("trade", trade => {
       expect(trade.fullId).toMatch("CoinbasePro:BTC/USD");
@@ -91,47 +86,43 @@ test(
       expect(trade.buyOrderId).not.toEqual(trade.sellOrderId);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test("should subscribe and emit level2 snapshot and updates", done => {
-  let hasSnapshot = false;
-  client.subscribeLevel2Updates(market);
-  client.on("l2snapshot", snapshot => {
-    hasSnapshot = true;
-    expect(snapshot.fullId).toMatch("CoinbasePro:BTC/USD");
-    expect(snapshot.exchange).toMatch("CoinbasePro");
-    expect(snapshot.base).toMatch("BTC");
-    expect(snapshot.quote).toMatch("USD");
-    expect(snapshot.sequenceId).toBeUndefined();
-    expect(snapshot.timestampMs).toBeUndefined();
-    expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.asks[0].count).toBeUndefined();
-    expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.bids[0].count).toBeUndefined();
+  test("should subscribe and emit level2 snapshot and updates", done => {
+    let hasSnapshot = false;
+    client.subscribeLevel2Updates(market);
+    client.on("l2snapshot", snapshot => {
+      hasSnapshot = true;
+      expect(snapshot.fullId).toMatch("CoinbasePro:BTC/USD");
+      expect(snapshot.exchange).toMatch("CoinbasePro");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USD");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(snapshot.timestampMs).toBeUndefined();
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.asks[0].count).toBeUndefined();
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.bids[0].count).toBeUndefined();
+    });
+    client.on("l2update", update => {
+      expect(hasSnapshot).toBeTruthy();
+      expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
+      expect(update.exchange).toMatch("CoinbasePro");
+      expect(update.base).toMatch("BTC");
+      expect(update.quote).toMatch("USD");
+      expect(update.sequenceId).toBeUndefined();
+      expect(update.timestampMs).toBeUndefined();
+      let point = update.asks[0] || update.bids[0];
+      expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
+      expect(point.count).toBeUndefined();
+      done();
+    });
   });
-  client.on("l2update", update => {
-    expect(hasSnapshot).toBeTruthy();
-    expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
-    expect(update.exchange).toMatch("CoinbasePro");
-    expect(update.base).toMatch("BTC");
-    expect(update.quote).toMatch("USD");
-    expect(update.sequenceId).toBeUndefined();
-    expect(update.timestampMs).toBeUndefined();
-    let point = update.asks[0] || update.bids[0];
-    expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-    expect(point.count).toBeUndefined();
-    done();
-  });
-});
 
-test(
-  "should subscribe and emit level3 updates",
-  done => {
+  test("should subscribe and emit level3 updates", done => {
     let hasReceived, hasOpen, hasDone, hasMatch;
     let point;
     client.subscribeLevel3Updates(market);
@@ -188,23 +179,22 @@ test(
         throw ex;
       }
     });
-  },
-  30000
-);
+  }, 30000);
 
-test("unsubscribe from trades", () => {
-  client.unsubscribeTrades(market);
-});
+  test("unsubscribe from trades", () => {
+    client.unsubscribeTrades(market);
+  });
 
-test("unsubscribe from level2 updates", () => {
-  client.unsubscribeLevel2Updates(market);
-});
+  test("unsubscribe from level2 updates", () => {
+    client.unsubscribeLevel2Updates(market);
+  });
 
-test("unsubscribe from level3 updates", () => {
-  client.unsubscribeLevel3Updates(market);
-});
+  test("unsubscribe from level3 updates", () => {
+    client.unsubscribeLevel3Updates(market);
+  });
 
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

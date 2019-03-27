@@ -9,37 +9,36 @@ let market = {
   quote: "USDT",
 };
 
-beforeAll(() => {
-  client = new HuobiClient();
-});
+describe("HuobiClient", () => {
+  beforeAll(() => {
+    client = new HuobiClient();
+  });
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeTruthy();
-});
+  test("it should support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeTruthy();
+  });
 
-test("it should not support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeFalsy();
-});
+  test("it should not support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeFalsy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
 
-test("it should not support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeFalsy();
-});
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
     client.on("ticker", ticker => {
       expect(ticker.fullId).toMatch("Huobi:BTC/USDT");
@@ -66,13 +65,9 @@ test(
       expect(ticker.askVolume).toBeUndefined();
       done();
     });
-  },
-  10000
-);
+  }, 10000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
     client.on("trade", trade => {
       expect(trade.fullId).toMatch("Huobi:BTC/USDT");
@@ -88,38 +83,37 @@ test(
       expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test("should subscribe and emit level2 snapshots", done => {
-  client.subscribeLevel2Snapshots(market);
-  client.on("l2snapshot", snapshot => {
-    expect(snapshot.fullId).toMatch("Huobi:BTC/USDT");
-    expect(snapshot.exchange).toMatch("Huobi");
-    expect(snapshot.base).toMatch("BTC");
-    expect(snapshot.quote).toMatch("USDT");
-    expect(snapshot.sequenceId).toBeUndefined();
-    expect(snapshot.timestampMs).toBeGreaterThan(0);
-    expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.asks[0].count).toBeUndefined();
-    expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
-    expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
-    expect(snapshot.bids[0].count).toBeUndefined();
-    done();
+  test("should subscribe and emit level2 snapshots", done => {
+    client.subscribeLevel2Snapshots(market);
+    client.on("l2snapshot", snapshot => {
+      expect(snapshot.fullId).toMatch("Huobi:BTC/USDT");
+      expect(snapshot.exchange).toMatch("Huobi");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USDT");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(snapshot.timestampMs).toBeGreaterThan(0);
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.asks[0].count).toBeUndefined();
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.bids[0].count).toBeUndefined();
+      done();
+    });
   });
-});
 
-test("should unsubscribe trades", () => {
-  client.unsubscribeTrades(market);
-});
+  test("should unsubscribe trades", () => {
+    client.unsubscribeTrades(market);
+  });
 
-test("should unsubscribe level2 snapshots", () => {
-  client.unsubscribeLevel2Snapshots(market);
-});
+  test("should unsubscribe level2 snapshots", () => {
+    client.unsubscribeLevel2Snapshots(market);
+  });
 
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

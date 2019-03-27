@@ -15,37 +15,36 @@ let market2 = {
   quote: "BTC",
 };
 
-beforeAll(() => {
-  client = new Coinex();
-});
+describe("CoinexClient", () => {
+  beforeAll(() => {
+    client = new Coinex();
+  });
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should not support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeFalsy();
-});
+  test("it should not support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeFalsy();
+  });
 
-test("it should support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeTruthy();
-});
+  test("it should support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeTruthy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
 
-test("it should not support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeFalsy();
-});
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
     client.on("ticker", function tickerHandler(ticker) {
       expect(ticker.fullId).toMatch("Coinex:BTC/USDT");
@@ -80,13 +79,9 @@ test(
       client.unsubscribeTicker(market1);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
     client.on("trade", function tradeHandler(trade) {
       expect(trade.fullId).toMatch("Coinex:BTC/USDT");
@@ -105,13 +100,9 @@ test(
       client.unsubscribeTrades(market1);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit level2 updates",
-  done => {
+  test("should subscribe and emit level2 updates", done => {
     client.subscribeLevel2Updates(market1);
 
     client.on("l2update", function level2UpdateHandler(update) {
@@ -134,13 +125,9 @@ test(
       client.unsubscribeLevel2Updates(market1);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit tickers for 2 markets",
-  done => {
+  test("should subscribe and emit tickers for 2 markets", done => {
     let receivedMarket1Update = false;
     let receivedMarket2Update = false;
 
@@ -164,13 +151,9 @@ test(
         done();
       }
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit tickers for tickers, trades, and l2updates for the same market",
-  done => {
+  test("should subscribe and emit tickers for tickers, trades, and l2updates for the same market", done => {
     let receivedTickerUpdate = false;
     let receivedTradeUpdate = false;
     let receivedL2Update = false;
@@ -197,11 +180,10 @@ test(
       receivedL2Update = true;
       check();
     });
-  },
-  90000
-);
+  }, 90000);
 
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

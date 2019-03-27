@@ -284,7 +284,7 @@ class BittrexClient extends EventEmitter {
     let market = this._tickerSubs.get(msg.MarketName);
     let { High, Low, Last, PrevDay, BaseVolume, Volume, TimeStamp, Bid, Ask } = msg;
     let change = Last - PrevDay;
-    let percentChange = (Last - PrevDay) / PrevDay * 100;
+    let percentChange = ((Last - PrevDay) / PrevDay) * 100;
     return new Ticker({
       exchange: "Bittrex",
       base: market.base,
@@ -325,7 +325,7 @@ class BittrexClient extends EventEmitter {
   // prettier-ignore
   _constructLevel2Snapshot(msg) {
     let market = this._level2UpdateSubs.get(msg.MarketName);
-    let sequenceId = msg.Nounce;
+    let sequenceId = msg.Nonce;
     let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     return new Level2Snapshot({
@@ -341,7 +341,7 @@ class BittrexClient extends EventEmitter {
   // prettier-ignore
   _constructLevel2Update(msg) {
     let market = this._level2UpdateSubs.get(msg.MarketName);
-    let sequenceId = msg.Nounce;
+    let sequenceId = msg.Nonce;
     let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     return new Level2Update({

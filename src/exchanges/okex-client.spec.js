@@ -9,37 +9,36 @@ let market = {
   quote: "USDT",
 };
 
-beforeAll(() => {
-  client = new OKEx();
-});
+describe("OkEXClient", () => {
+  beforeAll(() => {
+    client = new OKEx();
+  });
 
-test("it should support tickers", () => {
-  expect(client.hasTickers).toBeTruthy();
-});
+  test("it should support tickers", () => {
+    expect(client.hasTickers).toBeTruthy();
+  });
 
-test("it should support trades", () => {
-  expect(client.hasTrades).toBeTruthy();
-});
+  test("it should support trades", () => {
+    expect(client.hasTrades).toBeTruthy();
+  });
 
-test("it should support level2 snapshots", () => {
-  expect(client.hasLevel2Snapshots).toBeTruthy();
-});
+  test("it should support level2 snapshots", () => {
+    expect(client.hasLevel2Snapshots).toBeTruthy();
+  });
 
-test("it should support level2 updates", () => {
-  expect(client.hasLevel2Updates).toBeTruthy();
-});
+  test("it should support level2 updates", () => {
+    expect(client.hasLevel2Updates).toBeTruthy();
+  });
 
-test("it should not support level3 snapshots", () => {
-  expect(client.hasLevel3Snapshots).toBeFalsy();
-});
+  test("it should not support level3 snapshots", () => {
+    expect(client.hasLevel3Snapshots).toBeFalsy();
+  });
 
-test("it should not support level3 updates", () => {
-  expect(client.hasLevel3Updates).toBeFalsy();
-});
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
+  });
 
-test(
-  "should subscribe and emit ticker events",
-  done => {
+  test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
     client.on("ticker", ticker => {
       expect(ticker.fullId).toMatch("OKEx:BTC/USDT");
@@ -66,13 +65,9 @@ test(
       expect(ticker.askVolume).toBeUndefined();
       done();
     });
-  },
-  10000
-);
+  }, 10000);
 
-test(
-  "should subscribe and emit trade events",
-  done => {
+  test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
     client.on("trade", trade => {
       expect(trade.fullId).toMatch("OKEx:BTC/USDT");
@@ -88,13 +83,9 @@ test(
       expect(parseFloat(trade.amount)).toBeGreaterThan(0);
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit level2 updates",
-  done => {
+  test("should subscribe and emit level2 updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
     client.on("l2snapshot", snapshot => {
@@ -126,13 +117,9 @@ test(
       expect(point.count).toBeUndefined();
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test(
-  "should subscribe and emit level2 snapshots",
-  done => {
+  test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
     client.on("l2snapshot", snapshot => {
       expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
@@ -149,27 +136,26 @@ test(
       expect(snapshot.bids[0].count).toBeUndefined();
       done();
     });
-  },
-  30000
-);
+  }, 30000);
 
-test("should unsubscribe from tickers", () => {
-  client.unsubscribeTicker(market);
-});
+  test("should unsubscribe from tickers", () => {
+    client.unsubscribeTicker(market);
+  });
 
-test("should unsubscribe from trades", () => {
-  client.unsubscribeTrades(market);
-});
+  test("should unsubscribe from trades", () => {
+    client.unsubscribeTrades(market);
+  });
 
-test("should unsubscribe from level2 snapshots", () => {
-  client.unsubscribeLevel2Snapshots(market);
-});
+  test("should unsubscribe from level2 snapshots", () => {
+    client.unsubscribeLevel2Snapshots(market);
+  });
 
-test("should unsubscribe from level2 updates", () => {
-  client.unsubscribeLevel2Updates(market);
-});
+  test("should unsubscribe from level2 updates", () => {
+    client.unsubscribeLevel2Updates(market);
+  });
 
-test("should close connections", done => {
-  client.on("closed", done);
-  client.close();
+  test("should close connections", done => {
+    client.on("closed", done);
+    client.close();
+  });
 });

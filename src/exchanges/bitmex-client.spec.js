@@ -9,13 +9,9 @@ let market = {
   quote: "USD",
 };
 
-describe("Bitmex Client", () => {
+describe("BitmexClient", () => {
   beforeAll(() => {
     client = new BitmexClient();
-  });
-
-  afterEach(() => {
-    client.removeAllListeners();
   });
 
   test("it should support trades", () => {
