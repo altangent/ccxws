@@ -10,6 +10,8 @@ class BitmexClient extends BasicClient {
     super("wss://www.bitmex.com/realtime", "BitMEX");
     this.hasTrades = true;
     this.hasLevel2Updates = true;
+    this.constructL2Price = true;
+    this.l2PriceMap = new Map();
   }
 
   _sendSubTrades(remote_id) {
@@ -62,11 +64,19 @@ class BitmexClient extends BasicClient {
     }
 
     if (table === "orderBookL2") {
+      /**
+        The partial action is sent when there is a new subscription. It contains
+        the snapshot of data. Updates may arrive prior to the snapshot but can
+        be discarded.
+
+        Otherwise it will be an insert, update, or delete action. All three of
+        those will be handles in l2update messages.
+       */
       if (action === "partial") {
         let snapshot = this._constructLevel2Snapshot(message.data);
         this.emit("l2snapshot", snapshot);
       } else {
-        let update = this._constructLevel2Update(message.data, action);
+        let update = this._constructLevel2Update(message);
         this.emit("l2update", update);
       }
       return;
@@ -89,41 +99,158 @@ class BitmexClient extends BasicClient {
     });
   }
 
-  // prettier-ignore
+  /**
+    Snapshot message are sent when an l2orderbook is subscribed to.
+    This part is necessary to maintain a proper orderbook because
+    BitMEX sends updates with a unique price key and does not
+    include a price value. This code will maintain the price map
+    so that update messages can be constructed with a price.
+   */
   _constructLevel2Snapshot(data) {
-    let market = this._level2UpdateSubs.get(data[0].symbol);
+    // Load the market
+    let remote_id = data[0].symbol;
+    let market = this._level2UpdateSubs.get(remote_id);
+
     let asks = [];
     let bids = [];
     for (let datum of data) {
-      let point = new Level2Point(datum.price.toFixed(8), datum.size.toFixed(8), undefined, { id: datum.id });
-      if(datum.side === 'Sell') asks.push(point);
+      // Construct the price lookup map for all values supplied here.
+      // Per the documentation, the id is a unique value for the
+      // market and the price.
+      if (this.constructL2Price) {
+        this.l2PriceMap.set(datum.id, datum.price.toFixed(8));
+      }
+
+      // build the data point
+      let point = new Level2Point(datum.price.toFixed(8), datum.size.toFixed(8), undefined, {
+        id: datum.id,
+      });
+
+      // add the datapoint to the asks or bids depending if its sell or bid side
+      if (datum.side === "Sell") asks.push(point);
       else bids.push(point);
     }
+
     return new Level2Snapshot({
-      exchange: 'BitMEX',
+      exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
+      id: remote_id,
       asks,
       bids,
     });
   }
 
-  // prettier-ignore
-  _constructLevel2Update(data, type) {
-    let market = this._level2UpdateSubs.get(data[0].symbol);
+  /**
+    Update messages will arrive as either insert, update, or delete
+    messages. The data payload appears to be uniform for a market.
+    This code will do the heavy lifting on remapping the pricing
+    structure. BitMEX sends hte updates without a price and instead
+    include a unique identifer for the asset and the price.
+
+    Insert:
+      {
+        table: 'orderbookL2'
+        action: 'insert'
+        data: [{ symbol: 'XBTUSD', id: 8799198150, side: 'Sell', size: 1, price: 8018.5 }]
+      }
+
+    Update:
+      {
+        table: 'orderBookL2',
+        action: 'update',
+        data: [ { symbol: 'XBTUSD', id: 8799595600, side: 'Sell', size: 258136 } ]
+      }
+
+    Delete:
+      {
+        table: 'orderBookL2',
+        action: 'delete',
+        data: [ { symbol: 'XBTUSD', id: 8799198650, side: 'Sell' } ]
+      }
+
+    We will standardize these to the CCXWS format:
+      - Insert and update will have price and size
+      - Delete will have a size of 0.
+   */
+  _constructLevel2Update(msg) {
+    // get the data from the message
+    let data = msg.data;
+    let action = msg.action;
+
+    // ge the market for the remote symbol
+    let remote_id = data[0].symbol;
+    let market = this._level2UpdateSubs.get(remote_id);
+
     let asks = [];
     let bids = [];
+
     for (let datum of data) {
-      let price = datum.price && datum.price.toFixed(8);
-      let size = datum.size && datum.size.toFixed(8);
-      let point = new Level2Point(price, size, undefined, { type, id: datum.id });
-      if(datum.side === 'Sell') asks.push(point);
+      let price;
+      let size;
+
+      /**
+        In our testing, we've always seen message uniformity in the symbols.
+        For performance reasons we're going to batch these into a single
+        response. But if we have a piece of data that doesn't match the symbol
+        we want to throw an error instead of polluting the orderbook with
+        bad data.
+      */
+      if (datum.symbol !== remote_id) {
+        throw new Error(`l2update symbol mismatch, expected ${remote_id}, got ${datum.symbol}`);
+      }
+
+      // Find the price based on the price identifier
+      if (this.constructL2Price) {
+        switch (action) {
+          // inserts will contain the price, we need to set these in the map
+          // we can also directly use the price value
+          case "insert":
+            price = datum.price.toFixed(8);
+            this.l2PriceMap.set(datum.id, price);
+            break;
+          // update will require us to look up the price from the map
+          case "update":
+            price = this.l2PriceMap.get(datum.id);
+            break;
+          // price will require us to look up the price from the map
+          // we also will want to delete the map value since it's
+          // no longer needed
+          case "delete":
+            price = this.l2PriceMap.get(datum.id);
+            this.l2PriceMap.delete(datum.id);
+            break;
+        }
+      }
+
+      // Find the size
+      switch (action) {
+        case "insert":
+        case "update":
+          size = datum.size.toFixed(8);
+          break;
+        case "delete":
+          size = (0).toFixed(8);
+          break;
+      }
+
+      if (!price) {
+        console.warn("unknown price", datum);
+      }
+
+      // Construct the data point
+      let point = new Level2Point(price, size, undefined, { type: action, id: datum.id });
+
+      // Insert into ask or bid
+      if (datum.side === "Sell") asks.push(point);
       else bids.push(point);
     }
+
     return new Level2Update({
-      exchange: 'BitMEX',
+      exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
+      id: remote_id,
       asks,
       bids,
     });
