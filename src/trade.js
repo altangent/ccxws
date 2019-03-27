@@ -1,26 +1,19 @@
 class Trade {
-  constructor({
-    exchange,
-    base,
-    quote,
-    tradeId,
-    unix,
-    side,
-    price,
-    amount,
-    buyOrderId,
-    sellOrderId,
-  }) {
-    this.exchange = exchange;
-    this.quote = quote;
-    this.base = base;
-    this.tradeId = tradeId;
-    this.unix = unix;
-    this.side = side;
-    this.price = price;
-    this.amount = amount;
-    this.buyOrderId = buyOrderId;
-    this.sellOrderId = sellOrderId;
+  constructor(props) {
+    this.exchange = props.exchange;
+    this.quote = props.quote;
+    this.base = props.base;
+    this.tradeId = props.tradeId;
+    this.unix = props.unix;
+    this.side = props.side;
+    this.price = props.price;
+    this.amount = props.amount;
+    this.buyOrderId = props.buyOrderId;
+    this.sellOrderId = props.sellOrderId;
+    // attach any extra props
+    for (let key in props) {
+      if (!this[key]) this[key] = props[key];
+    }
   }
 
   get marketId() {

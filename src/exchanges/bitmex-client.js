@@ -6,6 +6,10 @@ const Level2Update = require("../level2-update");
 const moment = require("moment");
 
 class BitmexClient extends BasicClient {
+  /**
+    Documentation:
+    https://www.bitmex.com/app/wsAPI
+   */
   constructor() {
     super("wss://www.bitmex.com/realtime", "BitMEX");
     this.hasTrades = true;
@@ -85,17 +89,27 @@ class BitmexClient extends BasicClient {
 
   _constructTrades(datum) {
     let { size, side, timestamp, price, trdMatchID } = datum;
-    let market = this._tradeSubs.get(datum.symbol);
+
+    // Load the market
+    let remote_id = datum.symbol;
+    let market = this._tradeSubs.get(remote_id);
+
+    // Handle race condition on unsubscribe where we may still
+    // be processing data.
+    if (!market) return;
+
     let unix = moment(timestamp).valueOf();
     return new Trade({
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
+      id: remote_id,
       tradeId: trdMatchID.replace(/-/g, ""),
       unix,
       side: side.toLowerCase(),
       price: price.toFixed(8),
       amount: size.toFixed(8),
+      raw: datum, // attach the raw data incase it is needed in raw format
     });
   }
 
@@ -110,6 +124,10 @@ class BitmexClient extends BasicClient {
     // Load the market
     let remote_id = data[0].symbol;
     let market = this._level2UpdateSubs.get(remote_id);
+
+    // Handle race condition on unsubscribe where we may still
+    // be processing data.
+    if (!market) return;
 
     let asks = [];
     let bids = [];
