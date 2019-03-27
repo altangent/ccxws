@@ -5,9 +5,9 @@
 
 A JavaScript library for connecting to realtime public APIs on all cryptocurrency exchanges.
 
-CCXWS is the web socket backbone for the free data analytics platform [Blocktap.io](https://www.blocktap.io).
+[Blocktap.io](https://www.blocktap.io), a free data analytics platform uses CCXWS to provide real time data.
 
-CCXWS can be used by those wishing to use a standardized eventing interface for connection to these public APIs. Currently CCXWS support ticker, trade and orderbook events.
+CCXWS provides a standardized eventing interface for connection to public APIs. Currently CCXWS support ticker, trade and orderbook events.
 
 The CCXWS socket client performs automatic reconnection when there are disconnections. It also has silent reconnection logic to assist when no data has been seen by the client but the socket remains open.
 
