@@ -5,7 +5,7 @@
 
 A JavaScript library for connecting to realtime public APIs on all cryptocurrency exchanges.
 
-[Blocktap.io](https://www.blocktap.io), a free data analytics platform uses CCXWS to provide real time data.
+[Blocktap.io](https://www.blocktap.io), a free data analytics platform, uses CCXWS to provide real time data.
 
 CCXWS provides a standardized eventing interface for connection to public APIs. Currently CCXWS support ticker, trade and orderbook events.
 
