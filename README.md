@@ -51,7 +51,7 @@ binance.subscribeLevel2Snapshots(market);
 
 | Exchange     | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
 | ------------ | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Bibox        | bibox       | Support | Support | -              | Support\*     | -              | -             |
+| Bibox        | bibox       | Support | Support | Support        |               | -              | -             |
 | Binance      | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
 | Bitfinex     | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
 | bitFlyer     | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |

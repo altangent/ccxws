@@ -5,7 +5,6 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const Level2Update = require("../level2-update");
 
 class BiboxClient extends BasicClient {
   constructor() {
@@ -16,7 +15,6 @@ class BiboxClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
-    this.hasLevel2Updates = true;
   }
 
   _resetSemaphore() {
@@ -72,27 +70,7 @@ class BiboxClient extends BasicClient {
     );
   }
 
-  _sendSubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "addChannel",
-          channel: `bibox_sub_spot_${remote_id}_depth_${depth}`,
-        })
-      );
-    });
-  }
-
-  _sendUnsubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
-    this._wss.send(
-      JSON.stringify({
-        event: "removeChannel",
-        channel: `bibox_sub_spot_${remote_id}_depth_${depth}`,
-      })
-    );
-  }
-
-  _sendSubLevel2Updates(remote_id) {
+  _sendSubLevel2Snapshots(remote_id) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
@@ -103,7 +81,7 @@ class BiboxClient extends BasicClient {
     });
   }
 
-  _sendUnsubLevel2Updates(remote_id) {
+  _sendUnsubLevel2Snapshots(remote_id) {
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
@@ -171,15 +149,8 @@ class BiboxClient extends BasicClient {
 
     // l2 updates
     if (msg.channel.endsWith("depth")) {
-      let remote_id = msg.data.pair;
-      if (!this._hasSnapshot.has(remote_id)) {
-        let snapshot = this._constructLevel2Snapshot(msg);
-        this.emit("l2snapshot", snapshot);
-        this._hasSnapshot.add(remote_id);
-      } else {
-        let update = this._constructoL2Update(msg);
-        this.emit("l2update", update);
-      }
+      let snapshot = this._constructLevel2Snapshot(msg);
+      this.emit("l2snapshot", snapshot);
       return;
     }
   }
@@ -287,43 +258,6 @@ class BiboxClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       timestampMs: msg.data.update_time,
-      asks,
-      bids,
-    });
-  }
-
-  _constructoL2Update(msg) {
-    /*
-    [{
-          "binary": 0,
-          "channel": "ok_sub_spot_bch_btc_depth",
-          "data": { update_time: 1547549824601,
-              asks:
-              [ { volume: '433.588', price: '0.00003575' },
-                { volume: '1265.6753', price: '0.00003576' },
-                  ..
-                { volume: '69.5745', price: '0.000041' },
-                { volume: '5.277', price: '0.00004169' },
-                ... 100 more items ],
-              bids:
-              [ { volume: '6.1607', price: '0.00003571' },
-                { volume: '704.8954', price: '0.00003538' },
-                  ..
-                { volume: '155000', price: '2e-8' },
-                { volume: '8010000', price: '1e-8' } ],
-              pair: 'BIX_BTC' }
-      }]
-    */
-
-    let remote_id = msg.data.pair;
-    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
-    let asks = msg.data.asks.map(p => new Level2Point(p.price, p.volume));
-    let bids = msg.data.bids.map(p => new Level2Point(p.price, p.volume));
-    return new Level2Update({
-      exchange: "Bibox",
-      base: market.base,
-      quote: market.quote,
-      timestampMs: msg.data.timestamp,
       asks,
       bids,
     });
