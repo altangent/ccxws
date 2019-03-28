@@ -187,6 +187,8 @@ class BiboxClient extends BasicClient {
   _constructTicker(msg) {
     let { last, buy, sell, pair, vol, percent, low, high, timestamp } = msg.data;
     let market = this._tickerSubs.get(pair);
+    if (!market) return;
+
     percent = percent.replace(/%|\+/g, "");
     let change = (parseFloat(last) * parseFloat(percent)) / 100;
     let open = parseFloat(last) - change;
@@ -208,9 +210,10 @@ class BiboxClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(datum) {
-    /*
-    { channel: 'bibox_sub_spot_BIX_BTC_deals',
+  /*
+    Construct a trade
+    {
+      channel: 'bibox_sub_spot_BIX_BTC_deals',
       binary: '1',
       data_type: 1,
       data:
@@ -219,12 +222,16 @@ class BiboxClient extends BasicClient {
           price: 0.0000359,
           amount: 6.1281,
           side: 2,
-          id: 189765713 } ] }
-    */
+          id: 189765713 } ]
+    }
+  */
+  _constructTradesFromMessage(datum) {
     let { pair, time, price, amount, side, id } = datum;
-    let market = this._tradeSubs.get(pair);
-    side = side === 1 ? "buy" : "sell";
 
+    let market = this._tradeSubs.get(pair);
+    if (!market) return;
+
+    side = side === 1 ? "buy" : "sell";
     return new Trade({
       exchange: "Bibox",
       base: market.base,
@@ -237,9 +244,8 @@ class BiboxClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg) {
-    /*
-    [{
+  /* Converts from a raw message
+    {
         "binary": 0,
         "channel": "ok_sub_spot_bch_btc_depth",
         "data": { update_time: 1547549824601,
@@ -257,11 +263,13 @@ class BiboxClient extends BasicClient {
               { volume: '155000', price: '2e-8' },
               { volume: '8010000', price: '1e-8' } ],
             pair: 'BIX_BTC' }
-    }]
-    */
-
+    }
+  */
+  _constructLevel2Snapshot(msg) {
     let remote_id = msg.data.pair;
     let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
+    if (!market) return;
+
     let asks = msg.data.asks.map(p => new Level2Point(p.price, p.volume));
     let bids = msg.data.bids.map(p => new Level2Point(p.price, p.volume));
     return new Level2Snapshot({
