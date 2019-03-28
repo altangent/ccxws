@@ -9,7 +9,6 @@ const Level2Snapshot = require("../level2-snapshot");
 class BiboxClient extends BasicClient {
   constructor() {
     super("wss://push.bibox.com", "Bibox");
-    this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
     this.on("connected", this._resetSemaphore.bind(this));
 
     this.hasTickers = true;
@@ -22,10 +21,14 @@ class BiboxClient extends BasicClient {
     this._hasSnapshot = new Set();
   }
 
-  _sendPing() {
-    if (this._wss) {
-      this._wss.send(JSON.stringify({ event: "ping" }));
-    }
+  /**
+    Server will occassionally send ping messages. Client is expected
+    to respond with a pong message that matches the identifier.
+    If client fails to do this, server will abort connection after
+    second attempt.
+   */
+  _sendPong(id) {
+    this._wss.send(JSON.stringify({ pong: id }));
   }
 
   _sendSubTicker(remote_id) {
@@ -125,9 +128,10 @@ class BiboxClient extends BasicClient {
       msg.data = JSON.parse(buffer);
     }
 
-    // prevent failed messages from
-    if (msg.data && msg.data.result === false) {
-      console.log("warn: failure response", JSON.stringify(msg));
+    // server will occassionally send a ping message and client
+    // must respon with appropriate identifier
+    if (msg.ping) {
+      this._sendPong(msg.ping);
       return;
     }
 
