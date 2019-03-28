@@ -135,17 +135,14 @@ class BiboxClient extends BasicClient {
       return;
     }
 
-    // trades
     if (msg.channel.endsWith("_deals")) {
-      for (let datum of msg.data.reverse()) {
+      // trades are send in descendinging order
+      // out library standardize to asc order so perform a reverse
+      let data = msg.data.slice().reverse();
+      for (let datum of data) {
         let trade = this._constructTradesFromMessage(datum);
         this.emit("trade", trade);
       }
-      return;
-    }
-
-    if (!msg.channel) {
-      if (msg.event !== "pong") console.log(msg);
       return;
     }
 
@@ -164,9 +161,10 @@ class BiboxClient extends BasicClient {
     }
   }
 
-  _constructTicker(msg) {
-    /*
-    { channel: 'bibox_sub_spot_BIX_BTC_ticker',
+  /*
+    Constructs a ticker from the source
+    {
+      channel: 'bibox_sub_spot_BIX_BTC_ticker',
       binary: 1,
       data_type: 1,
       data:
@@ -183,23 +181,27 @@ class BiboxClient extends BasicClient {
         last_usd: '0.12',
         low: '0.00003535',
         sell_amount: '880.0475',
-        timestamp: 1547546988399 } }
-     */
-
+        timestamp: 1547546988399 }
+      }
+  */
+  _constructTicker(msg) {
     let { last, buy, sell, pair, vol, percent, low, high, timestamp } = msg.data;
-    percent = percent.replace("%", "");
     let market = this._tickerSubs.get(pair);
+    percent = percent.replace(/%|\+/g, "");
+    let change = (parseFloat(last) * parseFloat(percent)) / 100;
+    let open = parseFloat(last) - change;
+
     return new Ticker({
       exchange: "Bibox",
       base: market.base,
       quote: market.quote,
       timestamp,
       last,
-      open: undefined,
+      open: open.toFixed(8),
       high: high,
       low: low,
       volume: vol,
-      change: undefined,
+      change: change.toFixed(8),
       changePercent: percent,
       bid: buy,
       ask: sell,
