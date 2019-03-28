@@ -128,7 +128,7 @@ class BiboxClient extends BasicClient {
 
     // trades
     if (msg.channel.endsWith("_deals")) {
-      for (let datum of msg.data) {
+      for (let datum of msg.data.reverse()) {
         let trade = this._constructTradesFromMessage(datum);
         this.emit("trade", trade);
       }
