@@ -1,5 +1,5 @@
 const semaphore = require("semaphore");
-const pako = require("pako");
+const zlib = require("zlib");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -90,34 +90,39 @@ class BiboxClient extends BasicClient {
     );
   }
 
+  /**
+    Message usually arives as a string, that must first be converted
+    to JSON. Then we can process each message in the payload and
+    perform gunzip on the data.
+   */
   _onMessage(raw) {
-    try {
-      let msgs = typeof raw == "string" ? JSON.parse(raw) : raw;
-      if (Array.isArray(msgs)) {
-        for (let msg of msgs) {
-          this._processsMessage(msg);
-        }
-      } else {
-        this._processsMessage(msgs);
+    let msgs = typeof raw == "string" ? JSON.parse(raw) : raw;
+    if (Array.isArray(msgs)) {
+      for (let msg of msgs) {
+        this._processsMessage(msg);
       }
-    } catch (ex) {
-      //console.log(raw);
-      //console.warn(`failed to parse json ${ex.message}`);
+    } else {
+      this._processsMessage(msgs);
     }
   }
 
-  _processsMessage(msg) {
-    if (typeof msg.data == "string") {
-      let text = pako.inflate(Buffer.from(msg.data, "base64"), {
-        to: "string",
-      });
-      msg.data = JSON.parse(text);
-    }
+  /**
+    Process the individaul message that was sent from the server.
+    Message will be informat:
 
-    // clear semaphore
-    if (msg.data && msg.data.result) {
-      this._sem.leave();
-      return;
+    {
+      channel: 'bibox_sub_spot_BTC_USDT_deals',
+      binary: '1',
+      data_type: 1,
+      data:
+        'H4sIAAAAAAAA/xTLMQ6CUAyA4bv8c0Ne4RWeHdUbiJMxhghDB5QgTsa7Gw/wXT4sQ6w4+/5wO5+OPcIW84SrWdPtsllbrAjLGvcJJ6cmVZoNYZif78eGo1UqjSK8YvxLIUa8bjWnrtbyvf4CAAD//1PFt6BnAAAA'
+    }
+   */
+  _processsMessage(msg) {
+    // if we detect gzip data, we need to process it
+    if (msg.binary == 1) {
+      let buffer = zlib.gunzipSync(Buffer.from(msg.data, "base64"));
+      msg.data = JSON.parse(buffer);
     }
 
     // prevent failed messages from
