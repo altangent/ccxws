@@ -1,24 +1,41 @@
-const semaphore = require("semaphore");
+const winston = require("winston");
 const zlib = require("zlib");
 const BasicClient = require("../basic-client");
+const BasicMultiClient = require("../basic-multiclient");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 
-class BiboxClient extends BasicClient {
+class BiboxClient extends BasicMultiClient {
+  /**
+    Bibox allows listening to multiple markets on the same
+    socket. Unfortunately, they throw errors if you subscribe
+    to too more than 20 markets at a time. As a result, we
+    will need to use the basic multiclient.
+   */
   constructor() {
-    super("wss://push.bibox.com", "Bibox");
-    this.on("connected", this._resetSemaphore.bind(this));
-
+    super();
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
   }
 
-  _resetSemaphore() {
-    this._sem = semaphore(5);
-    this._hasSnapshot = new Set();
+  _createBasicClient() {
+    return new BiboxSingleClient();
+  }
+}
+
+class BiboxSingleClient extends BasicClient {
+  /**
+    Manages connections for a single market. A single
+    socket is only allowed to work for 20 markets.
+   */
+  constructor() {
+    super("wss://push.bibox.com", "Bibox");
+    this.hasTickers = true;
+    this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
   }
 
   /**
@@ -32,56 +49,48 @@ class BiboxClient extends BasicClient {
   }
 
   _sendSubTicker(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "addChannel",
-          channel: `bibox_sub_spot_${remote_id}_ticker`,
-        })
-      );
-    });
+    this._wss.send(
+      JSON.stringify({
+        event: "addChannel",
+        channel: `bibox_sub_spot_${remote_id}_ticker`,
+      })
+    );
   }
 
   _sendUnsubTicker(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "removeChannel",
-          channel: `bibox_sub_spot_${remote_id}_ticker`,
-        })
-      );
-    });
+    this._wss.send(
+      JSON.stringify({
+        event: "removeChannel",
+        channel: `bibox_sub_spot_${remote_id}_ticker`,
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "addChannel",
-          channel: "bibox_sub_spot_" + remote_id + "_deals",
-        })
-      );
-    });
+    this._wss.send(
+      JSON.stringify({
+        event: "addChannel",
+        channel: `bibox_sub_spot_${remote_id}_deals`,
+      })
+    );
   }
 
   _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
-        channel: "bibox_sub_spot_" + remote_id + "_deals",
+        channel: `bibox_sub_spot_${remote_id}_deals`,
       })
     );
   }
 
   _sendSubLevel2Snapshots(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "addChannel",
-          channel: `bibox_sub_spot_${remote_id}_depth`,
-        })
-      );
-    });
+    this._wss.send(
+      JSON.stringify({
+        event: "addChannel",
+        channel: `bibox_sub_spot_${remote_id}_depth`,
+      })
+    );
   }
 
   _sendUnsubLevel2Snapshots(remote_id) {
@@ -132,6 +141,12 @@ class BiboxClient extends BasicClient {
     // must respon with appropriate identifier
     if (msg.ping) {
       this._sendPong(msg.ping);
+      return;
+    }
+
+    // watch for error messages
+    if (msg.error) {
+      winston.error(msg);
       return;
     }
 
