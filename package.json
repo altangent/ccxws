@@ -16,8 +16,8 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src\/.+\\.spec\\.js --maxWorkers=32",
-    "test:ci": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src\/.+\\.spec\\.js --maxWorkers=32 && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32",
+    "test:ci": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32 && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": "altangent/ccxws",
   "dependencies": {

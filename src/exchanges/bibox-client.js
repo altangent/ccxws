@@ -1,5 +1,6 @@
 const winston = require("winston");
 const zlib = require("zlib");
+const Watcher = require("../watcher");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
 const Ticker = require("../ticker");
@@ -33,6 +34,7 @@ class BiboxSingleClient extends BasicClient {
    */
   constructor() {
     super("wss://push.bibox.com", "Bibox");
+    this._watcher = new Watcher(this, 15 * 60 * 1000); // change to 15 minutes
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
