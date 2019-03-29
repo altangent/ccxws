@@ -150,6 +150,8 @@ class UpbitClient extends BasicClient {
     } = msg;
 
     let market = this._tickerSubs.get(code);
+    if (!market) return;
+
     return new Ticker({
       exchange: "Upbit",
       base: market.base,
@@ -185,7 +187,10 @@ class UpbitClient extends BasicClient {
     */
 
     let { code, trade_timestamp, trade_price, trade_volume, ask_bid, sequential_id } = datum;
+
     let market = this._tradeSubs.get(code);
+    if (!market) return;
+
     let side = ask_bid === "BID" ? "buy" : "sell";
 
     return new Trade({
@@ -222,6 +227,8 @@ class UpbitClient extends BasicClient {
 
     let remote_id = msg.code;
     let market = this._level2SnapshotSubs.get(remote_id);
+    if (!market) return;
+
     let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
     let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));
     return new Level2Snapshot({
