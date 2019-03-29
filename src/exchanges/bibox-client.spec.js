@@ -8,6 +8,11 @@ let market1 = {
   base: "BTC",
   quote: "USDT",
 };
+let market2 = {
+  id: "ETH_BTC",
+  base: "ETH",
+  quote: "BTC",
+};
 
 describe("BiboxClient", () => {
   beforeAll(() => {
@@ -44,24 +49,24 @@ describe("BiboxClient", () => {
       expect(ticker.fullId).toMatch(/Bibox:BTC\/USDT/);
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
-      expect(typeof ticker.open).toBe("undefined");
+      expect(typeof ticker.open).toBe("string");
       expect(typeof ticker.high).toBe("string");
       expect(typeof ticker.low).toBe("string");
       expect(typeof ticker.volume).toBe("string");
       expect(typeof ticker.quoteVolume).toBe("undefined");
-      expect(typeof ticker.change).toBe("undefined");
+      expect(typeof ticker.change).toBe("string");
       expect(typeof ticker.changePercent).toBe("string");
-      expect(typeof ticker.bid).not.toBe("undefined");
+      expect(typeof ticker.bid).toBe("string");
       expect(typeof ticker.bidVolume).toBe("undefined");
-      expect(typeof ticker.ask).not.toBe("undefined");
+      expect(typeof ticker.ask).toBe("string");
       expect(typeof ticker.askVolume).toBe("undefined");
       expect(parseFloat(ticker.last)).toBeGreaterThan(0);
-      expect(parseFloat(ticker.open)).toBe(NaN);
+      expect(parseFloat(ticker.open)).toBeGreaterThan(0);
       expect(parseFloat(ticker.high)).toBeGreaterThan(0);
       expect(parseFloat(ticker.low)).toBeGreaterThan(0);
       expect(parseFloat(ticker.volume)).toBeGreaterThan(0);
       expect(parseFloat(ticker.quoteVolume)).toBe(NaN);
-      expect(isNaN(parseFloat(ticker.change))).toBeTruthy;
+      expect(isNaN(parseFloat(ticker.change))).toBeFalsy();
       expect(isNaN(parseFloat(ticker.changePercent))).toBeFalsy();
       expect(parseFloat(ticker.bid)).toBeGreaterThan(0);
       expect(parseFloat(ticker.bidVolume)).toBe(NaN);
@@ -77,11 +82,12 @@ describe("BiboxClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
+    client.subscribeTrades(market2);
     client.on("trade", trade => {
-      expect(trade.fullId).toMatch(/Bibox:BTC\/USDT/);
+      expect(trade.fullId).toMatch(/Bibox:BTC\/USDT|Bibox:ETH\/BTC/);
       expect(trade.exchange).toMatch("Bibox");
-      expect(trade.base).toMatch(market1.base);
-      expect(trade.quote).toMatch(market1.quote);
+      expect(trade.base).toMatch(/BTC|ETH/);
+      expect(trade.quote).toMatch(/USDT|BTC/);
       expect(trade.tradeId).toBeGreaterThan(0);
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);

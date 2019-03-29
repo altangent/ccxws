@@ -158,7 +158,7 @@ class BiboxSingleClient extends BasicClient {
       let data = msg.data.slice().reverse();
       for (let datum of data) {
         let trade = this._constructTradesFromMessage(datum);
-        this.emit("trade", trade);
+        if (trade) this.emit("trade", trade);
       }
       return;
     }
@@ -166,14 +166,14 @@ class BiboxSingleClient extends BasicClient {
     // tickers
     if (msg.channel.endsWith("_ticker")) {
       let ticker = this._constructTicker(msg);
-      this.emit("ticker", ticker);
+      if (ticker) this.emit("ticker", ticker);
       return;
     }
 
     // l2 updates
     if (msg.channel.endsWith("depth")) {
       let snapshot = this._constructLevel2Snapshot(msg);
-      this.emit("l2snapshot", snapshot);
+      if (snapshot) this.emit("l2snapshot", snapshot);
       return;
     }
   }
