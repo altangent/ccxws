@@ -11,7 +11,7 @@ let market = {
 let market2 = {
   id: "BTC_ETH",
   base: "ETH",
-  quote: "USD",
+  quote: "BTC",
 };
 
 describe("PoloniexClient", () => {
