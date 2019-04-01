@@ -100,6 +100,7 @@ class BitmexClient extends BasicClient {
 
     let unix = moment(timestamp).valueOf();
     return new Trade({
+      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
@@ -150,6 +151,7 @@ class BitmexClient extends BasicClient {
     }
 
     return new Level2Snapshot({
+      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
@@ -265,6 +267,7 @@ class BitmexClient extends BasicClient {
     }
 
     return new Level2Update({
+      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
