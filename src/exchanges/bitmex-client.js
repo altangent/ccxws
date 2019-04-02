@@ -150,6 +150,10 @@ class BitmexClient extends BasicClient {
       else bids.push(point);
     }
 
+    // asks arrive in descending order (best ask last)
+    // ccxws standardizes so that best bid/ask are array index 0
+    asks = asks.reverse();
+
     return new Level2Snapshot({
       market,
       exchange: "BitMEX",
@@ -265,6 +269,10 @@ class BitmexClient extends BasicClient {
       if (datum.side === "Sell") asks.push(point);
       else bids.push(point);
     }
+
+    // asks arrive in descending order (best ask last)
+    // ccxws standardizes so that best bid/ask are array index 0
+    asks = asks.reverse();
 
     return new Level2Update({
       market,
