@@ -1,16 +1,15 @@
 {
   "name": "ccxws",
   "version": "0.22.0",
-  "description": "Cryptocurrency exchange websocket feeds",
+  "description": "Websocket client for 20+ cryptocurrency exchanges",
   "keywords": [
+    "bitmex",
+    "binance",
+    "coinbase",
     "cryptocurrency",
     "exchange",
-    "websockets",
-    "realtime",
-    "feeds",
-    "bitcoin",
-    "ethereum",
-    "litecoin"
+    "websocket",
+    "realtime"
   ],
   "author": "Brian Mancini <bmancini@gmail.com>",
   "license": "MIT",
