@@ -1,4 +1,5 @@
 const winston = require("winston");
+const Decimal = require("decimal.js");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -6,6 +7,9 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const https = require("../https");
+
+// Kraken rounds down when half
+Decimal.set({ rounding: Decimal.ROUND_HALF_DOWN });
 
 class KrakenClient extends BasicClient {
   /**
@@ -389,6 +393,7 @@ class KrakenClient extends BasicClient {
       unix,
       price: datum[0],
       amount: datum[1],
+      rawUnix: datum[2],
     });
   }
 
@@ -489,9 +494,7 @@ class KrakenClient extends BasicClient {
    */
   _createTradeId(unix) {
     let [integer, fractional] = unix.split(".");
-    fractional = parseFloat("0." + fractional) // parseFloat + toFixed rounds
-      .toFixed(4)
-      .substr(2);
+    fractional = new Decimal("0." + fractional).toFixed(4).substr(2);
     return integer + fractional + "00000";
   }
 }

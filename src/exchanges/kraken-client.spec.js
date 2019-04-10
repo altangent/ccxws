@@ -182,5 +182,26 @@ describe("KrakenClient", () => {
         client.close();
       });
     });
+
+    describe("_createTradeId", () => {
+      beforeAll(() => {
+        client = new Kraken();
+      });
+      let fixtures = [
+        { input: "1554844504.300156", expected: "1554844504300200000" },
+        { input: "1554844623.538850", expected: "1554844623538800000" },
+        { input: "1554844623.538851", expected: "1554844623538900000" },
+        { input: "1554845489.660651", expected: "1554845489660700000" },
+        { input: "1554845489.665608", expected: "1554845489665600000" },
+        { input: "1554845489.668115", expected: "1554845489668100000" },
+        { input: "1554845521.452880", expected: "1554845521452900000" },
+      ];
+      for (let fixture of fixtures) {
+        test("should create " + fixture.expected, () => {
+          let actual = client._createTradeId(fixture.input);
+          expect(actual).toBe(fixture.expected);
+        });
+      }
+    });
   });
 });
