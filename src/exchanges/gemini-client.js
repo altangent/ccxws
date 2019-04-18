@@ -220,19 +220,16 @@ class GeminiClient extends EventEmitter {
     let price = event.price;
     let amount = event.amount;
 
-    return new Trade(
-      {
-        exchange: "Gemini",
-        base: market.base,
-        quote: market.quote,
-        tradeId: event.tid,
-        side,
-        unix: timestamp,
-        price,
-        amount,
-      },
-      market
-    );
+    return new Trade({
+      exchange: "Gemini",
+      base: market.base,
+      quote: market.quote,
+      tradeId: event.tid,
+      side,
+      unix: timestamp,
+      price,
+      amount,
+    });
   }
 
   _constructL2Snapshot(events, market, sequenceId) {
@@ -245,17 +242,14 @@ class GeminiClient extends EventEmitter {
       else bids.push(update);
     }
 
-    return new Level2Snapshot(
-      {
-        exchange: "Gemini",
-        base: market.base,
-        quote: market.quote,
-        sequenceId,
-        asks,
-        bids,
-      },
-      market
-    );
+    return new Level2Snapshot({
+      exchange: "Gemini",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      asks,
+      bids,
+    });
   }
 
   _constructL2Update(events, market, sequenceId, timestampMs) {
@@ -268,18 +262,15 @@ class GeminiClient extends EventEmitter {
       else bids.push(update);
     }
 
-    return new Level2Update(
-      {
-        exchange: "Gemini",
-        base: market.base,
-        quote: market.quote,
-        sequenceId,
-        timestampMs,
-        asks,
-        bids,
-      },
-      market
-    );
+    return new Level2Update({
+      exchange: "Gemini",
+      base: market.base,
+      quote: market.quote,
+      sequenceId,
+      timestampMs,
+      asks,
+      bids,
+    });
   }
 }
 
