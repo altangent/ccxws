@@ -12,7 +12,7 @@ const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
 
 class BinanceClient extends EventEmitter {
-  constructor({ useAggTrades = true, requestSnapshot = true } = {}) {
+  constructor({ useAggTrades = true, requestSnapshot = true, reconnectIntervalMs = 300000 } = {}) {
     super();
     this._name = "Binance";
     this._tickerSubs = new Map();
@@ -31,7 +31,7 @@ class BinanceClient extends EventEmitter {
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
 
-    this._watcher = new Watcher(this, 30000);
+    this._watcher = new Watcher(this, reconnectIntervalMs);
     this._restSem = semaphore(1);
     this.REST_REQUEST_DELAY_MS = 1000;
   }
@@ -173,6 +173,7 @@ class BinanceClient extends EventEmitter {
         if (this._tickerSubs.has(raw.s.toLowerCase())) {
           let ticker = this._constructTicker(raw);
           this.emit("ticker", ticker);
+          return;
         }
       }
     }
@@ -181,19 +182,24 @@ class BinanceClient extends EventEmitter {
     if (msg.stream.toLowerCase().endsWith("trade")) {
       let trade = this.useAggTrades ? this._constructAggTrade(msg) : this._constructRawTrade(msg);
       this.emit("trade", trade);
+      return;
     }
 
     // l2snapshot
     if (msg.stream.endsWith("depth20")) {
       let snapshot = this._constructLevel2Snapshot(msg);
       this.emit("l2snapshot", snapshot);
+      return;
     }
 
     // l2update
     if (msg.stream.endsWith("depth")) {
       let update = this._constructLevel2Update(msg);
       this.emit("l2update", update);
+      return;
     }
+
+    console.log(msg);
   }
 
   _constructTicker(msg) {
