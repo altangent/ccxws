@@ -91,7 +91,9 @@ describe("HuobiClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusdt/);
       expect(snapshot.fullId).toMatch("Huobi:BTC/USDT");
       expect(snapshot.exchange).toMatch("Huobi");
       expect(snapshot.base).toMatch("BTC");
