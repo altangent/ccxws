@@ -36,7 +36,9 @@ describe("BitmexClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/XBTUSD/);
       expect(trade.fullId).toMatch("BitMEX:BTC/USD");
       expect(trade.exchange).toMatch("BitMEX");
       expect(trade.base).toMatch("BTC");
@@ -65,8 +67,10 @@ describe("BitmexClient", () => {
     let hasInsert = false;
     let hasDelete = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/XBTUSD/);
       expect(snapshot.fullId).toMatch("BitMEX:BTC/USD");
       expect(snapshot.exchange).toMatch("BitMEX");
       expect(snapshot.base).toMatch("BTC");
@@ -81,7 +85,9 @@ describe("BitmexClient", () => {
       expect(snapshot.bids[0].count).toBeUndefined();
       client.removeAllListeners("l2snapshot");
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/XBTUSD/);
       expect(update.fullId).toMatch("BitMEX:BTC/USD");
       expect(update.exchange).toMatch("BitMEX");
       expect(update.base).toMatch("BTC");

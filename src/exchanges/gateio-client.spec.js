@@ -46,7 +46,9 @@ describe("GateioClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
-    client.on("ticker", function tickerHandler(ticker) {
+    client.on("ticker", function tickerHandler(ticker, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(ticker.fullId).toMatch("Gateio:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -84,7 +86,9 @@ describe("GateioClient", () => {
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
     client.subscribeTrades(market2);
-    client.on("trade", function tradeHandler(trade) {
+    client.on("trade", function tradeHandler(trade, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(trade.fullId).toMatch(/Gateio:BTC\/USDT|Gateio:ETH\/BTC/);
       expect(trade.exchange).toMatch("Gateio");
       expect(trade.base).toMatch(/BTC|ETH/);
@@ -107,7 +111,9 @@ describe("GateioClient", () => {
   test("should subscribe and emit level2 updates", done => {
     client.subscribeLevel2Updates(market1);
     let hasSnapshot = true;
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(snapshot.fullId).toMatch("Gateio:BTC/USDT");
       expect(snapshot.exchange).toMatch("Gateio");
       expect(snapshot.base).toMatch("BTC");
@@ -123,7 +129,9 @@ describe("GateioClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       hasSnapshot = true;
     });
-    client.on("l2update", function level2UpdateHandler(update) {
+    client.on("l2update", function level2UpdateHandler(update, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(update.fullId).toMatch("Gateio:BTC/USDT");
       expect(update.exchange).toMatch("Gateio");
       expect(update.base).toMatch("BTC");

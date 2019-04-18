@@ -36,7 +36,9 @@ describe("BitstampClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
       expect(trade.fullId).toMatch("Bitstamp:BTC/USD");
       expect(trade.exchange).toMatch("Bitstamp");
       expect(trade.base).toMatch("BTC");
@@ -56,8 +58,10 @@ describe("BitstampClient", () => {
     let hasSnapshot = false;
     let hasUpdate = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
       expect(snapshot.fullId).toMatch("Bitstamp:BTC/USD");
       expect(snapshot.exchange).toMatch("Bitstamp");
       expect(snapshot.base).toMatch("BTC");
@@ -72,8 +76,10 @@ describe("BitstampClient", () => {
       expect(snapshot.bids[0].count).toBeUndefined();
       if (hasSnapshot && hasUpdate) done();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
       hasUpdate = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
       expect(update.fullId).toMatch("Bitstamp:BTC/USD");
       expect(update.exchange).toMatch("Bitstamp");
       expect(update.base).toMatch("BTC");
@@ -90,7 +96,9 @@ describe("BitstampClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
       expect(snapshot.fullId).toMatch("Bitstamp:BTC/USD");
       expect(snapshot.exchange).toMatch("Bitstamp");
       expect(snapshot.base).toMatch("BTC");
@@ -109,7 +117,9 @@ describe("BitstampClient", () => {
 
   test("should subscribe and emit level3 updates", done => {
     client.subscribeLevel3Updates(market);
-    client.on("l3update", update => {
+    client.on("l3update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
       expect(update.fullId).toMatch("Bitstamp:BTC/USD");
       expect(update.exchange).toMatch("Bitstamp");
       expect(update.base).toMatch("BTC");

@@ -52,7 +52,9 @@ describe("BittrexClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT-BTC|BTC-ETH|BTC-LTC/);
       expect(ticker.fullId).toMatch("Bittrex:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -84,8 +86,10 @@ describe("BittrexClient", () => {
   test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT-BTC|BTC-ETH|BTC-LTC/);
       expect(snapshot.fullId).toMatch("Bittrex:BTC/USDT");
       expect(snapshot.exchange).toMatch("Bittrex");
       expect(snapshot.base).toMatch("BTC");
@@ -103,7 +107,9 @@ describe("BittrexClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(snapshot.bids[0].count).toBeUndefined();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT-BTC|BTC-ETH|BTC-LTC/);
       expect(update.fullId).toMatch("Bittrex:BTC/USDT");
       expect(update.exchange).toMatch("Bittrex");
       expect(update.base).toMatch("BTC");
@@ -125,7 +131,9 @@ describe("BittrexClient", () => {
     client.subscribeTrades(market);
     client.subscribeTrades(market2);
     client.subscribeTrades(market3);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT-BTC|BTC-ETH|BTC-LTC/);
       expect(trade.fullId).toMatch(/Bittrex:BTC\/USDT|Bittrex:ETH\/BTC|Bittrex:LTC\/BTC/);
       expect(trade.exchange).toMatch("Bittrex");
       expect(trade.base).toMatch(/BTC|ETH|LTC/);

@@ -45,7 +45,9 @@ describe("PoloniexClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT_BTC|BTC_ETH/);
       expect(ticker.fullId).toMatch("Poloniex:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -78,8 +80,10 @@ describe("PoloniexClient", () => {
   test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT_BTC|BTC_ETH/);
       expect(snapshot.fullId).toMatch("Poloniex:BTC/USDT");
       expect(snapshot.exchange).toMatch("Poloniex");
       expect(snapshot.base).toMatch("BTC");
@@ -93,7 +97,9 @@ describe("PoloniexClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(snapshot.bids[0].count).toBeUndefined();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT_BTC|BTC_ETH/);
       expect(hasSnapshot).toBeTruthy();
       expect(update.fullId).toMatch("Poloniex:BTC/USDT");
       expect(update.exchange).toMatch("Poloniex");
@@ -112,7 +118,9 @@ describe("PoloniexClient", () => {
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
     client.subscribeTrades(market2);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/USDT_BTC|BTC_ETH/);
       expect(trade.fullId).toMatch(/Poloniex:BTC\/USDT|Poloniex:ETH\/BTC/);
       expect(trade.exchange).toMatch("Poloniex");
       expect(trade.base).toMatch(/BTC|ETH/);

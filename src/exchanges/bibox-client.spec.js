@@ -45,7 +45,9 @@ describe("BiboxClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(ticker.fullId).toMatch(/Bibox:BTC\/USDT/);
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -83,7 +85,9 @@ describe("BiboxClient", () => {
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
     client.subscribeTrades(market2);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(trade.fullId).toMatch(/Bibox:BTC\/USDT|Bibox:ETH\/BTC/);
       expect(trade.exchange).toMatch("Bibox");
       expect(trade.base).toMatch(/BTC|ETH/);
@@ -104,7 +108,9 @@ describe("BiboxClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market1);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
       expect(snapshot.fullId).toMatch(/Bibox:BTC\/USDT/);
       expect(snapshot.exchange).toMatch("Bibox");
       expect(snapshot.base).toMatch(market1.base);

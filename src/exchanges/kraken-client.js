@@ -270,9 +270,12 @@ class KrakenClient extends BasicClient {
 
     // tickers
     if (sl.subscription.name === "ticker") {
-      let ticker = this._constructTicker(details, remote_id);
+      let market = this._tickerSubs.get(remote_id);
+      if (!market) return;
+
+      let ticker = this._constructTicker(details, market);
       if (ticker) {
-        this.emit("ticker", ticker);
+        this.emit("ticker", ticker, market);
       }
       return;
     }
@@ -280,10 +283,13 @@ class KrakenClient extends BasicClient {
     // trades
     if (sl.subscription.name === "trade") {
       if (Array.isArray(msg[1])) {
+        let market = this._tradeSubs.get(remote_id);
+        if (!market) return;
+
         msg[1].forEach(t => {
-          let trade = this._constructTrade(t, remote_id);
+          let trade = this._constructTrade(t, market);
           if (trade) {
-            this.emit("trade", trade);
+            this.emit("trade", trade, market);
           }
         });
       }
@@ -292,18 +298,21 @@ class KrakenClient extends BasicClient {
 
     //l2 updates
     if (sl.subscription.name === "book") {
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
       // snapshot use as/bs
       // updates us a/b
       let isSnapshot = !!msg[1].as;
       if (isSnapshot) {
-        let l2snapshot = this._constructLevel2Snapshot(msg[1], remote_id);
+        let l2snapshot = this._constructLevel2Snapshot(msg[1], market);
         if (l2snapshot) {
-          this.emit("l2snapshot", l2snapshot);
+          this.emit("l2snapshot", l2snapshot, market);
         }
       } else {
-        let l2update = this._constructLevel2Update(msg[1], remote_id);
+        let l2update = this._constructLevel2Update(msg[1], market);
         if (l2update) {
-          this.emit("l2update", l2update);
+          this.emit("l2update", l2update, market);
         }
       }
     }
@@ -313,7 +322,7 @@ class KrakenClient extends BasicClient {
   /**
     Refer to https://www.kraken.com/en-us/features/websocket-api#message-ticker
    */
-  _constructTicker(msg, remote_id) {
+  _constructTicker(msg, market) {
     /*
       { a: [ '3343.70000', 1, '1.03031692' ],
         b: [ '3342.20000', 1, '1.00000000' ],
@@ -325,9 +334,6 @@ class KrakenClient extends BasicClient {
         h: [ '3420.00000', '3420.00000' ],
         o: [ '3339.40000', '3349.00000' ] }
     */
-
-    let market = this._tickerSubs.get(remote_id);
-    if (!market) return;
 
     // calculate change and change percent based from the open/close
     // prices
@@ -368,14 +374,10 @@ class KrakenClient extends BasicClient {
     Additionaly mechanism will need to be put into place by the consumer to
     dedupe them.
    */
-  _constructTrade(datum, remote_id) {
+  _constructTrade(datum, market) {
     /*
     [ '3363.20000', '0.05168143', '1551432237.079148', 'b', 'l', '' ]
     */
-
-    let market = this._tradeSubs.get(remote_id);
-    if (!market) return;
-
     let side = datum[3] === "b" ? "buy" : "sell";
 
     // see above
@@ -400,15 +402,11 @@ class KrakenClient extends BasicClient {
   /**
     Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
    */
-  _constructLevel2Update(datum, remote_id) {
+  _constructLevel2Update(datum, market) {
     /*
       [ 13, { a: [ [Array] ] }, { b: [ [Array], [Array] ] } ]
       Array = '3361.30000', '25.49061583', '1551438551.775384'
     */
-
-    let market = this._level2UpdateSubs.get(remote_id);
-    if (!market) return;
-
     let a = datum.a ? datum.a : [];
     let b = datum.b ? datum.b : [];
 
@@ -436,7 +434,7 @@ class KrakenClient extends BasicClient {
   /**
     Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
    */
-  _constructLevel2Snapshot(datum, remote_id) {
+  _constructLevel2Snapshot(datum, market) {
     /*
       {
         as: [
@@ -449,9 +447,6 @@ class KrakenClient extends BasicClient {
         ]
       }
     */
-
-    let market = this._level2UpdateSubs.get(remote_id);
-    if (!market) return;
 
     let as = datum.as ? datum.as : [];
     let bs = datum.bs ? datum.bs : [];

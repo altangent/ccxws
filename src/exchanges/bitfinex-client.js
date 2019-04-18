@@ -127,35 +127,45 @@ class BitfinexClient extends BasicClient {
     if (msg[1] === "hb") return;
 
     if (channel.channel === "ticker") {
-      this._onTicker(msg, channel);
+      let market = this._tickerSubs.get(channel.pair);
+      if (!market) return;
+
+      this._onTicker(msg, market);
       return;
     }
 
     // trades
     if (channel.channel === "trades" && msg[1] === "tu") {
-      this._onTradeMessage(msg, channel);
+      let market = this._tradeSubs.get(channel.pair);
+      if (!market) return;
+
+      this._onTradeMessage(msg, market);
       return;
     }
 
     // level3
     if (channel.channel === "book" && channel.prec === "R0") {
-      if (Array.isArray(msg[1])) this._onLevel3Snapshot(msg, channel);
-      else this._onLevel3Update(msg, channel);
+      let market = this._level3UpdateSubs.get(channel.pair);
+      if (!market) return;
+
+      if (Array.isArray(msg[1])) this._onLevel3Snapshot(msg, market);
+      else this._onLevel3Update(msg, market);
       return;
     }
 
     // level2
     if (channel.channel === "book") {
-      if (Array.isArray(msg[1])) this._onLevel2Snapshot(msg, channel);
-      else this._onLevel2Update(msg, channel);
+      let market = this._level2UpdateSubs.get(channel.pair);
+      if (!market) return;
+
+      if (Array.isArray(msg[1])) this._onLevel2Snapshot(msg, market);
+      else this._onLevel2Update(msg, market);
       return;
     }
   }
 
-  _onTicker(msg) {
-    let [chanId, bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msg;
-    let remote_id = this._channels[chanId].pair;
-    let market = this._tickerSubs.get(remote_id);
+  _onTicker(msg, market) {
+    let [, bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msg;
     let open = last + change;
     let ticker = new Ticker({
       exchange: "Bitfinex",
@@ -174,13 +184,11 @@ class BitfinexClient extends BasicClient {
       ask: ask.toFixed(8),
       askVolume: askSize.toFixed(8),
     });
-    this.emit("ticker", ticker);
+    this.emit("ticker", ticker, market);
   }
 
-  _onTradeMessage(msg) {
-    let [chanId, , , id, unix, price, amount] = msg;
-    let remote_id = this._channels[chanId].pair;
-    let market = this._tradeSubs.get(remote_id);
+  _onTradeMessage(msg, market) {
+    let [, , , id, unix, price, amount] = msg;
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
     amount = Math.abs(amount).toFixed(8);
@@ -194,12 +202,10 @@ class BitfinexClient extends BasicClient {
       price,
       amount,
     });
-    this.emit("trade", trade);
+    this.emit("trade", trade, market);
   }
 
-  _onLevel2Snapshot(msg) {
-    let remote_id = this._channels[msg[0]].pair;
-    let market = this._level2UpdateSubs.get(remote_id); // this message will be coming from an l2update
+  _onLevel2Snapshot(msg, market) {
     let bids = [];
     let asks = [];
     for (let [price, count, size] of msg[1]) {
@@ -215,14 +221,12 @@ class BitfinexClient extends BasicClient {
       bids,
       asks,
     });
-    this.emit("l2snapshot", result);
+    this.emit("l2snapshot", result, market);
   }
 
-  _onLevel2Update(msg) {
-    let [channel, price, count, size] = msg;
-    let remote_id = this._channels[channel].pair;
-    let market = this._level2UpdateSubs.get(remote_id);
-    if (!price.toFixed) console.log(msg);
+  _onLevel2Update(msg, market) {
+    let [price, count, size] = msg;
+    if (!price.toFixed) return;
     let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
     let asks = [];
     let bids = [];
@@ -241,12 +245,10 @@ class BitfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l2update", update);
+    this.emit("l2update", update, market);
   }
 
-  _onLevel3Snapshot(msg, channel) {
-    let remote_id = channel.pair;
-    let market = this._level3UpdateSubs.get(remote_id); // this message will be coming from an l2update
+  _onLevel3Snapshot(msg, market) {
     let bids = [];
     let asks = [];
     msg[1].forEach(p => {
@@ -261,12 +263,10 @@ class BitfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l3snapshot", result);
+    this.emit("l3snapshot", result, market);
   }
 
-  _onLevel3Update(msg, channel) {
-    let remote_id = channel.pair;
-    let market = this._level3UpdateSubs.get(remote_id);
+  _onLevel3Update(msg, market) {
     let bids = [];
     let asks = [];
 
@@ -281,7 +281,7 @@ class BitfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l3update", result);
+    this.emit("l3update", result, market);
   }
 }
 

@@ -46,7 +46,9 @@ describe("CoinexClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
-    client.on("ticker", function tickerHandler(ticker) {
+    client.on("ticker", function tickerHandler(ticker, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSDT|LTCBTC/);
       expect(ticker.fullId).toMatch("Coinex:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -83,7 +85,9 @@ describe("CoinexClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
-    client.on("trade", function tradeHandler(trade) {
+    client.on("trade", function tradeHandler(trade, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSDT|LTCBTC/);
       expect(trade.fullId).toMatch("Coinex:BTC/USDT");
       expect(trade.exchange).toMatch("Coinex");
       expect(trade.base).toMatch("BTC");
@@ -105,7 +109,9 @@ describe("CoinexClient", () => {
   test("should subscribe and emit level2 updates", done => {
     client.subscribeLevel2Updates(market1);
 
-    client.on("l2update", function level2UpdateHandler(update) {
+    client.on("l2update", function level2UpdateHandler(update, market) {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSDT|LTCBTC/);
       expect(update.fullId).toMatch("Coinex:BTC/USDT");
       expect(update.exchange).toMatch("Coinex");
       expect(update.base).toMatch("BTC");

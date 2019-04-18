@@ -76,18 +76,17 @@ class SingleCexClient extends BasicAuthClient {
     );
   }
 
-  _constructTicker(data) {
+  _constructTicker(data, market) {
     // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-    let { open24, price, volume } = data.raw,
-      { base, quote } = data.market,
-      change = parseFloat(price) - parseFloat(open24),
-      changePercent =
-        open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
+    let { open24, price, volume } = data;
+    let change = parseFloat(price) - parseFloat(open24);
+    let changePercent =
+      open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
 
     return new Ticker({
       exchange: "CEX",
-      base: base,
-      quote: quote,
+      base: market.base,
+      quote: market.quote,
       timestamp: Date.now(),
       last: price,
       open: open24,
@@ -97,9 +96,7 @@ class SingleCexClient extends BasicAuthClient {
     });
   }
 
-  _constructevel2Snapshot(msg) {
-    let marketId = msg.pair.replace(":", "-"); // api has an inconsistent delimeter between subscribe and order book.
-    let market = this._level2SnapshotSubs.get(marketId);
+  _constructevel2Snapshot(msg, market) {
     let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     let bids = msg.buy.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
 
@@ -157,33 +154,34 @@ class SingleCexClient extends BasicAuthClient {
     if (e === "tick") {
       // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
       let marketId = `${data.symbol1}-${data.symbol2}`;
-      if (this._tickerSubs.has(marketId) && marketId === this.market.id) {
-        let market = this._tickerSubs.get(marketId);
-        let ticker = this._constructTicker({ raw: data, market: market });
-        this.emit("ticker", ticker);
-      }
+      let market = this._tickerSubs.get(marketId);
+      if (!market) return;
+
+      let ticker = this._constructTicker(data, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     if (e === "md") {
       let marketId = data.pair.replace(":", "-");
-      if (this._level2SnapshotSubs.has(marketId) && marketId === this.market.id) {
-        let result = this._constructevel2Snapshot(data);
-        this.emit("l2snapshot", result);
-        return;
-      }
+      let market = this._level2SnapshotSubs.get(marketId);
+      if (!market) return;
+
+      let result = this._constructevel2Snapshot(data, market);
+      this.emit("l2snapshot", result, market);
+      return;
     }
 
     if (e === "history") {
       let marketId = this.market.id;
       let market = this._tradeSubs.get(marketId);
-      if (this._tradeSubs.has(marketId)) {
-        // sell/buy:timestamp_ms:amount:price:transaction_id
-        for (let rawTrade of data) {
-          let tradeData = rawTrade.split(":");
-          let trade = this._constructTrade(tradeData, market);
-          this.emit("trade", trade);
-        }
+      if (!market) return;
+
+      // sell/buy:timestamp_ms:amount:price:transaction_id
+      for (let rawTrade of data) {
+        let tradeData = rawTrade.split(":");
+        let trade = this._constructTrade(tradeData, market);
+        this.emit("trade", trade, market);
       }
       return;
     }

@@ -157,23 +157,33 @@ class BiboxSingleClient extends BasicClient {
       // out library standardize to asc order so perform a reverse
       let data = msg.data.slice().reverse();
       for (let datum of data) {
-        let trade = this._constructTradesFromMessage(datum);
-        if (trade) this.emit("trade", trade);
+        let market = this._tradeSubs.get(datum.pair);
+        if (!market) return;
+
+        let trade = this._constructTradesFromMessage(datum, market);
+        this.emit("trade", trade, market);
       }
       return;
     }
 
     // tickers
     if (msg.channel.endsWith("_ticker")) {
-      let ticker = this._constructTicker(msg);
-      if (ticker) this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(msg.data.pair);
+      if (!market) return;
+
+      let ticker = this._constructTicker(msg, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     // l2 updates
     if (msg.channel.endsWith("depth")) {
-      let snapshot = this._constructLevel2Snapshot(msg);
-      if (snapshot) this.emit("l2snapshot", snapshot);
+      let remote_id = msg.data.pair;
+      let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
       return;
     }
   }
@@ -201,10 +211,8 @@ class BiboxSingleClient extends BasicClient {
         timestamp: 1547546988399 }
       }
   */
-  _constructTicker(msg) {
-    let { last, buy, sell, pair, vol, percent, low, high, timestamp } = msg.data;
-    let market = this._tickerSubs.get(pair);
-    if (!market) return;
+  _constructTicker(msg, market) {
+    let { last, buy, sell, vol, percent, low, high, timestamp } = msg.data;
 
     percent = percent.replace(/%|\+/g, "");
     let change = (parseFloat(last) * parseFloat(percent)) / 100;
@@ -242,11 +250,8 @@ class BiboxSingleClient extends BasicClient {
           id: 189765713 } ]
     }
   */
-  _constructTradesFromMessage(datum) {
-    let { pair, time, price, amount, side, id } = datum;
-
-    let market = this._tradeSubs.get(pair);
-    if (!market) return;
+  _constructTradesFromMessage(datum, market) {
+    let { time, price, amount, side, id } = datum;
 
     side = side === 1 ? "buy" : "sell";
     return new Trade({
@@ -282,11 +287,7 @@ class BiboxSingleClient extends BasicClient {
             pair: 'BIX_BTC' }
     }
   */
-  _constructLevel2Snapshot(msg) {
-    let remote_id = msg.data.pair;
-    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
-    if (!market) return;
-
+  _constructLevel2Snapshot(msg, market) {
     let asks = msg.data.asks.map(p => new Level2Point(p.price, p.volume));
     let bids = msg.data.bids.map(p => new Level2Point(p.price, p.volume));
     return new Level2Snapshot({

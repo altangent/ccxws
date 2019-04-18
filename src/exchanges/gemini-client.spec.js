@@ -43,8 +43,10 @@ describe("GeminiClient", () => {
   test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market1);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd|ethusd/);
       expect(snapshot.fullId).toMatch("Gemini:BTC/USD");
       expect(snapshot.exchange).toMatch("Gemini");
       expect(snapshot.base).toMatch("BTC");
@@ -58,7 +60,9 @@ describe("GeminiClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(snapshot.bids[0].count).toBeUndefined();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd|ethusd/);
       expect(hasSnapshot).toBeTruthy();
       expect(update.fullId).toMatch("Gemini:BTC/USD");
       expect(update.exchange).toMatch("Gemini");
@@ -81,7 +85,9 @@ describe("GeminiClient", () => {
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
     client.subscribeTrades(market2);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd|ethusd/);
       expect(trade.fullId).toMatch(/Gemini:(BTC|ETH)\/USD/);
       expect(trade.exchange).toMatch("Gemini");
       expect(trade.base).toMatch(/ETH|BTC/);

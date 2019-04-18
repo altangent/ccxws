@@ -110,43 +110,40 @@ class CoinexSingleClient extends BasicClient {
 
     if (method === "state.update") {
       let marketId = Object.keys(params[0])[0];
+      let market = this._tickerSubs.get(marketId);
+      if (!market) return;
 
-      if (this._tickerSubs.has(marketId)) {
-        let market = this._tickerSubs.get(marketId);
-
-        let ticker = this._constructTicker(params[0][marketId], market);
-        this.emit("ticker", ticker);
-      }
+      let ticker = this._constructTicker(params[0][marketId], market);
+      this.emit("ticker", ticker, market);
+      return;
     }
 
     if (method === "deals.update") {
       let marketId = params[0];
+      let market = this._tradeSubs.get(marketId);
+      if (!market) return;
 
-      if (this._tradeSubs.has(marketId)) {
-        let market = this._tradeSubs.get(marketId);
-
-        params[1].reverse().forEach(t => {
-          let trade = this._constructTrade(t, market);
-          this.emit("trade", trade);
-        });
-      }
+      params[1].reverse().forEach(t => {
+        let trade = this._constructTrade(t, market);
+        this.emit("trade", trade, market);
+      });
+      return;
     }
 
     if (method === "depth.update") {
       let marketId = params[2];
+      let market = this._level2UpdateSubs.get(marketId);
+      if (!market) return;
 
-      if (this._level2UpdateSubs.has(marketId)) {
-        let market = this._level2UpdateSubs.get(marketId),
-          isLevel2Snapshot = params[0];
-
-        if (isLevel2Snapshot) {
-          let l2snapshot = this._constructLevel2Snapshot(params[1], market);
-          this.emit("l2snapshot", l2snapshot);
-        } else {
-          let l2update = this._constructLevel2Update(params[1], market);
-          this.emit("l2update", l2update);
-        }
+      let isLevel2Snapshot = params[0];
+      if (isLevel2Snapshot) {
+        let l2snapshot = this._constructLevel2Snapshot(params[1], market);
+        this.emit("l2snapshot", l2snapshot, market);
+      } else {
+        let l2update = this._constructLevel2Update(params[1], market);
+        this.emit("l2update", l2update, market);
       }
+      return;
     }
   }
 

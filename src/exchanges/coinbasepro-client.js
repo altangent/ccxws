@@ -94,48 +94,42 @@ class CoinbaseProClient extends BasicClient {
     let { type, product_id } = msg;
 
     if (type === "ticker" && this._tickerSubs.has(product_id)) {
-      let ticker = this._constructTicker(msg);
-      this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(product_id);
+      let ticker = this._constructTicker(msg, market);
+      this.emit("ticker", ticker, market);
     }
 
     if (type === "match" && this._tradeSubs.has(product_id)) {
-      let trade = this._constructTrade(msg);
-      this.emit("trade", trade);
+      let market = this._tradeSubs.get(product_id);
+      let trade = this._constructTrade(msg, market);
+      this.emit("trade", trade, market);
     }
 
     if (type === "snapshot" && this._level2UpdateSubs.has(product_id)) {
-      let snapshot = this._constructLevel2Snapshot(msg);
-      this.emit("l2snapshot", snapshot);
+      let market = this._level2UpdateSubs.get(product_id);
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
     }
 
     if (type === "l2update" && this._level2UpdateSubs.has(product_id)) {
-      let update = this._constructLevel2Update(msg);
-      this.emit("l2update", update);
+      let market = this._level2UpdateSubs.get(product_id);
+      let update = this._constructLevel2Update(msg, market);
+      this.emit("l2update", update, market);
     }
 
     if (
       ["received", "open", "done", "match", "change"].includes(type) &&
       this._level3UpdateSubs.has(product_id)
     ) {
-      let update = this._constructLevel3Update(msg);
-      this.emit("l3update", update);
+      let market = this._level3UpdateSubs.get(product_id);
+      let update = this._constructLevel3Update(msg, market);
+      this.emit("l3update", update, market);
       return;
     }
   }
 
-  _constructTicker(msg) {
-    let {
-      product_id,
-      price,
-      volume_24h,
-      open_24h,
-      low_24h,
-      high_24h,
-      best_bid,
-      best_ask,
-      time,
-    } = msg;
-    let market = this._tickerSubs.get(product_id);
+  _constructTicker(msg, market) {
+    let { price, volume_24h, open_24h, low_24h, high_24h, best_bid, best_ask, time } = msg;
     let change = parseFloat(price) - parseFloat(open_24h);
     let changePercent = ((parseFloat(price) - parseFloat(open_24h)) / parseFloat(open_24h)) * 100;
     return new Ticker({
@@ -155,10 +149,8 @@ class CoinbaseProClient extends BasicClient {
     });
   }
 
-  _constructTrade(msg) {
-    let { trade_id, time, product_id, size, price, side, maker_order_id, taker_order_id } = msg;
-
-    let market = this._tradeSubs.get(product_id);
+  _constructTrade(msg, market) {
+    let { trade_id, time, size, price, side, maker_order_id, taker_order_id } = msg;
 
     let unix = moment.utc(time).valueOf();
 
@@ -182,11 +174,8 @@ class CoinbaseProClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg) {
-    let { product_id, bids, asks } = msg;
-
-    let market = this._level2UpdateSubs.get(product_id);
-
+  _constructLevel2Snapshot(msg, market) {
+    let { bids, asks } = msg;
     bids = bids.map(([price, size]) => new Level2Point(price, size));
     asks = asks.map(([price, size]) => new Level2Point(price, size));
 
@@ -199,11 +188,8 @@ class CoinbaseProClient extends BasicClient {
     });
   }
 
-  _constructLevel2Update(msg) {
-    let { product_id, changes } = msg;
-
-    let market = this._level2UpdateSubs.get(product_id);
-
+  _constructLevel2Update(msg, market) {
+    let { changes } = msg;
     let asks = [];
     let bids = [];
     changes.forEach(([side, price, size]) => {
@@ -221,8 +207,7 @@ class CoinbaseProClient extends BasicClient {
     });
   }
 
-  _constructLevel3Update(msg) {
-    let market = this._level3UpdateSubs.get(msg.product_id);
+  _constructLevel3Update(msg, market) {
     let timestampMs = moment(msg.time).valueOf();
     let sequenceId = msg.sequence;
 

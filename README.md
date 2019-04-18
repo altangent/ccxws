@@ -29,9 +29,9 @@ const binance = new ccxws.Binance();
 
 // market could be from CCXT or genearted by the user
 const market = {
-  id: "ADABTC", // remote_id used by the exchange
-  base: "ADA", // standardized base symbol for Cardano
-  quote: "BTC", // standardized quote symbol for Bitcoin
+  id: "BTCUSDT", // remote_id used by the exchange
+  base: "BTC", // standardized base symbol for Cardano
+  quote: "USDT", // standardized quote symbol for Bitcoin
 };
 
 // handle trade events
@@ -118,22 +118,24 @@ Subscribe to events by addding an event handler to the client `.on(<event>)` met
 
 Once an event handler is attached you can start the stream using the `subscribe<X>` methods.
 
+All events emit the market used to subscribe to the event as a second property of the event handler.
+
 ```javascript
-binance.on("trades", trade => console.log(trade));
-binance.on("l2snapshot", snapshot => console.log(snapshot));
+binance.on("trades", (trade, market) => console.log(trade, market));
+binance.on("l2snapshot", (snapshot, market) => console.log(snapshot, market));
 ```
 
 ##### `ticker: Ticker`
 
-Fired when a ticker update is received. Returns an instance of `Ticker`.
+Fired when a ticker update is received. Returns an instance of `Ticker` and the `Market` used to subscribe to the event.
 
 ##### `trade: Trade`
 
-Fired when a trade is received. Returns an instance of `Trade`.
+Fired when a trade is received. Returns an instance of `Trade` and the `Market` used to subscribe to the event.
 
 ##### `l2snapshot: Level2Snapshot`
 
-Fired when a orderbook level 2 snapshot is received. Returns an instance of `Level2Snapshot`.
+Fired when a orderbook level 2 snapshot is received. Returns an instance of `Level2Snapshot` and the `Market` used to subscribe to the event.
 
 The level of detail will depend on the specific exchange and may include 5/10/20/50/100/1000 bids and asks.
 
@@ -141,17 +143,17 @@ This event is also fired when subscribing to the `l2update` event on many exchan
 
 ##### `l2update: Level2Update`
 
-Fired when a orderbook level 2 update is recieved. Returns an instance of `Level2Update`.
+Fired when a orderbook level 2 update is recieved. Returns an instance of `Level2Update` and the `Market` used to subscribe to the event.
 
 Subscribing to this event may trigger an initial `l2snapshot` event for many exchanges.
 
 ##### `l3snapshot: Level3Snapshot`
 
-Fired when a orderbook level 3 snapshot is received. Returns an instance of `Level3Snapshot`.
+Fired when a orderbook level 3 snapshot is received. Returns an instance of `Level3Snapshot` and the `Market` used to subscribe to the event.
 
 ##### `l3update: Level3Update` - orderbook level 3 Update
 
-Fired when a level 3 update is recieved. Returns an instance of `Level3Update`.
+Fired when a level 3 update is recieved. Returns an instance of `Level3Update` and the `Market` used to subscribe to the event.
 
 #### Connection Events
 

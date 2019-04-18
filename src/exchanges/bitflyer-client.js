@@ -96,29 +96,38 @@ class BitFlyerClient extends BasicClient {
 
     if (channel.startsWith("lightning_ticker_")) {
       let remote_id = channel.substr("lightning_ticker_".length);
-      let ticker = this._createTicker(remote_id, message);
-      this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(remote_id);
+      if (!market) return;
+
+      let ticker = this._createTicker(message, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     // trades
     if (channel.startsWith("lightning_executions_")) {
       let remote_id = channel.substr("lightning_executions_".length);
+      let market = this._tradeSubs.get(remote_id);
+      if (!market) return;
+
       for (let datum of message) {
-        let trade = this._createTrades(remote_id, datum);
-        this.emit("trade", trade);
+        let trade = this._createTrades(datum, market);
+        this.emit("trade", trade, market);
       }
     }
 
     // orderbook
     if (channel.startsWith("lightning_board_")) {
       let remote_id = channel.substr("lightning_board_".length);
-      let update = this._createLevel2Update(remote_id, message);
-      this.emit("l2update", update);
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
+      let update = this._createLevel2Update(message, market);
+      this.emit("l2update", update, market);
     }
   }
 
-  _createTicker(remoteId, data) {
+  _createTicker(data, market) {
     let {
       timestamp,
       best_bid,
@@ -129,7 +138,6 @@ class BitFlyerClient extends BasicClient {
       volume,
       volume_by_product,
     } = data;
-    let market = this._tickerSubs.get(remoteId);
     return new Ticker({
       exchange: "bitFlyer",
       base: market.base,
@@ -145,7 +153,7 @@ class BitFlyerClient extends BasicClient {
     });
   }
 
-  _createTrades(remoteId, datum) {
+  _createTrades(datum, market) {
     let {
       size,
       side,
@@ -155,7 +163,6 @@ class BitFlyerClient extends BasicClient {
       buy_child_order_acceptance_id,
       sell_child_order_acceptance_id,
     } = datum;
-    let market = this._tradeSubs.get(remoteId);
 
     side = side.toLowerCase();
     let unix = moment(exec_date).valueOf();
@@ -174,8 +181,7 @@ class BitFlyerClient extends BasicClient {
     });
   }
 
-  _createLevel2Update(remote_id, msg) {
-    let market = this._level2UpdateSubs.get(remote_id);
+  _createLevel2Update(msg, market) {
     let asks = msg.asks.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
     let bids = msg.bids.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
 
@@ -204,7 +210,7 @@ class BitFlyerClient extends BasicClient {
           asks,
           bids,
         });
-        this.emit("l2snapshot", snapshot);
+        this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
         winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
         this._requestLevel2Snapshot(market);
