@@ -95,9 +95,12 @@ class HuobiClient extends BasicClient {
         msgs = JSON.parse(resp.toString().replace(/:([0-9]{1,}\.{0,1}[0-9]{0,}),/g, ':"$1",'));
 
         let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.trade.detail
+        let market = this._tradeSubs.get(remoteId);
+        if (!market) return;
+
         for (let datum of msgs.tick.data) {
-          let trade = this._constructTradesFromMessage(remoteId, datum);
-          this.emit("trade", trade);
+          let trade = this._constructTradesFromMessage(datum, market);
+          this.emit("trade", trade, market);
         }
         return;
       }
@@ -105,26 +108,31 @@ class HuobiClient extends BasicClient {
       // tickers
       if (msgs.ch.endsWith(".detail")) {
         let remoteId = msgs.ch.split(".")[1];
-        let ticker = this._constructTicker(remoteId, msgs.tick);
-        this.emit("ticker", ticker);
+        let market = this._tickerSubs.get(remoteId);
+        if (!market) return;
+
+        let ticker = this._constructTicker(msgs.tick, market);
+        this.emit("ticker", ticker, market);
         return;
       }
 
       // level2updates
       if (msgs.ch.endsWith("depth.step0")) {
         let remoteId = msgs.ch.split(".")[1];
-        let update = this._constructLevel2Snapshot(remoteId, msgs);
-        this.emit("l2snapshot", update);
+        let market = this._level2SnapshotSubs.get(remoteId);
+        if (!market) return;
+
+        let update = this._constructLevel2Snapshot(msgs, market);
+        this.emit("l2snapshot", update, market);
         return;
       }
     });
   }
 
-  _constructTicker(remoteId, data) {
+  _constructTicker(data, market) {
     let { open, close, high, low, vol, amount } = data;
-    let market = this._tickerSubs.get(remoteId);
     let dayChange = close - open;
-    let dayChangePercent = (close - open) / open * 100;
+    let dayChangePercent = ((close - open) / open) * 100;
     return new Ticker({
       exchange: "Huobi",
       base: market.base,
@@ -141,9 +149,8 @@ class HuobiClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(remoteId, datum) {
+  _constructTradesFromMessage(datum, market) {
     let { amount, direction, ts, price, id } = datum;
-    let market = this._tradeSubs.get(remoteId);
     let unix = Math.trunc(parseInt(ts));
 
     return new Trade({
@@ -158,9 +165,8 @@ class HuobiClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(remoteId, msg) {
+  _constructLevel2Snapshot(msg, market) {
     let { ts, tick } = msg;
-    let market = this._level2SnapshotSubs.get(remoteId);
     let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     let asks = tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     return new Level2Snapshot({

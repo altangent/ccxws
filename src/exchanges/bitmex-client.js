@@ -61,13 +61,27 @@ class BitmexClient extends BasicClient {
     if (table === "trade") {
       if (action !== "insert") return;
       for (let datum of message.data) {
-        let trade = this._constructTrades(datum);
-        this.emit("trade", trade);
+        let remote_id = datum.symbol;
+        let market = this._tradeSubs.get(remote_id);
+        if (!market) continue;
+
+        let trade = this._constructTrades(datum, market);
+        this.emit("trade", trade, market);
       }
       return;
     }
 
     if (table === "orderBookL2") {
+      /**
+        From testing, we've never encountered non-uniform markets in a single
+        message broadcast and will assume uniformity (though we will validate
+        in the construction methods).
+       */
+      let remote_id = message.data[0].symbol;
+      let market = this._level2UpdateSubs.get(remote_id);
+
+      if (!market) return;
+
       /**
         The partial action is sent when there is a new subscription. It contains
         the snapshot of data. Updates may arrive prior to the snapshot but can
@@ -77,34 +91,24 @@ class BitmexClient extends BasicClient {
         those will be handles in l2update messages.
        */
       if (action === "partial") {
-        let snapshot = this._constructLevel2Snapshot(message.data);
-        this.emit("l2snapshot", snapshot);
+        let snapshot = this._constructLevel2Snapshot(message.data, market);
+        this.emit("l2snapshot", snapshot, market);
       } else {
-        let update = this._constructLevel2Update(message);
-        this.emit("l2update", update);
+        let update = this._constructLevel2Update(message, market);
+        this.emit("l2update", update, market);
       }
       return;
     }
   }
 
-  _constructTrades(datum) {
+  _constructTrades(datum, market) {
     let { size, side, timestamp, price, trdMatchID } = datum;
-
-    // Load the market
-    let remote_id = datum.symbol;
-    let market = this._tradeSubs.get(remote_id);
-
-    // Handle race condition on unsubscribe where we may still
-    // be processing data.
-    if (!market) return;
-
     let unix = moment(timestamp).valueOf();
     return new Trade({
-      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
-      id: remote_id,
+      id: market.id,
       tradeId: trdMatchID.replace(/-/g, ""),
       unix,
       side: side.toLowerCase(),
@@ -121,15 +125,7 @@ class BitmexClient extends BasicClient {
     include a price value. This code will maintain the price map
     so that update messages can be constructed with a price.
    */
-  _constructLevel2Snapshot(data) {
-    // Load the market
-    let remote_id = data[0].symbol;
-    let market = this._level2UpdateSubs.get(remote_id);
-
-    // Handle race condition on unsubscribe where we may still
-    // be processing data.
-    if (!market) return;
-
+  _constructLevel2Snapshot(data, market) {
     let asks = [];
     let bids = [];
     for (let datum of data) {
@@ -155,11 +151,10 @@ class BitmexClient extends BasicClient {
     asks = asks.reverse();
 
     return new Level2Snapshot({
-      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
-      id: remote_id,
+      id: market.id,
       asks,
       bids,
     });
@@ -197,14 +192,10 @@ class BitmexClient extends BasicClient {
       - Insert and update will have price and size
       - Delete will have a size of 0.
    */
-  _constructLevel2Update(msg) {
+  _constructLevel2Update(msg, market) {
     // get the data from the message
     let data = msg.data;
     let action = msg.action;
-
-    // ge the market for the remote symbol
-    let remote_id = data[0].symbol;
-    let market = this._level2UpdateSubs.get(remote_id);
 
     let asks = [];
     let bids = [];
@@ -220,8 +211,8 @@ class BitmexClient extends BasicClient {
         we want to throw an error instead of polluting the orderbook with
         bad data.
       */
-      if (datum.symbol !== remote_id) {
-        throw new Error(`l2update symbol mismatch, expected ${remote_id}, got ${datum.symbol}`);
+      if (datum.symbol !== market.id) {
+        throw new Error(`l2update symbol mismatch, expected ${market.id}, got ${datum.symbol}`);
       }
 
       // Find the price based on the price identifier
@@ -275,11 +266,10 @@ class BitmexClient extends BasicClient {
     asks = asks.reverse();
 
     return new Level2Update({
-      market,
       exchange: "BitMEX",
       base: market.base,
       quote: market.quote,
-      id: remote_id,
+      id: market.id,
       asks,
       bids,
     });

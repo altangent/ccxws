@@ -166,9 +166,12 @@ class OKExClient extends BasicClient {
     if (msg.product === "spot" && msg.type === "deal") {
       let { base, quote } = msg;
       let remote_id = `${base}_${quote}`;
+      let market = this._tradeSubs.get(remote_id);
+      if (!market) return;
+
       for (let datum of msg.data) {
-        let trade = this._constructTradesFromMessage(remote_id, datum);
-        this.emit("trade", trade);
+        let trade = this._constructTradesFromMessage(datum, market);
+        this.emit("trade", trade, market);
       }
       return;
     }
@@ -180,35 +183,45 @@ class OKExClient extends BasicClient {
 
     // tickers
     if (msg.channel.endsWith("_ticker")) {
-      let ticker = this._constructTicker(msg);
-      this.emit("ticker", ticker);
+      let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
+      let market = this._tickerSubs.get(remoteId);
+      if (!market) return;
+
+      let ticker = this._constructTicker(msg, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     // l2 snapshots
     if (msg.channel.endsWith("_5") || msg.channel.endsWith("_10") || msg.channel.endsWith("_20")) {
       let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
-      let snapshot = this._constructLevel2Snapshot(msg, remote_id);
-      this.emit("l2snapshot", snapshot);
+      let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
       return;
     }
 
     // l2 updates
     if (msg.channel.endsWith("depth")) {
       let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
       if (!this._hasSnapshot.has(remote_id)) {
-        let snapshot = this._constructLevel2Snapshot(msg, remote_id);
-        this.emit("l2snapshot", snapshot);
+        let snapshot = this._constructLevel2Snapshot(msg, market);
+        this.emit("l2snapshot", snapshot, market);
         this._hasSnapshot.add(remote_id);
       } else {
-        let update = this._constructoL2Update(msg, remote_id);
-        this.emit("l2update", update);
+        let update = this._constructoL2Update(msg, market);
+        this.emit("l2update", update, market);
       }
       return;
     }
   }
 
-  _constructTicker(msg) {
+  _constructTicker(msg, market) {
     /*
     { binary: 0,
     channel: 'ok_sub_spot_eth_btc_ticker',
@@ -226,8 +239,6 @@ class OKExClient extends BasicClient {
       open: '0.06929546',
       timestamp: 1531692991115 } }
      */
-    let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
-    let market = this._tickerSubs.get(remoteId);
     let { open, vol, last, buy, change, sell, dayLow, dayHigh, timestamp } = msg.data;
     let dayChangePercent = (parseFloat(change) / parseFloat(open)) * 100;
     return new Ticker({
@@ -247,7 +258,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(remoteId, datum) {
+  _constructTradesFromMessage(datum, market) {
     /*
     [{ base: '1st',
       binary: 0,
@@ -270,7 +281,6 @@ class OKExClient extends BasicClient {
       type: 'deal' }]
     */
     let { amount, side, createdDate, price, id } = datum;
-    let market = this._tradeSubs.get(remoteId);
     side = side === 1 ? "buy" : "sell";
 
     return new Trade({
@@ -285,7 +295,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg, remote_id) {
+  _constructLevel2Snapshot(msg, market) {
     /*
     [{
         "binary": 0,
@@ -310,7 +320,6 @@ class OKExClient extends BasicClient {
         }
     }]
     */
-    let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
     return new Level2Snapshot({
@@ -323,7 +332,7 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructoL2Update(msg, remote_id) {
+  _constructoL2Update(msg, market) {
     /*
     [{
         "binary": 0,
@@ -348,7 +357,6 @@ class OKExClient extends BasicClient {
         }
     }]
     */
-    let market = this._level2UpdateSubs.get(remote_id);
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
     return new Level2Update({

@@ -132,9 +132,9 @@ class BittrexClient extends EventEmitter {
       this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
         if (err) return winston.error("snapshot failed", remote_id, err);
         if (!result) return winston.warn("snapshot empty", remote_id);
-        result.MarketName = remote_id;
-        let snapshot = this._constructLevel2Snapshot(result);
-        this.emit("l2snapshot", snapshot);
+        let market = this._level2UpdateSubs.get(remote_id);
+        let snapshot = this._constructLevel2Snapshot(result, market);
+        this.emit("l2snapshot", snapshot, market);
       });
     }
 
@@ -258,30 +258,32 @@ class BittrexClient extends EventEmitter {
       if (msg.M === "updateExchangeState") {
         msg.A.forEach(data => {
           if (this._tradeSubs.has(data.MarketName)) {
+            let market = this._tradeSubs.get(data.MarketName);
             data.Fills.forEach(fill => {
-              let trade = this._constructTradeFromMessage(fill, data.MarketName);
-              this.emit("trade", trade);
+              let trade = this._constructTradeFromMessage(fill, market);
+              this.emit("trade", trade, market);
             });
           }
           if (this._level2UpdateSubs.has(data.MarketName)) {
-            let l2update = this._constructLevel2Update(data);
-            this.emit("l2update", l2update);
+            let market = this._level2UpdateSubs.get(data.MarketName);
+            let l2update = this._constructLevel2Update(data, market);
+            this.emit("l2update", l2update, market);
           }
         });
       }
       if (msg.M === "updateSummaryState") {
         for (let raw of msg.A[0].Deltas) {
           if (this._tickerSubs.has(raw.MarketName)) {
-            let ticker = this._constructTicker(raw);
-            this.emit("ticker", ticker);
+            let market = this._tickerSubs.get(raw.MarketName);
+            let ticker = this._constructTicker(raw, market);
+            this.emit("ticker", ticker, market);
           }
         }
       }
     }
   }
 
-  _constructTicker(msg) {
-    let market = this._tickerSubs.get(msg.MarketName);
+  _constructTicker(msg, market) {
     let { High, Low, Last, PrevDay, BaseVolume, Volume, TimeStamp, Bid, Ask } = msg;
     let change = Last - PrevDay;
     let percentChange = ((Last - PrevDay) / PrevDay) * 100;
@@ -303,8 +305,7 @@ class BittrexClient extends EventEmitter {
     });
   }
 
-  _constructTradeFromMessage(msg, marketName) {
-    let market = this._tradeSubs.get(marketName);
+  _constructTradeFromMessage(msg, market) {
     let tradeId = this._getTradeId(msg);
     let unix = moment.utc(msg.TimeStamp).valueOf();
     let price = msg.Rate.toFixed(8);
@@ -323,8 +324,7 @@ class BittrexClient extends EventEmitter {
   }
 
   // prettier-ignore
-  _constructLevel2Snapshot(msg) {
-    let market = this._level2UpdateSubs.get(msg.MarketName);
+  _constructLevel2Snapshot(msg, market) {
     let sequenceId = msg.Nonce;
     let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
@@ -339,8 +339,7 @@ class BittrexClient extends EventEmitter {
   }
 
   // prettier-ignore
-  _constructLevel2Update(msg) {
-    let market = this._level2UpdateSubs.get(msg.MarketName);
+  _constructLevel2Update(msg, market) {
     let sequenceId = msg.Nonce;
     let bids = msg.Buys.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));
     let asks = msg.Sells.map(p => new Level2Point(p.Rate.toFixed(8), p.Quantity.toFixed(8), undefined, { type: p.Type }));

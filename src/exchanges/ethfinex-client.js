@@ -174,11 +174,10 @@ class EthfinexClient extends BasicClient {
       ask: ask.toFixed(8),
       askVolume: askSize.toFixed(8),
     });
-    this.emit("ticker", ticker);
+    this.emit("ticker", ticker, market);
   }
 
   _onTradeMessage(msg) {
-
     let [chanId, , , id, unix, price, amount] = msg;
     let remote_id = this._channels[chanId].pair;
     let market = this._tradeSubs.get(remote_id);
@@ -195,7 +194,7 @@ class EthfinexClient extends BasicClient {
       price,
       amount,
     });
-    this.emit("trade", trade);
+    this.emit("trade", trade, market);
   }
 
   _onLevel2Snapshot(msg) {
@@ -216,7 +215,7 @@ class EthfinexClient extends BasicClient {
       bids,
       asks,
     });
-    this.emit("l2snapshot", result);
+    this.emit("l2snapshot", result, market);
   }
 
   _onLevel2Update(msg) {
@@ -242,7 +241,7 @@ class EthfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l2update", update);
+    this.emit("l2update", update, market);
   }
 
   _onLevel3Snapshot(msg, channel) {
@@ -262,7 +261,7 @@ class EthfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l3snapshot", result);
+    this.emit("l3snapshot", result, market);
   }
 
   _onLevel3Update(msg, channel) {
@@ -282,7 +281,7 @@ class EthfinexClient extends BasicClient {
       asks,
       bids,
     });
-    this.emit("l3update", result);
+    this.emit("l3update", result, market);
   }
 }
 

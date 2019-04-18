@@ -117,36 +117,48 @@ class HitBTCClient extends BasicClient {
       return;
     }
 
+    let remote_id = msg.params && msg.params.symbol;
+
     if (msg.method === "ticker") {
-      let ticker = this._constructTicker(msg.params);
-      this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(remote_id);
+      if (!market) return;
+
+      let ticker = this._constructTicker(msg.params, market);
+      this.emit("ticker", ticker, market);
     }
 
     if (msg.method === "updateTrades") {
+      let market = this._tradeSubs.get(remote_id);
+      if (!market) return;
+
       for (let datum of msg.params.data) {
-        datum.symbol = msg.params.symbol;
-        let trade = this._constructTradesFromMessage(datum);
-        this.emit("trade", trade);
+        let trade = this._constructTradesFromMessage(datum, market);
+        this.emit("trade", trade, market);
       }
       return;
     }
 
     if (msg.method === "snapshotOrderbook") {
-      let result = this._constructLevel2Snapshot(msg.params);
-      this.emit("l2snapshot", result);
+      let market = this._level2UpdateSubs.get(remote_id); // coming from l2update sub
+      if (!market) return;
+
+      let result = this._constructLevel2Snapshot(msg.params, market);
+      this.emit("l2snapshot", result, market);
       return;
     }
 
     if (msg.method === "updateOrderbook") {
-      let result = this._constructLevel2Update(msg.params);
-      this.emit("l2update", result);
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
+      let result = this._constructLevel2Update(msg.params, market);
+      this.emit("l2update", result, market);
       return;
     }
   }
 
-  _constructTicker(param) {
-    let { ask, bid, last, open, low, high, volume, volumeQuote, timestamp, symbol } = param;
-    let market = this._tickerSubs.get(symbol);
+  _constructTicker(param, market) {
+    let { ask, bid, last, open, low, high, volume, volumeQuote, timestamp } = param;
     let change = (parseFloat(last) - parseFloat(open)).toFixed(8);
     let changePercent = (((parseFloat(last) - parseFloat(open)) / parseFloat(open)) * 100).toFixed(
       8
@@ -169,10 +181,8 @@ class HitBTCClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(datum) {
-    let { symbol, id, price, quantity, side, timestamp } = datum;
-
-    let market = this._tradeSubs.get(symbol);
+  _constructTradesFromMessage(datum, market) {
+    let { id, price, quantity, side, timestamp } = datum;
 
     let unix = moment(timestamp).valueOf();
 
@@ -188,9 +198,8 @@ class HitBTCClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(data) {
-    let { ask, bid, symbol, sequence } = data;
-    let market = this._level2UpdateSubs.get(symbol); // coming from l2update sub
+  _constructLevel2Snapshot(data, market) {
+    let { ask, bid, sequence } = data;
     let asks = ask.map(p => new Level2Point(p.price, p.size));
     let bids = bid.map(p => new Level2Point(p.price, p.size));
     return new Level2Snapshot({
@@ -203,9 +212,8 @@ class HitBTCClient extends BasicClient {
     });
   }
 
-  _constructLevel2Update(data) {
-    let { ask, bid, symbol, sequence } = data;
-    let market = this._level2UpdateSubs.get(symbol);
+  _constructLevel2Update(data, market) {
+    let { ask, bid, sequence } = data;
     let asks = ask.map(p => new Level2Point(p.price, p.size, p.count));
     let bids = bid.map(p => new Level2Point(p.price, p.size, p.count));
     return new Level2Update({

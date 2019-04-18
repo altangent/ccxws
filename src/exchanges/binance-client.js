@@ -170,42 +170,54 @@ class BinanceClient extends EventEmitter {
     // ticker
     if (msg.stream === "!ticker@arr") {
       for (let raw of msg.data) {
-        if (this._tickerSubs.has(raw.s.toLowerCase())) {
-          let ticker = this._constructTicker(raw);
-          this.emit("ticker", ticker);
-          return;
-        }
+        let remote_id = raw.s.toLowerCase();
+        let market = this._tickerSubs.get(remote_id);
+        if (!market) continue;
+
+        let ticker = this._constructTicker(raw, market);
+        this.emit("ticker", ticker, market);
       }
     }
 
     // trades
     if (msg.stream.toLowerCase().endsWith("trade")) {
-      let trade = this.useAggTrades ? this._constructAggTrade(msg) : this._constructRawTrade(msg);
-      this.emit("trade", trade);
+      let remote_id = msg.data.s.toLowerCase();
+      let market = this._tradeSubs.get(remote_id);
+      if (!market) return;
+
+      let trade = this.useAggTrades
+        ? this._constructAggTrade(msg, market)
+        : this._constructRawTrade(msg, market);
+      this.emit("trade", trade, market);
       return;
     }
 
     // l2snapshot
     if (msg.stream.endsWith("depth20")) {
-      let snapshot = this._constructLevel2Snapshot(msg);
-      this.emit("l2snapshot", snapshot);
+      let remote_id = msg.stream.split("@")[0];
+      let market = this._level2SnapshotSubs.get(remote_id);
+      if (!market) return;
+
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
       return;
     }
 
     // l2update
     if (msg.stream.endsWith("depth")) {
-      let update = this._constructLevel2Update(msg);
-      this.emit("l2update", update);
+      let remote_id = msg.stream.split("@")[0];
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) return;
+
+      let update = this._constructLevel2Update(msg, market);
+      this.emit("l2update", update, market);
       return;
     }
-
-    console.log(msg);
   }
 
-  _constructTicker(msg) {
+  _constructTicker(msg, market) {
     let {
       E: timestamp,
-      s: symbol,
       c: last,
       v: volume,
       q: quoteVolume,
@@ -218,7 +230,6 @@ class BinanceClient extends EventEmitter {
       b: bid,
       B: bidVolume,
     } = msg;
-    let market = this._tickerSubs.get(symbol.toLowerCase());
     let open = parseFloat(last) + parseFloat(change);
     return new Ticker({
       exchange: "Binance",
@@ -240,9 +251,8 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _constructAggTrade({ data }) {
-    let { s: symbol, a: trade_id, p: price, q: size, T: time, m: buyer } = data;
-    let market = this._tradeSubs.get(symbol.toLowerCase());
+  _constructAggTrade({ data }, market) {
+    let { a: trade_id, p: price, q: size, T: time, m: buyer } = data;
     let unix = time;
     let amount = size;
     let side = buyer ? "buy" : "sell";
@@ -258,18 +268,8 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _constructRawTrade({ data }) {
-    let {
-      s: symbol,
-      t: trade_id,
-      p: price,
-      q: size,
-      b: buyOrderId,
-      a: sellOrderId,
-      T: time,
-      m: buyer,
-    } = data;
-    let market = this._tradeSubs.get(symbol.toLowerCase());
+  _constructRawTrade({ data }, market) {
+    let { t: trade_id, p: price, q: size, b: buyOrderId, a: sellOrderId, T: time, m: buyer } = data;
     let unix = time;
     let amount = size;
     let side = buyer ? "buy" : "sell";
@@ -287,9 +287,7 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _constructLevel2Snapshot(msg) {
-    let remote_id = msg.stream.split("@")[0];
-    let market = this._level2SnapshotSubs.get(remote_id);
+  _constructLevel2Snapshot(msg, market) {
     let sequenceId = msg.data.lastUpdateId;
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
@@ -303,9 +301,7 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _constructLevel2Update(msg) {
-    let remote_id = msg.data.s.toLowerCase();
-    let market = this._level2UpdateSubs.get(remote_id);
+  _constructLevel2Update(msg, market) {
     let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
@@ -348,7 +344,7 @@ class BinanceClient extends EventEmitter {
           asks,
           bids,
         });
-        this.emit("l2snapshot", snapshot);
+        this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
         winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
         failed = true;

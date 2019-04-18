@@ -222,10 +222,11 @@ class PoloniexClient extends BasicClient {
     // tickers
     if (id === 1002 && updates) {
       let remoteId = MARKET_IDS[updates[0]];
-      if (this._tickerSubs.has(remoteId)) {
-        let ticker = this._createTicker(remoteId, updates);
-        this.emit("ticker", ticker);
-      }
+      let market = this._tickerSubs.get(remoteId);
+      if (!market) return;
+
+      let ticker = this._createTicker(updates, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
@@ -242,31 +243,36 @@ class PoloniexClient extends BasicClient {
           let remote_id = update[1].currencyPair;
           this._idMap.set(id, remote_id);
 
-          if (this._level2UpdateSubs.has(remote_id)) {
-            let snapshot = this._constructoLevel2Snapshot(seq, update[1]);
-            this.emit("l2snapshot", snapshot);
-          }
+          // capture snapshot if we're subscribed to l2updates
+          let market = this._level2UpdateSubs.get(remote_id);
+          if (!market) continue;
 
+          let snapshot = this._constructoLevel2Snapshot(seq, update[1], market);
+          this.emit("l2snapshot", snapshot, market);
           break;
         }
         // trade events will stream-in after we are subscribed to the channel
         // and hopefully after the info packet has been sent
         case "t": {
-          if (this._tradeSubs.has(this._idMap.get(id))) {
-            let trade = this._constructTradeFromMessage(id, update);
-            this.emit("trade", trade);
-          }
+          let market = this._tradeSubs.get(this._idMap.get(id));
+          if (!market) continue;
+
+          let trade = this._constructTradeFromMessage(update, market);
+          this.emit("trade", trade, market);
           break;
         }
 
         case "o": {
-          if (this._level2UpdateSubs.has(this._idMap.get(id))) {
-            //[171, 280657226, [["o", 0, "0.00225182", "0.00000000"], ["o", 0, "0.00225179", "860.66363984"]]]
-            //[171, 280657227, [["o", 1, "0.00220001", "0.00000000"], ["o", 1, "0.00222288", "208.47334089"]]]
-            let point = new Level2Point(update[2], update[3]);
-            if (update[1] === 0) asks.push(point);
-            if (update[1] === 1) bids.push(point);
-          }
+          // only include updates if we are subscribed to the market
+          let market = this._level2UpdateSubs.get(this._idMap.get(id));
+          if (!market) continue;
+
+          //[171, 280657226, [["o", 0, "0.00225182", "0.00000000"], ["o", 0, "0.00225179", "860.66363984"]]]
+          //[171, 280657227, [["o", 1, "0.00220001", "0.00000000"], ["o", 1, "0.00222288", "208.47334089"]]]
+          let point = new Level2Point(update[2], update[3]);
+          if (update[1] === 0) asks.push(point);
+          if (update[1] === 1) bids.push(point);
+
           break;
         }
       }
@@ -275,6 +281,8 @@ class PoloniexClient extends BasicClient {
     // check if we have bids/asks and construct order update message
     if (bids.length || asks.length) {
       let market = this._level2UpdateSubs.get(this._idMap.get(id));
+      if (!market) return;
+
       let l2update = new Level2Update({
         exchange: "Poloniex",
         base: market.base,
@@ -283,13 +291,12 @@ class PoloniexClient extends BasicClient {
         asks,
         bids,
       });
-      this.emit("l2update", l2update);
+      this.emit("l2update", l2update, market);
     }
   }
 
-  _createTicker(remoteId, update) {
+  _createTicker(update, market) {
     let [, last, ask, bid, percent, quoteVol, baseVol, , high, low] = update;
-    let market = this._tickerSubs.get(remoteId);
     let open = parseFloat(last) / (1 + parseFloat(percent));
     let dayChange = parseFloat(last) - open;
     return new Ticker({
@@ -310,14 +317,8 @@ class PoloniexClient extends BasicClient {
     });
   }
 
-  _constructTradeFromMessage(id, update) {
+  _constructTradeFromMessage(update, market) {
     let [, trade_id, side, price, size, unix] = update;
-
-    // figure out the market symbol
-    let remote_id = this._idMap.get(id);
-    if (!remote_id) return;
-
-    let market = this._tradeSubs.get(remote_id);
 
     side = side === 1 ? "buy" : "sell";
     unix = unix * 1000;
@@ -335,8 +336,7 @@ class PoloniexClient extends BasicClient {
     });
   }
 
-  _constructoLevel2Snapshot(seq, update) {
-    let market = this._level2UpdateSubs.get(update.currencyPair);
+  _constructoLevel2Snapshot(seq, update, market) {
     let [asksObj, bidsObj] = update.orderBook;
     let asks = [];
     let bids = [];

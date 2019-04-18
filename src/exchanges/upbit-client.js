@@ -78,27 +78,36 @@ class UpbitClient extends BasicClient {
 
     // trades
     if (msg.type === "trade") {
-      let trade = this._constructTradesFromMessage(msg);
-      this.emit("trade", trade);
+      let market = this._tradeSubs.get(msg.code);
+      if (!market) return;
+
+      let trade = this._constructTradesFromMessage(msg, market);
+      this.emit("trade", trade, market);
       return;
     }
 
     // tickers
     if (msg.type === "ticker") {
-      let ticker = this._constructTicker(msg);
-      this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(msg.code);
+      if (!market) return;
+
+      let ticker = this._constructTicker(msg, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     // l2 updates
     if (msg.type === "orderbook") {
-      let snapshot = this._constructLevel2Snapshot(msg);
-      this.emit("l2snapshot", snapshot);
+      let market = this._level2SnapshotSubs.get(msg.code);
+      if (!market) return;
+
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
       return;
     }
   }
 
-  _constructTicker(msg) {
+  _constructTicker(msg, market) {
     /*
 { type: 'ticker',
   code: 'KRW-BTC',
@@ -140,7 +149,6 @@ class UpbitClient extends BasicClient {
     let {
       opening_price,
       trade_price,
-      code,
       acc_trade_volume,
       change_rate,
       change_price,
@@ -148,9 +156,6 @@ class UpbitClient extends BasicClient {
       high_price,
       timestamp,
     } = msg;
-
-    let market = this._tickerSubs.get(code);
-    if (!market) return;
 
     return new Ticker({
       exchange: "Upbit",
@@ -168,7 +173,7 @@ class UpbitClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(datum) {
+  _constructTradesFromMessage(datum, market) {
     /*
       {
        "type":"trade",
@@ -186,10 +191,7 @@ class UpbitClient extends BasicClient {
        "stream_type":"REALTIME"}
     */
 
-    let { code, trade_timestamp, trade_price, trade_volume, ask_bid, sequential_id } = datum;
-
-    let market = this._tradeSubs.get(code);
-    if (!market) return;
+    let { trade_timestamp, trade_price, trade_volume, ask_bid, sequential_id } = datum;
 
     let side = ask_bid === "BID" ? "buy" : "sell";
 
@@ -205,7 +207,7 @@ class UpbitClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg) {
+  _constructLevel2Snapshot(msg, market) {
     /*
 { type: 'orderbook',
   code: 'KRW-BTT',
@@ -224,10 +226,6 @@ class UpbitClient extends BasicClient {
        bid_size: 267304509.61145836 } ],
   stream_type: 'SNAPSHOT' }
     */
-
-    let remote_id = msg.code;
-    let market = this._level2SnapshotSubs.get(remote_id);
-    if (!market) return;
 
     let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
     let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));

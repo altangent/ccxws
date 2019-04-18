@@ -91,30 +91,32 @@ class HuobiClient extends BasicClient {
 
     // tickers
     if (type === "ticker") {
-      let ticker = this._constructTicker(remoteId, msg);
-      this.emit("ticker", ticker);
+      let market = this._tickerSubs.get(remoteId);
+      let ticker = this._constructTicker(msg, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
     // trades
     if (type === "trades") {
       for (let datum of msg.data) {
-        let trade = this._constructTradesFromMessage(remoteId, datum);
-        this.emit("trade", trade);
+        let market = this._tradeSubs.get(remoteId);
+        let trade = this._constructTradesFromMessage(datum, market);
+        this.emit("trade", trade, market);
       }
       return;
     }
 
     // level2snapshots
     if (type === "depth") {
-      let snapshot = this._constructLevel2Snapshot(remoteId, msg);
-      this.emit("l2snapshot", snapshot);
+      let market = this._level2SnapshotSubs.get(remoteId);
+      let snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
       return;
     }
   }
 
-  _constructTicker(remoteId, data) {
-    let market = this._tickerSubs.get(remoteId);
+  _constructTicker(data, market) {
     let timestamp = parseInt(data.date);
     let ticker = data.ticker;
     return new Ticker({
@@ -135,8 +137,7 @@ class HuobiClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(remoteId, datum) {
-    let market = this._tradeSubs.get(remoteId);
+  _constructTradesFromMessage(datum, market) {
     let { date, price, amount, tid, type } = datum;
     return new Trade({
       exchange: "ZB",
@@ -150,8 +151,7 @@ class HuobiClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(remoteId, msg) {
-    let market = this._level2SnapshotSubs.get(remoteId);
+  _constructLevel2Snapshot(msg, market) {
     let { timestamp, asks, bids } = msg;
     asks = asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8))).reverse();
     bids = bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));

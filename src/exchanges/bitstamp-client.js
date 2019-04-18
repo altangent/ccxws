@@ -185,7 +185,7 @@ class BitstampClient extends EventEmitter {
       buyOrderId: msg.buy_order_id,
       sellOrderId: msg.sell_order_id,
     });
-    this.emit("trade", trade);
+    this.emit("trade", trade, market);
   }
 
   _sendSubLevel2Snapshot(remote_id) {
@@ -234,7 +234,7 @@ class BitstampClient extends EventEmitter {
       asks,
     });
 
-    this.emit("l2snapshot", spot);
+    this.emit("l2snapshot", spot, market);
   }
 
   _sendSubLevel2Updates(remote_id) {
@@ -288,7 +288,7 @@ class BitstampClient extends EventEmitter {
       asks,
     });
 
-    this.emit("l2update", update);
+    this.emit("l2update", update, market);
   }
 
   _sendSubLevel3Updates(remote_id) {
@@ -336,7 +336,7 @@ class BitstampClient extends EventEmitter {
       bids,
     });
 
-    this.emit("l3update", update);
+    this.emit("l3update", update, market);
   }
 
   _requestLevel2Snapshots() {
@@ -368,7 +368,7 @@ class BitstampClient extends EventEmitter {
           asks,
           bids,
         });
-        this.emit("l2snapshot", snapshot);
+        this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
         winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
         this._requestLevel2Snapshot(market);
