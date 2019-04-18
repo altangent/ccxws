@@ -124,8 +124,8 @@ class BasicMultiClient extends EventEmitter {
       if (marketObjectType === MarketObjectTypes.ticker) {
         let subscribed = client.subscribeTicker(market);
         if (subscribed) {
-          client.on("ticker", ticker => {
-            this.emit("ticker", ticker);
+          client.on("ticker", (ticker, market) => {
+            this.emit("ticker", ticker, market);
           });
         }
       }
@@ -133,8 +133,8 @@ class BasicMultiClient extends EventEmitter {
       if (marketObjectType === MarketObjectTypes.trade) {
         let subscribed = client.subscribeTrades(market);
         if (subscribed) {
-          client.on("trade", trade => {
-            this.emit("trade", trade);
+          client.on("trade", (trade, market) => {
+            this.emit("trade", trade, market);
           });
         }
       }
@@ -142,11 +142,11 @@ class BasicMultiClient extends EventEmitter {
       if (marketObjectType === MarketObjectTypes.level2update) {
         let subscribed = client.subscribeLevel2Updates(market);
         if (subscribed) {
-          client.on("l2update", l2update => {
-            this.emit("l2update", l2update);
+          client.on("l2update", (l2update, market) => {
+            this.emit("l2update", l2update, market);
           });
-          client.on("l2snapshot", l2snapshot => {
-            this.emit("l2snapshot", l2snapshot);
+          client.on("l2snapshot", (l2snapshot, market) => {
+            this.emit("l2snapshot", l2snapshot, market);
           });
         }
       }
@@ -154,8 +154,8 @@ class BasicMultiClient extends EventEmitter {
       if (marketObjectType === MarketObjectTypes.level2snapshot) {
         let subscribed = client.subscribeLevel2Snapshots(market);
         if (subscribed) {
-          client.on("l2snapshot", l2snapshot => {
-            this.emit("l2snapshot", l2snapshot);
+          client.on("l2snapshot", (l2snapshot, market) => {
+            this.emit("l2snapshot", l2snapshot, market);
           });
         }
       }

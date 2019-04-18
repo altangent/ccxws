@@ -55,7 +55,9 @@ describe("KrakenClient", () => {
 
       test("should subscribe and emit ticker events", done => {
         client.subscribeTicker(market1);
-        client.on("ticker", ticker => {
+        client.on("ticker", (ticker, market) => {
+          expect(market).toBeDefined();
+          expect(market.id).toMatch(/XXBTZEUR/);
           expect(ticker.fullId).toMatch("Kraken:" + market1.base + "/" + market1.quote);
           expect(ticker.timestamp).toBeGreaterThan(1531677480465);
           expect(typeof ticker.last).toBe("string");
@@ -93,7 +95,9 @@ describe("KrakenClient", () => {
 
       test("should subscribe and emit trade events", done => {
         client.subscribeTrades(market1);
-        client.on("trade", trade => {
+        client.on("trade", (trade, market) => {
+          expect(market).toBeDefined();
+          expect(market.id).toMatch(/XXBTZEUR/);
           expect(trade.fullId).toMatch("Kraken:" + market1.base + "/" + market1.quote);
           expect(trade.exchange).toMatch("Kraken");
           expect(trade.base).toMatch(market1.base);
@@ -127,7 +131,9 @@ describe("KrakenClient", () => {
           }
         }
 
-        client.on("l2snapshot", s => {
+        client.on("l2snapshot", (s, market) => {
+          expect(market).toBeDefined();
+          expect(market.id).toMatch(/XXBTZEUR/);
           expect(s.fullId).toBe("Kraken:BTC/EUR");
           expect(s.exchange).toBe("Kraken");
           expect(s.base).toBe("BTC");
@@ -146,7 +152,9 @@ describe("KrakenClient", () => {
           hasL2Snapshot = true;
           fin();
         });
-        client.on("l2update", u => {
+        client.on("l2update", (u, market) => {
+          expect(market).toBeDefined();
+          expect(market.id).toMatch(/XXBTZEUR/);
           expect(u.fullId).toBe("Kraken:BTC/EUR");
           expect(u.exchange).toBe("Kraken");
           expect(u.base).toBe("BTC");

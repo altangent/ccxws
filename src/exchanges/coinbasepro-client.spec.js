@@ -40,7 +40,9 @@ describe("CoinbaseProClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC-USD/);
       expect(ticker.fullId).toMatch("CoinbasePro:BTC/USD");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -69,7 +71,9 @@ describe("CoinbaseProClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC-USD/);
       expect(trade.fullId).toMatch("CoinbasePro:BTC/USD");
       expect(trade.exchange).toMatch("CoinbasePro");
       expect(trade.base).toMatch("BTC");
@@ -91,8 +95,10 @@ describe("CoinbaseProClient", () => {
   test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC-USD/);
       expect(snapshot.fullId).toMatch("CoinbasePro:BTC/USD");
       expect(snapshot.exchange).toMatch("CoinbasePro");
       expect(snapshot.base).toMatch("BTC");
@@ -106,7 +112,9 @@ describe("CoinbaseProClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(snapshot.bids[0].count).toBeUndefined();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC-USD/);
       expect(hasSnapshot).toBeTruthy();
       expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
       expect(update.exchange).toMatch("CoinbasePro");
@@ -126,58 +134,54 @@ describe("CoinbaseProClient", () => {
     let hasReceived, hasOpen, hasDone, hasMatch;
     let point;
     client.subscribeLevel3Updates(market);
-    client.on("l3update", update => {
-      try {
-        expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
-        expect(update.exchange).toMatch("CoinbasePro");
-        expect(update.base).toMatch("BTC");
-        expect(update.quote).toMatch("USD");
-        expect(update.sequenceId).toBeGreaterThan(0);
-        expect(update.timestampMs).toBeGreaterThan(0);
-        point = update.asks[0] || update.bids[0];
-        expect(point.orderId).toMatch(/^[a-f0-9]{32,32}$/);
+    client.on("l3update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTC-USD/);
+      expect(update.fullId).toMatch("CoinbasePro:BTC/USD");
+      expect(update.exchange).toMatch("CoinbasePro");
+      expect(update.base).toMatch("BTC");
+      expect(update.quote).toMatch("USD");
+      expect(update.sequenceId).toBeGreaterThan(0);
+      expect(update.timestampMs).toBeGreaterThan(0);
+      point = update.asks[0] || update.bids[0];
+      expect(point.orderId).toMatch(/^[a-f0-9]{32,32}$/);
 
-        switch (point.meta.type) {
-          case "received":
-            hasReceived = true;
-            // if (point.meta.order_type === "market") {
-            //   expect(parseFloat(point.meta.funds)).toBeGreaterThan(0);
-            // } else
-            if (point.meta.order_type === "limit") {
-              expect(parseFloat(point.price)).toBeGreaterThan(0);
-              expect(parseFloat(point.size)).toBeGreaterThan(0);
-            }
-            // else throw new Error("unknown type " + point.meta.order_type);
-            break;
-          case "open":
-            hasOpen = true;
+      switch (point.meta.type) {
+        case "received":
+          hasReceived = true;
+          // if (point.meta.order_type === "market") {
+          //   expect(parseFloat(point.meta.funds)).toBeGreaterThan(0);
+          // } else
+          if (point.meta.order_type === "limit") {
             expect(parseFloat(point.price)).toBeGreaterThan(0);
             expect(parseFloat(point.size)).toBeGreaterThan(0);
-            expect(parseFloat(point.meta.remaining_size)).toBeGreaterThanOrEqual(0);
-            break;
-          case "done":
-            hasDone = true;
-            // removed because we may sometimes have data
-            // expect(parseFloat(point.price)).toBeGreaterThan(0);
-            // expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-            // expect(parseFloat(point.meta.remaining_size)).toBeGreaterThanOrEqual(0);
-            expect(point.meta.reason).toMatch(/filled|canceled/);
-            break;
-          case "match":
-            hasMatch = true;
-            expect(parseFloat(point.price)).toBeGreaterThan(0);
-            expect(parseFloat(point.size)).toBeGreaterThan(0);
-            expect(point.meta.trade_id).toBeGreaterThan(0);
-            expect(point.meta.maker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
-            expect(point.meta.taker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
-            break;
-        }
-
-        if (hasReceived && hasOpen && hasDone && hasMatch) done();
-      } catch (ex) {
-        console.log(point);
-        throw ex;
+          }
+          // else throw new Error("unknown type " + point.meta.order_type);
+          break;
+        case "open":
+          hasOpen = true;
+          expect(parseFloat(point.price)).toBeGreaterThan(0);
+          expect(parseFloat(point.size)).toBeGreaterThan(0);
+          expect(parseFloat(point.meta.remaining_size)).toBeGreaterThanOrEqual(0);
+          break;
+        case "done":
+          hasDone = true;
+          // removed because we may sometimes have data
+          // expect(parseFloat(point.price)).toBeGreaterThan(0);
+          // expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
+          // expect(parseFloat(point.meta.remaining_size)).toBeGreaterThanOrEqual(0);
+          expect(point.meta.reason).toMatch(/filled|canceled/);
+          break;
+        case "match":
+          hasMatch = true;
+          expect(parseFloat(point.price)).toBeGreaterThan(0);
+          expect(parseFloat(point.size)).toBeGreaterThan(0);
+          expect(point.meta.trade_id).toBeGreaterThan(0);
+          expect(point.meta.maker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
+          expect(point.meta.taker_order_id).toMatch(/^[a-f0-9]{32,32}$/);
+          break;
       }
+      if (hasReceived && hasOpen && hasDone && hasMatch) done();
     });
   }, 30000);
 

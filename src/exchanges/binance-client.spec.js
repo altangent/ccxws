@@ -40,7 +40,9 @@ describe("BinanceClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/ETHBTC/);
       expect(ticker.fullId).toMatch("Binance:ETH/BTC");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -72,7 +74,9 @@ describe("BinanceClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/ETHBTC/);
       expect(trade.fullId).toMatch("Binance:ETH/BTC");
       expect(trade.exchange).toMatch("Binance");
       expect(trade.base).toMatch("ETH");
@@ -92,8 +96,10 @@ describe("BinanceClient", () => {
     let hasSnapshot = false;
     let hasUpdates = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/ETHBTC/);
       expect(snapshot.fullId).toMatch("Binance:ETH/BTC");
       expect(snapshot.exchange).toMatch("Binance");
       expect(snapshot.base).toMatch("ETH");
@@ -108,8 +114,10 @@ describe("BinanceClient", () => {
       expect(snapshot.bids[0].count).toBeUndefined();
       if (hasSnapshot && hasUpdates) done();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
       hasUpdates = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/ETHBTC/);
       expect(update.fullId).toMatch("Binance:ETH/BTC");
       expect(update.exchange).toMatch("Binance");
       expect(update.base).toMatch("ETH");
@@ -130,7 +138,9 @@ describe("BinanceClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/ETHBTC/);
       expect(snapshot.fullId).toMatch("Binance:ETH/BTC");
       expect(snapshot.exchange).toMatch("Binance");
       expect(snapshot.base).toMatch("ETH");

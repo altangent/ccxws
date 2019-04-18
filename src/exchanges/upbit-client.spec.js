@@ -56,7 +56,9 @@ describe("UpbitClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market1);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/KRW-BTC|KRW-BTT/);
       expect(ticker.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -93,7 +95,9 @@ describe("UpbitClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market1);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/KRW-BTC|KRW-BTT/);
       expect(trade.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
       expect(trade.exchange).toMatch("Upbit");
       expect(trade.base).toMatch(market1.base);
@@ -119,7 +123,9 @@ describe("UpbitClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market1);
-    client.on("l2snapshot", update => {
+    client.on("l2snapshot", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/KRW-BTC|KRW-BTT/);
       expect(update.fullId).toMatch("Upbit:" + market1.base + "/" + market1.quote);
       expect(update.exchange).toMatch("Upbit");
       expect(update.base).toMatch(market1.base);

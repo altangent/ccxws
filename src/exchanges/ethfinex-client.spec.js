@@ -40,7 +40,9 @@ describe("EthfinexClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(ticker.fullId).toMatch("Ethfinex:BTC/USD");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -72,7 +74,9 @@ describe("EthfinexClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(trade.fullId).toMatch("Ethfinex:BTC/USD");
       expect(trade.exchange).toMatch("Ethfinex");
       expect(trade.base).toMatch("BTC");
@@ -91,8 +95,10 @@ describe("EthfinexClient", () => {
   test("should subscribe and emit level2 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(snapshot.fullId).toMatch("Ethfinex:BTC/USD");
       expect(snapshot.exchange).toMatch("Ethfinex");
       expect(snapshot.base).toMatch("BTC");
@@ -106,7 +112,9 @@ describe("EthfinexClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(parseFloat(snapshot.bids[0].count)).toBeGreaterThanOrEqual(0);
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(hasSnapshot).toBeTruthy();
       expect(update.fullId).toMatch("Ethfinex:BTC/USD");
       expect(update.exchange).toMatch("Ethfinex");
@@ -125,8 +133,10 @@ describe("EthfinexClient", () => {
   test("should subscribe and emit level3 snapshot and updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel3Updates(market);
-    client.on("l3snapshot", snapshot => {
+    client.on("l3snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(snapshot.fullId).toMatch("Ethfinex:BTC/USD");
       expect(snapshot.exchange).toMatch("Ethfinex");
       expect(snapshot.base).toMatch("BTC");
@@ -140,7 +150,9 @@ describe("EthfinexClient", () => {
       expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
     });
-    client.on("l3update", update => {
+    client.on("l3update", (update, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/BTCUSD/);
       expect(hasSnapshot).toBeTruthy();
       expect(update.fullId).toMatch("Ethfinex:BTC/USD");
       expect(update.exchange).toMatch("Ethfinex");

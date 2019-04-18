@@ -40,7 +40,9 @@ describe("ZBClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(ticker.fullId).toMatch("ZB:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -65,7 +67,9 @@ describe("ZBClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(trade.fullId).toMatch("ZB:BTC/USDT");
       expect(trade.exchange).toMatch("ZB");
       expect(trade.base).toMatch("BTC");
@@ -83,7 +87,9 @@ describe("ZBClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(snapshot.fullId).toMatch("ZB:BTC/USDT");
       expect(snapshot.exchange).toMatch("ZB");
       expect(snapshot.base).toMatch("BTC");

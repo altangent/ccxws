@@ -36,7 +36,9 @@ describe("BitflyerClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/FX_BTC_JPY/);
       expect(ticker.fullId).toMatch("bitFlyer:BTC/JPY");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -63,7 +65,9 @@ describe("BitflyerClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/FX_BTC_JPY/);
       expect(trade.fullId).toMatch("bitFlyer:BTC/JPY");
       expect(trade.exchange).toMatch("bitFlyer");
       expect(trade.base).toMatch("BTC");
@@ -85,8 +89,10 @@ describe("BitflyerClient", () => {
     let hasSnapshot = true;
     let hasUpdate = true;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", update => {
+    client.on("l2snapshot", (update, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/FX_BTC_JPY/);
       expect(update.fullId).toMatch("bitFlyer:BTC/JPY");
       expect(update.exchange).toMatch("bitFlyer");
       expect(update.base).toMatch("BTC");
@@ -101,8 +107,10 @@ describe("BitflyerClient", () => {
       expect(point.count).toBeUndefined();
       if (hasSnapshot && hasUpdate) done();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
       hasUpdate = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/FX_BTC_JPY/);
       expect(update.fullId).toMatch("bitFlyer:BTC/JPY");
       expect(update.exchange).toMatch("bitFlyer");
       expect(update.base).toMatch("BTC");

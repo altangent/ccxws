@@ -40,7 +40,9 @@ describe("OkEXClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(ticker.fullId).toMatch("OKEx:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -69,7 +71,9 @@ describe("OkEXClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(trade.fullId).toMatch("OKEx:BTC/USDT");
       expect(trade.exchange).toMatch("OKEx");
       expect(trade.base).toMatch("BTC");
@@ -88,8 +92,10 @@ describe("OkEXClient", () => {
   test("should subscribe and emit level2 updates", done => {
     let hasSnapshot = false;
     client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
       hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
       expect(snapshot.exchange).toMatch("OKEx");
       expect(snapshot.base).toMatch("BTC");
@@ -103,8 +109,10 @@ describe("OkEXClient", () => {
       expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
       expect(snapshot.bids[0].count).toBeUndefined();
     });
-    client.on("l2update", update => {
+    client.on("l2update", (update, market) => {
       expect(hasSnapshot).toBeTruthy();
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(update.fullId).toMatch("OKEx:BTC/USD");
       expect(update.exchange).toMatch("OKEx");
       expect(update.base).toMatch("BTC");
@@ -121,7 +129,9 @@ describe("OkEXClient", () => {
 
   test("should subscribe and emit level2 snapshots", done => {
     client.subscribeLevel2Snapshots(market);
-    client.on("l2snapshot", snapshot => {
+    client.on("l2snapshot", (snapshot, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btc_usdt/);
       expect(snapshot.fullId).toMatch("OKEx:BTC/USDT");
       expect(snapshot.exchange).toMatch("OKEx");
       expect(snapshot.base).toMatch("BTC");

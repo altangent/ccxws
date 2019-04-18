@@ -40,7 +40,9 @@ describe("HuobiClient", () => {
 
   test("should subscribe and emit ticker events", done => {
     client.subscribeTicker(market);
-    client.on("ticker", ticker => {
+    client.on("ticker", (ticker, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusdt/);
       expect(ticker.fullId).toMatch("Huobi:BTC/USDT");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
       expect(typeof ticker.last).toBe("string");
@@ -69,7 +71,9 @@ describe("HuobiClient", () => {
 
   test("should subscribe and emit trade events", done => {
     client.subscribeTrades(market);
-    client.on("trade", trade => {
+    client.on("trade", (trade, market) => {
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusdt/);
       expect(trade.fullId).toMatch("Huobi:BTC/USDT");
       expect(trade.exchange).toMatch("Huobi");
       expect(trade.base).toMatch("BTC");
