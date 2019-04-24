@@ -25,7 +25,7 @@ Create a new client for an exchange. Subscribe to the events that you want to li
 
 ```javascript
 const ccxws = require("ccxws");
-const binance = new ccxws.Binance();
+const binance = new ccxws.binance();
 
 // market could be from CCXT or genearted by the user
 const market = {
@@ -91,7 +91,7 @@ Orderbook level 3 - this is the most granual order book information. It has raw 
 
 Markets are used as input to many of the client functions. Markets can be generated and stored by you the developer or loaded from the CCXT library.
 
-The following properties are used by CCXWS.
+These properties are required by CCXWS.
 
 - `id: string` - the identifier used by the remote exchange
 - `base: string` - the normalized base symbol for the market
@@ -125,15 +125,15 @@ binance.on("trades", (trade, market) => console.log(trade, market));
 binance.on("l2snapshot", (snapshot, market) => console.log(snapshot, market));
 ```
 
-##### `ticker: Ticker`
+##### `ticker` emits `Ticker`, `Market`
 
 Fired when a ticker update is received. Returns an instance of `Ticker` and the `Market` used to subscribe to the event.
 
-##### `trade: Trade`
+##### `trade` emits `Trade`, `Market`
 
 Fired when a trade is received. Returns an instance of `Trade` and the `Market` used to subscribe to the event.
 
-##### `l2snapshot: Level2Snapshot`
+##### `l2snapshot` emits `Level2Snapshot`, `Market`
 
 Fired when a orderbook level 2 snapshot is received. Returns an instance of `Level2Snapshot` and the `Market` used to subscribe to the event.
 
@@ -141,17 +141,17 @@ The level of detail will depend on the specific exchange and may include 5/10/20
 
 This event is also fired when subscribing to the `l2update` event on many exchanges.
 
-##### `l2update: Level2Update`
+##### `l2update` emits `Level2Update`, `Market`
 
 Fired when a orderbook level 2 update is recieved. Returns an instance of `Level2Update` and the `Market` used to subscribe to the event.
 
 Subscribing to this event may trigger an initial `l2snapshot` event for many exchanges.
 
-##### `l3snapshot: Level3Snapshot`
+##### `l3snapshot` emits `Level3Snapshot`, `Market`
 
 Fired when a orderbook level 3 snapshot is received. Returns an instance of `Level3Snapshot` and the `Market` used to subscribe to the event.
 
-##### `l3update: Level3Update` - orderbook level 3 Update
+##### `l3update` emits `Level3Update`, `Market`
 
 Fired when a level 3 update is recieved. Returns an instance of `Level3Update` and the `Market` used to subscribe to the event.
 
