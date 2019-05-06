@@ -60,7 +60,7 @@ class BitfinexClient extends BasicClient {
         event: "subscribe",
         channel: "book",
         pair: remote_id,
-        length: "100",
+        len: "100",
       })
     );
   }
@@ -225,7 +225,8 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Update(msg, market) {
-    let [price, count, size] = msg;
+    // eslint-disable-next-line no-unused-vars
+    let [channelId, price, count, size] = msg;
     if (!price.toFixed) return;
     let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
     let asks = [];
