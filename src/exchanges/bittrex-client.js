@@ -21,6 +21,7 @@ class BittrexClient extends EventEmitter {
     this._level2UpdateSubs = new Map();
     this._watcher = new Watcher(this);
     this._tickerConnected;
+    this._finalClosing = false;
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -31,6 +32,11 @@ class BittrexClient extends EventEmitter {
   }
 
   close(emitEvent = true) {
+    if (emitEvent) {
+      // if user activated close, we flag this
+      // so we don't attempt to reconnect
+      this._finalClosing = true;
+    }
     this._watcher.stop();
     if (this._wss) {
       try {
@@ -239,10 +245,12 @@ class BittrexClient extends EventEmitter {
   }
 
   _onDisconnected() {
-    clearTimeout(this._reconnectHandle);
-    this._watcher.stop();
-    this.emit("disconnected");
-    this._reconnectHandle = setTimeout(() => this.reconnect(false), this._retryTimeoutMs);
+    if (!this._finalClosing) {
+      clearTimeout(this._reconnectHandle);
+      this._watcher.stop();
+      this.emit("disconnected");
+      this._reconnectHandle = setTimeout(() => this.reconnect(false), this._retryTimeoutMs);
+    }
   }
 
   _onMessage(raw) {
