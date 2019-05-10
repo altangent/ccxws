@@ -9,6 +9,7 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const MarketObjectTypes = require("../enums");
 const semaphore = require("semaphore");
+const { wait } = require("../util");
 
 class BiboxClient extends EventEmitter {
   /**
@@ -74,6 +75,13 @@ class BiboxClient extends EventEmitter {
       client.close();
     }
     if (emitClosed) this.emit("closed");
+  }
+
+  async reconnect() {
+    for (let client of this._clients) {
+      client.reconnect();
+      await wait(this.timeoutMs);
+    }
   }
 
   /**
