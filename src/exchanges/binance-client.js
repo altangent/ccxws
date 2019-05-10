@@ -122,6 +122,7 @@ class BinanceClient extends EventEmitter {
       this._wss = undefined;
       this.emit("closed");
     }
+    this._watcher.stop();
   }
 
   /** Connect to the websocket stream by constructing a path from
