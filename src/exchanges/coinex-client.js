@@ -1,4 +1,5 @@
 const moment = require("moment");
+const winston = require("winston");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
@@ -7,6 +8,7 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
+const MarketObjectTypes = require("../enums");
 
 class CoinexClient extends BasicMultiClient {
   constructor() {
@@ -31,6 +33,9 @@ class CoinexSingleClient extends BasicClient {
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
+    this.retryErrorTimeout = 15000;
+    this._id = 0;
+    this._idSubMap = new Map();
     setInterval(this._sendPing.bind(this), 30000); // send ping every 30 sec
   }
 
@@ -40,18 +45,46 @@ class CoinexSingleClient extends BasicClient {
         JSON.stringify({
           method: "server.ping",
           params: [],
-          id: 11,
+          id: ++this._id,
         })
       );
     }
   }
 
+  _failSubscription(id) {
+    // find the subscription
+    let sub = this._idSubMap.get(id);
+    if (!sub) return;
+
+    // unsubscribe from the appropriate event
+    let { type, remote_id } = sub;
+
+    winston.error(`failed to subscribe to ${remote_id}, please retry subscription`);
+
+    // unsubscribe from the appropriate thiing
+    switch (type) {
+      case MarketObjectTypes.ticker:
+        this.unsubscribeTicker(remote_id);
+        break;
+      case MarketObjectTypes.trade:
+        this.unsubscribeTrades(remote_id);
+        break;
+      case MarketObjectTypes.level2update:
+        this.unsubscribeLevel2Updates(remote_id);
+        break;
+    }
+    // remove the value
+    this._idSubMap.delete(id);
+  }
+
   _sendSubTicker(remote_id) {
+    let id = this._id++;
+    this._idSubMap.set(id, { remote_id, type: MarketObjectTypes.ticker });
     this._wss.send(
       JSON.stringify({
         method: "state.subscribe",
         params: [remote_id],
-        id: 1,
+        id,
       })
     );
   }
@@ -65,11 +98,13 @@ class CoinexSingleClient extends BasicClient {
   }
 
   _sendSubTrades(remote_id) {
+    let id = this._id++;
+    this._idSubMap.set(id, { remote_id, type: MarketObjectTypes.trade });
     this._wss.send(
       JSON.stringify({
         method: "deals.subscribe",
         params: [remote_id],
-        id: 1,
+        id,
       })
     );
   }
@@ -83,11 +118,13 @@ class CoinexSingleClient extends BasicClient {
   }
 
   _sendSubLevel2Updates(remote_id) {
+    let id = this._id++;
+    this._idSubMap.set(id, { remote_id, type: MarketObjectTypes.level2update });
     this._wss.send(
       JSON.stringify({
         method: "depth.subscribe",
         params: [remote_id, 100, "0"], // 100 is the maximum number of items Coinex will let you request
-        id: 1,
+        id,
       })
     );
   }
@@ -103,9 +140,16 @@ class CoinexSingleClient extends BasicClient {
   _onMessage(raw) {
     let msg = JSON.parse(raw);
 
-    let { method, params } = msg;
+    let { error, method, params, id } = msg;
 
-    // if params is not defined, then this is a response to an event that we don't care about (like the initial connection event)
+    // unsubscribe on failures
+    if (error) {
+      this._failSubscription(id);
+      return;
+    }
+
+    // if params is not defined, then this is a response to an event
+    // that we don't care about (like the initial connection event)
     if (!params) return;
 
     if (method === "state.update") {

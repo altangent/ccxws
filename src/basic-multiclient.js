@@ -2,6 +2,7 @@ const { EventEmitter } = require("events");
 const semaphore = require("semaphore");
 const MarketObjectTypes = require("./enums");
 const winston = require("winston");
+const { wait } = require("./util");
 
 class BasicMultiClient extends EventEmitter {
   constructor() {
@@ -13,7 +14,23 @@ class BasicMultiClient extends EventEmitter {
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Updates = false;
+    this.throttleMs = 250;
     this.sem = semaphore(3); // this can be overriden to allow more or less
+  }
+
+  async reconnect() {
+    for (let client of this._clients.values()) {
+      (await client).reconnect();
+      await wait(this.throttleMs); // delay the reconnection throttling
+    }
+  }
+
+  async close(emitClosed = true) {
+    for (let client of this._clients.values()) {
+      (await client).close();
+    }
+
+    if (emitClosed) this.emit("closed");
   }
 
   ////// ABSTRACT
@@ -79,14 +96,6 @@ class BasicMultiClient extends EventEmitter {
     if (this._clients.has(market.id)) {
       (await this._clients.get(market.id)).unsubscribeLevel2Snapshots(market);
     }
-  }
-
-  async close(emitClosed = true) {
-    for (let client of this._clients.values()) {
-      (await client).close();
-    }
-
-    if (emitClosed) this.emit("closed");
   }
 
   _createBasicClientThrottled(clientArgs) {
