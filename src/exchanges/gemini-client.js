@@ -20,6 +20,12 @@ class GeminiClient extends EventEmitter {
     this.hasLevel3Updates = false;
   }
 
+  reconnect() {
+    for (let subscription of this._subscriptions.values()) {
+      this._reconnect(subscription);
+    }
+  }
+
   subscribeTrades(market) {
     this._subscribe(market, "trades");
   }
