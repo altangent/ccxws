@@ -1,43 +1,202 @@
+const { EventEmitter } = require("events");
 const winston = require("winston");
 const zlib = require("zlib");
 const Watcher = require("../watcher");
 const BasicClient = require("../basic-client");
-const BasicMultiClient = require("../basic-multiclient");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
+const MarketObjectTypes = require("../enums");
+const semaphore = require("semaphore");
+const { wait } = require("../util");
 
-class BiboxClient extends BasicMultiClient {
+class BiboxClient extends EventEmitter {
   /**
     Bibox allows listening to multiple markets on the same
     socket. Unfortunately, they throw errors if you subscribe
-    to too more than 20 markets at a time. As a result, we
-    will need to use the basic multiclient.
+    to too more than 20 markets at a time re:
+    https://github.com/Biboxcom/API_Docs_en/wiki/WS_request#1-access-to-the-url
+    This makes like hard and we need to batch connections, which
+    is why we can't use the BasicMultiClient.
    */
   constructor() {
     super();
+
+    /**
+        Stores the client used for each subscription request with teh
+        key: remoteId_subType
+        The value is the underlying client that is used.
+       */
+    this._subClients = new Map();
+
+    /**
+        List of all active clients. Clients will be removed when all
+        subscriptions have vanished.
+       */
+    this._clients = [];
+
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
+    this.hasLevel2Updates = false;
+    this.hasLevel3Updates = false;
+    this.subsPerClient = 20;
+    this.throttleMs = 200;
+    this._throttle = semaphore(1);
   }
 
-  _createBasicClient() {
-    return new BiboxSingleClient();
+  subscribeTicker(market) {
+    this._throttleSubscribe(market, MarketObjectTypes.ticker);
+  }
+
+  unsubscribeTicker(market) {
+    this._unsubscribe(market, MarketObjectTypes.ticker);
+  }
+
+  subscribeTrades(market) {
+    this._throttleSubscribe(market, MarketObjectTypes.trade);
+  }
+
+  unsubscribeTrades(market) {
+    this._unsubscribe(market, MarketObjectTypes.trade);
+  }
+
+  subscribeLevel2Snapshots(market) {
+    this._throttleSubscribe(market, MarketObjectTypes.level2snapshot);
+  }
+
+  unsubscribeLevel2Snapshots(market) {
+    this._unsubscribe(market, MarketObjectTypes.level2Snapshot);
+  }
+
+  close(emitClosed = true) {
+    for (let client of this._clients) {
+      client.close();
+    }
+    if (emitClosed) this.emit("closed");
+  }
+
+  async reconnect() {
+    for (let client of this._clients) {
+      client.reconnect();
+      await wait(this.timeoutMs);
+    }
+  }
+
+  /**
+    This method wraps a call to subscribe with a semaphore that is realeased
+    after a timeout period. This ensures that only so many subscribe methods
+    are called with a certain time period.
+    @param {*} market
+    @param {*} marketObjectType
+   */
+  _throttleSubscribe(market, marketObjectType) {
+    this._throttle.take(() => {
+      // perform the subscribe method
+      this._subscribe(market, marketObjectType);
+
+      // release semaphore after throttle timeout
+      setTimeout(() => this._throttle.leave(), this.throttleMs);
+    });
+  }
+
+  _subscribe(market, marketObjectType) {
+    // construct the subscription key from the remote_id and the type
+    // of subscription being performed
+    let subKey = market.id + "_" + marketObjectType;
+
+    // try to find the subscription client from the existing lookup
+    let client = this._subClients.get(subKey);
+
+    // if we haven't seen this market sub before first try
+    // to find an available existing client
+    if (!client) {
+      // first try to find a client that has less than 20 subscriptions...
+      client = this._clients.find(p => p.subCount < this.subsPerClient);
+
+      // make sure we set the value
+      this._subClients.set(subKey, client);
+    }
+
+    // if we were unable to find any avaialble clients, we will need
+    // to create a new client.
+    if (!client) {
+      // construct a new client
+      client = new BiboxBasicClient();
+
+      // wire up the events to pass through
+      client.on("ticker", (ticker, market) => this.emit("ticker", ticker, market));
+      client.on("trade", (trade, market) => this.emit("trade", trade, market));
+      client.on("l2snapshot", (l2snapshot, market) => this.emit("l2snapshot", l2snapshot, market));
+
+      // push it into the list of clients
+      this._clients.push(client);
+
+      // make sure we set the value
+      this._subClients.set(subKey, client);
+    }
+
+    // now that we have a client, call the sub method, which
+    // should be an idempotent method, so no harm in calling it again
+    switch (marketObjectType) {
+      case MarketObjectTypes.ticker:
+        client.subscribeTicker(market);
+        break;
+      case MarketObjectTypes.trade:
+        client.subscribeTrades(market);
+        break;
+      case MarketObjectTypes.level2snapshot:
+        client.subscribeLevel2Snapshots(market);
+        break;
+    }
+  }
+
+  _unsubscribe(market, marketObjectType) {
+    // construct the subscription key from the remote_id and the type
+    // of subscription being performed
+    let subKey = market.id + "_" + marketObjectType;
+
+    // find the client
+    let client = this._subClients.get(subKey);
+
+    // abort if nothign to do
+    if (!client) return;
+
+    // perform the unsubscribe operation
+    switch (MarketObjectTypes) {
+      case MarketObjectTypes.ticker:
+        client.unsubscribeTicker(market);
+        break;
+      case MarketObjectTypes.trade:
+        client.unsubscribeTrades(market);
+        break;
+      case MarketObjectTypes.level2snapshot:
+        client.unsubscribeLevel2Snapshots(market);
+        break;
+    }
+
+    // remove the client if nothing left to do
+    if (client.subCount === 0) {
+      client.close();
+      let idx = this._clients.indexOf(client);
+      this._clients.splice(idx, 1);
+    }
   }
 }
 
-class BiboxSingleClient extends BasicClient {
+class BiboxBasicClient extends BasicClient {
   /**
     Manages connections for a single market. A single
     socket is only allowed to work for 20 markets.
    */
   constructor() {
     super("wss://push.bibox.com", "Bibox");
-    this._watcher = new Watcher(this, 15 * 60 * 1000); // change to 15 minutes
+    this._watcher = new Watcher(this, 10 * 60 * 1000); // change to 10 minutes
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
+    this.subCount = 0;
   }
 
   /**
@@ -51,6 +210,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendSubTicker(remote_id) {
+    this.subCount++;
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
@@ -60,6 +220,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendUnsubTicker(remote_id) {
+    this.subCount--;
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
@@ -69,6 +230,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendSubTrades(remote_id) {
+    this.subCount++;
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
@@ -78,6 +240,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendUnsubTrades(remote_id) {
+    this.subCount--;
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
@@ -87,6 +250,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendSubLevel2Snapshots(remote_id) {
+    this.subCount++;
     this._wss.send(
       JSON.stringify({
         event: "addChannel",
@@ -96,6 +260,7 @@ class BiboxSingleClient extends BasicClient {
   }
 
   _sendUnsubLevel2Snapshots(remote_id) {
+    this.subCount--;
     this._wss.send(
       JSON.stringify({
         event: "removeChannel",
