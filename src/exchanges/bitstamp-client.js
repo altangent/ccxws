@@ -111,6 +111,25 @@ class BitstampClient extends EventEmitter {
     this.emit("closed");
   }
 
+  reconnect() {
+    winston.warn("reconnecting");
+    this._pusher.disconnect();
+    this._pusher = undefined;
+    this._connect();
+    for (let market of this._tradeSubs.values()) {
+      this._sendSubTrades(market.id);
+    }
+    for (let market of this._level2SnapSubs.values()) {
+      this._sendSubLevel2Snapshot(market.id);
+    }
+    for (let market of this._level2UpdateSubs.values()) {
+      this._sendSubLevel2Updates(market.id);
+    }
+    for (let market of this._level3UpdateSubs.values()) {
+      this._sendSubLevel3Updates(market.id);
+    }
+  }
+
   //////////////////////////////
 
   _connect() {
