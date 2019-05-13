@@ -1,4 +1,5 @@
 const moment = require("moment");
+const winston = require("winston");
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
@@ -15,16 +16,20 @@ class HitBTCClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
-
+    this.throttleMs = 100;
     this.on("connected", this._resetSemaphore.bind(this));
   }
 
   _resetSemaphore() {
-    this._sem = semaphore(10);
+    // We use semaphores to throttle connectivity. Upon taking the
+    // semaphore, we release it within 100ms, which should
+    // be long enough to ensure that the connection was created
+    this._sem = semaphore(4);
   }
 
   _sendSubTicker(remote_id) {
     this._sem.take(() => {
+      setTimeout(() => this._sem.leave(), this.throttleMs);
       this._wss.send(
         JSON.stringify({
           method: "subscribeTicker",
@@ -50,6 +55,7 @@ class HitBTCClient extends BasicClient {
 
   _sendSubTrades(remote_id) {
     this._sem.take(() => {
+      setTimeout(() => this._sem.leave(), this.throttleMs);
       this._wss.send(
         JSON.stringify({
           method: "subscribeTrades",
@@ -75,6 +81,7 @@ class HitBTCClient extends BasicClient {
 
   _sendSubLevel2Updates(remote_id) {
     this._sem.take(() => {
+      setTimeout(() => this._sem.leave(), this.throttleMs);
       this._wss.send(
         JSON.stringify({
           method: "subscribeOrderbook",
@@ -101,10 +108,6 @@ class HitBTCClient extends BasicClient {
   _onMessage(raw) {
     let msg = JSON.parse(raw);
 
-    // We use semaphores to throttle connectivity. Once a connection is
-    // established we need to clear the semaphore so that the next
-    // connection can happen.
-    //
     // The payload for a subscribe confirm will include the id that
     // was attached in the JSON-RPC call creation.  For example:
     // { jsonrpc: '2.0', result: true, id: 7 }
@@ -112,8 +115,8 @@ class HitBTCClient extends BasicClient {
     // For unsubscribe calls, we are not including an id
     // so we can ignore messages that do not can an id value:
     // { jsonrpc: '2.0', result: true, id: null }
-    if (msg.result && msg.id) {
-      this._sem.leave();
+    if (msg.result !== undefined && msg.id) {
+      if (!msg.result) winston.warn(msg);
       return;
     }
 
