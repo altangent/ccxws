@@ -8,8 +8,19 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const https = require("../https");
 
-// Kraken rounds down when half
-Decimal.set({ rounding: Decimal.ROUND_HALF_DOWN });
+/**
+  Kraken rounds to nearest even. This was determined by comparing captured results
+  against those returned in the history API:
+    https://api.kraken.com/0/public/Trades?pair=XXBTZUSD&since=1557446799065000000.
+
+  From: https://docs.oracle.com/javase/7/docs/api/java/math/BigDecimal.html
+  Rounding mode to round towards the "nearest neighbor" unless both neighbors are
+  equidistant, in which case, round towards the even neighbor. Behaves as for ROUND_HALF_UP
+  if the digit to the left of the discarded fraction is odd; behaves as for ROUND_HALF_DOWN
+  if it's even. Note that this is the rounding mode that minimizes cumulative error when
+  applied repeatedly over a sequence of calculations.
+*/
+Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
 
 class KrakenClient extends BasicClient {
   /**
