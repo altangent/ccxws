@@ -203,6 +203,7 @@ describe("KrakenClient", () => {
         { input: "1554845489.665608", expected: "1554845489665600000" },
         { input: "1554845489.668115", expected: "1554845489668100000" },
         { input: "1554845521.452880", expected: "1554845521452900000" },
+        { input: "1557446799.065150", expected: "1557446799065200000" },
       ];
       for (let fixture of fixtures) {
         test("should create " + fixture.expected, () => {
