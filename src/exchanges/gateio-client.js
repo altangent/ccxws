@@ -26,12 +26,30 @@ class GateioClient extends BasicMultiClient {
 class GateioSingleClient extends BasicClient {
   constructor() {
     super("wss://ws.gate.io/v3", "Gateio");
+    this.on("connected", this._startPing.bind(this));
+    this.on("disconnected", this._stopPing.bind(this));
     this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
+  }
+
+  _startPing() {
+    this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
+  }
+
+  _stopPing() {
+    clearInterval(this._pingInterval)
+  }
+
+  _sendPing() {
+    if (this._wss) {
+      this._wss.send(JSON.stringify({ 
+        method: "server.ping"
+      }));
+    }
   }
 
   _sendSubTicker(remote_id) {
