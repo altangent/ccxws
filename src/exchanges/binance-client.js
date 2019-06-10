@@ -236,7 +236,7 @@ class BinanceClient extends EventEmitter {
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
-      timestamp: timestamp * 1000,
+      timestamp: timestamp,
       last,
       open: open.toFixed(8),
       high,
