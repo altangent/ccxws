@@ -30,8 +30,8 @@ describe("BitstampClient", () => {
     expect(client.hasLevel3Snapshots).toBeFalsy();
   });
 
-  test("it should support level3 updates", () => {
-    expect(client.hasLevel3Updates).toBeTruthy();
+  test("it should not support level3 updates", () => {
+    expect(client.hasLevel3Updates).toBeFalsy();
   });
 
   test("should subscribe and emit trade events", done => {
@@ -45,6 +45,7 @@ describe("BitstampClient", () => {
       expect(trade.quote).toMatch("USD");
       expect(trade.tradeId).toBeGreaterThan(0);
       expect(trade.unix).toBeGreaterThan(1522540800000);
+      expect(trade.unix).toBeLessThanOrEqual(Date.now());
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
       expect(typeof trade.amount).toBe("string");
@@ -54,44 +55,8 @@ describe("BitstampClient", () => {
     });
   }, 60000);
 
-  test("should subscribe and emit level2 updates", done => {
-    let hasSnapshot = false;
-    let hasUpdate = false;
-    client.subscribeLevel2Updates(market);
-    client.on("l2snapshot", (snapshot, market) => {
-      hasSnapshot = true;
-      expect(market).toBeDefined();
-      expect(market.id).toMatch(/btcusd/);
-      expect(snapshot.fullId).toMatch("Bitstamp:BTC/USD");
-      expect(snapshot.exchange).toMatch("Bitstamp");
-      expect(snapshot.base).toMatch("BTC");
-      expect(snapshot.quote).toMatch("USD");
-      expect(snapshot.sequenceId).toBeUndefined();
-      expect(snapshot.timestampMs).toBeGreaterThan(0);
-      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
-      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
-      expect(snapshot.asks[0].count).toBeUndefined();
-      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
-      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
-      expect(snapshot.bids[0].count).toBeUndefined();
-      if (hasSnapshot && hasUpdate) done();
-    });
-    client.on("l2update", (update, market) => {
-      hasUpdate = true;
-      expect(market).toBeDefined();
-      expect(market.id).toMatch(/btcusd/);
-      expect(update.fullId).toMatch("Bitstamp:BTC/USD");
-      expect(update.exchange).toMatch("Bitstamp");
-      expect(update.base).toMatch("BTC");
-      expect(update.quote).toMatch("USD");
-      expect(update.sequenceId).toBeUndefined();
-      expect(update.timestampMs).toBeGreaterThan(0);
-      let point = update.asks[0] || update.bids[0];
-      expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
-      expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-      expect(point.count).toBeUndefined();
-      if (hasSnapshot && hasUpdate) done();
-    });
+  test("should unsubscribe from trade events", () => {
+    client.unsubscribeTrades(market);
   });
 
   test("should subscribe and emit level2 snapshots", done => {
@@ -115,9 +80,35 @@ describe("BitstampClient", () => {
     });
   });
 
-  test("should subscribe and emit level3 updates", done => {
-    client.subscribeLevel3Updates(market);
-    client.on("l3update", (update, market) => {
+  test("should unsubscribe from level2 snapshot", () => {
+    client.unsubscribeLevel2Snapshots(market);
+  });
+
+  test("should subscribe and emit level2 updates", done => {
+    let hasSnapshot = false;
+    let hasUpdate = false;
+    client.subscribeLevel2Updates(market);
+    client.on("l2snapshot", (snapshot, market) => {
+      hasSnapshot = true;
+      expect(market).toBeDefined();
+      expect(market.id).toMatch(/btcusd/);
+      expect(snapshot.fullId).toMatch("Bitstamp:BTC/USD");
+      expect(snapshot.exchange).toMatch("Bitstamp");
+      expect(snapshot.base).toMatch("BTC");
+      expect(snapshot.quote).toMatch("USD");
+      expect(snapshot.sequenceId).toBeUndefined();
+      expect(snapshot.timestampMs).toBeGreaterThan(1522540800000);
+      expect(snapshot.timestampMs).toBeLessThanOrEqual(Date.now());
+      expect(parseFloat(snapshot.asks[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.asks[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.asks[0].count).toBeUndefined();
+      expect(parseFloat(snapshot.bids[0].price)).toBeGreaterThanOrEqual(0);
+      expect(parseFloat(snapshot.bids[0].size)).toBeGreaterThanOrEqual(0);
+      expect(snapshot.bids[0].count).toBeUndefined();
+      if (hasSnapshot && hasUpdate) done();
+    });
+    client.on("l2update", (update, market) => {
+      hasUpdate = true;
       expect(market).toBeDefined();
       expect(market.id).toMatch(/btcusd/);
       expect(update.fullId).toMatch("Bitstamp:BTC/USD");
@@ -125,30 +116,18 @@ describe("BitstampClient", () => {
       expect(update.base).toMatch("BTC");
       expect(update.quote).toMatch("USD");
       expect(update.sequenceId).toBeUndefined();
-      expect(update.timestampMs).toBeGreaterThan(0);
+      expect(update.timestampMs).toBeGreaterThan(1522540800000);
+      expect(update.timestampMs).toBeLessThanOrEqual(Date.now());
       let point = update.asks[0] || update.bids[0];
-      expect(point.orderId).toBeGreaterThan(0);
       expect(parseFloat(point.price)).toBeGreaterThanOrEqual(0);
       expect(parseFloat(point.size)).toBeGreaterThanOrEqual(0);
-      expect(point.meta.type).toMatch(/created|updated|deleted/);
-      done();
+      expect(point.count).toBeUndefined();
+      if (hasSnapshot && hasUpdate) done();
     });
-  });
-
-  test("should unsubscribe from trade events", () => {
-    client.unsubscribeTrades(market);
-  });
-
-  test("should unsubscribe from level2 snapshot", () => {
-    client.unsubscribeLevel2Snapshots(market);
   });
 
   test("should unsubscribe from level2 updates", () => {
     client.unsubscribeLevel2Updates(market);
-  });
-
-  test("should unsubscribe from level3 updates", () => {
-    client.unsubscribeLevel3Updates(market);
   });
 
   test("should close connections", done => {
