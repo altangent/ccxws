@@ -45,6 +45,7 @@ describe("BinanceClient", () => {
       expect(market.id).toMatch(/ETHBTC/);
       expect(ticker.fullId).toMatch("Binance:ETH/BTC");
       expect(ticker.timestamp).toBeGreaterThan(1531677480465);
+      expect(ticker.timestamp).toBeLessThan(Date.now());
       expect(typeof ticker.last).toBe("string");
       expect(typeof ticker.open).toBe("string");
       expect(typeof ticker.high).toBe("string");
