@@ -92,7 +92,7 @@ describe("BiboxClient", () => {
       expect(trade.exchange).toMatch("Bibox");
       expect(trade.base).toMatch(/BTC|ETH/);
       expect(trade.quote).toMatch(/USDT|BTC/);
-      expect(trade.tradeId).toBeGreaterThan(0);
+      expect(trade.tradeId).toBeUndefined();
       expect(trade.unix).toBeGreaterThan(1522540800000);
       expect(trade.side).toMatch(/buy|sell/);
       expect(typeof trade.price).toBe("string");
