@@ -8,20 +8,6 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const https = require("../https");
 
-/**
-  Kraken rounds to nearest even. This was determined by comparing captured results
-  against those returned in the history API:
-    https://api.kraken.com/0/public/Trades?pair=XXBTZUSD&since=1557446799065000000.
-
-  From: https://docs.oracle.com/javase/7/docs/api/java/math/BigDecimal.html
-  Rounding mode to round towards the "nearest neighbor" unless both neighbors are
-  equidistant, in which case, round towards the even neighbor. Behaves as for ROUND_HALF_UP
-  if the digit to the left of the discarded fraction is odd; behaves as for ROUND_HALF_DOWN
-  if it's even. Note that this is the rounding mode that minimizes cumulative error when
-  applied repeatedly over a sequence of calculations.
-*/
-Decimal.set({ rounding: Decimal.ROUND_HALF_EVEN });
-
 class KrakenClient extends BasicClient {
   /**
     Kraken's API documentation is availble at:
@@ -495,13 +481,29 @@ class KrakenClient extends BasicClient {
       <first 4 digits of fractional part of unix timestamp> +
       00000
 
-    This will result in collisions, but from our analysis it is rare.
-    Consumer code will need to account for this correctly.
+
+    We're using the ROUND_HALF_UP method. From testing, this resulted
+    in the best rounding results. Ids are in picoseconds, the websocket
+    is broadcast in microsecond, and the REST results are truncated to
+    4 decimals.
+
+    This mean it is impossible to determine the rounding algorithm or
+    the proper rounding to go from 6 to 4 decimals as the 6 decimals
+    are being rounded from 9 which causes issues as the half
+    point for 4 digit rounding
+      .222950 rounds up to .2230 if the pico_ms value is > .222295000
+      .222950 rounds down to .2229 if the pico_ms value is < .222295000
+
+    Consumer code will need to account for collisions and id mismatch.
    */
   _createTradeId(unix) {
-    let [integer, fractional] = unix.split(".");
-    fractional = new Decimal("0." + fractional).toFixed(4).substr(2);
-    return integer + fractional + "00000";
+    let roundMode = Decimal.ROUND_HALF_UP;
+    let [integer, frac] = unix.split(".");
+    let fracResult = new Decimal("0." + frac)
+      .toDecimalPlaces(4, roundMode)
+      .toFixed(4)
+      .split(".")[1];
+    return integer + fracResult + "00000";
   }
 }
 
