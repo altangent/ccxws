@@ -22,12 +22,15 @@ function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test");
   instance._watcher.intervalMs = 100;
   instance.hasTickers = true;
+  instance.hasCandles = true;
   instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
   instance.hasLevel3Updates = true;
   instance._onMessage = jest.fn();
   instance._sendSubTicker = jest.fn();
   instance._sendUnsubTicker = jest.fn();
+  instance._sendSubCandle = jest.fn();
+  instance._sendUnsubCandle = jest.fn();
   instance._sendSubTrades = jest.fn();
   instance._sendUnsubTrades = jest.fn();
   instance._sendSubLevel2Snapshots = jest.fn();
@@ -351,6 +354,50 @@ describe("ticker", () => {
   //     expect(instance._sendUnsubTicker.mock.calls[0][0]).toBe("LTCBTC");
   //   });
   // });
+});
+
+describe("candle", () => {
+  let instance;
+
+  beforeAll(() => {
+    instance = buildInstance();
+    instance._connect();
+  });
+
+  describe("on first subscribe", () => {
+    test("it should open a connection", () => {
+      instance.subscribeCandle({ id: "BTCUSD" });
+      expect(instance._wss).toBeDefined();
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      instance._wss.mockEmit("open");
+      expect(instance._sendSubCandle.mock.calls.length).toBe(1);
+      expect(instance._sendSubCandle.mock.calls[0][0]).toBe("BTCUSD");
+    });
+    test("it should start the reconnectChecker", () => {
+      expect(instance._watcher.start).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("on subsequent subscribes", () => {
+    test("it should not connect again", () => {
+      instance.subscribeCandle({ id: "LTCBTC" });
+      expect(instance._wss.connect.mock.calls.length).toBe(1);
+    });
+    test("it should send subscribe to the socket", () => {
+      expect(instance._sendSubCandle.mock.calls.length).toBe(2);
+      expect(instance._sendSubCandle.mock.calls[1][0]).toBe("LTCBTC");
+    });
+  });
+
+  describe("on unsubscribe", () => {
+    test("it should send unsubscribe to socket", () => {
+      instance.unsubscribeCandle({ id: "LTCBTC" });
+      expect(instance._sendUnsubCandle.mock.calls.length).toBe(1);
+      expect(instance._sendUnsubCandle.mock.calls[0][0]).toBe("LTCBTC");
+    });
+  });
 });
 
 describe("neutered should no-op", () => {
