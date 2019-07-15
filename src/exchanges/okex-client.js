@@ -8,6 +8,8 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
+const pongBuffer = Buffer.from("pong");
+
 class OKExClient extends BasicClient {
   /**
    * Implements OKEx V3 WebSocket API as defined in
@@ -75,8 +77,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "removeChannel",
-          channel: `ok_sub_spot_${remote_id}_ticker`,
+          op: "unsubscribe",
+          args: [`spot/ticker:${remote_id}`],
         })
       );
     });
@@ -84,22 +86,20 @@ class OKExClient extends BasicClient {
 
   _sendSubTrades(remote_id) {
     this._sem.take(() => {
-      let [base, quote] = remote_id.split("_");
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          parameters: { base, binary: "0", product: "spot", quote, type: "deal" },
+          op: "subscribe",
+          args: [`spot/trade:${remote_id}`],
         })
       );
     });
   }
 
   _sendUnsubTrades(remote_id) {
-    let [base, quote] = remote_id.split("_");
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        parameters: { base, binary: "0", product: "spot", quote, type: "deal" },
+        op: "unsubscribe",
+        args: [`spot/trade:${remote_id}`],
       })
     );
   }
@@ -144,14 +144,25 @@ class OKExClient extends BasicClient {
     );
   }
 
-  _onMessage(raw) {
-    zlib.inflateRaw(raw, (err, resp) => {
+  _onMessage(compressed) {
+    zlib.inflateRaw(compressed, (err, raw) => {
       if (err) {
         console.error("failed to deflate", err);
         return;
       }
-      let msg = JSON.parse(resp);
-      this._processsMessage(msg);
+
+      // ignore pongs
+      if (raw.equals(pongBuffer)) {
+        return;
+      }
+
+      // process JSON message
+      try {
+        let msg = JSON.parse(raw);
+        this._processsMessage(msg);
+      } catch (ex) {
+        console.error("JSON parsing failed", ex.message, raw.toString("utf8"));
+      }
     });
   }
 
@@ -162,14 +173,9 @@ class OKExClient extends BasicClient {
       return;
     }
 
-    // ignore pongs
-    if (msg === "pong") {
-      return;
-    }
-
     // prevent failed messages from
-    if (msg.data && msg.data.result === false) {
-      console.log("warn: failure response", JSON.stringify(msg));
+    if (!msg.data) {
+      console.warn("warn: failure response", JSON.stringify(msg));
       return;
     }
 
@@ -185,19 +191,19 @@ class OKExClient extends BasicClient {
         let ticker = this._constructTicker(datum, market);
         this.emit("ticker", ticker, market);
       }
-
       return;
     }
 
     // trades
-    if (msg.product === "spot" && msg.type === "deal") {
-      let { base, quote } = msg;
-      let remote_id = `${base}_${quote}`;
-      let market = this._tradeSubs.get(remote_id);
-      if (!market) return;
-
+    if (msg.table === "spot/trade") {
       for (let datum of msg.data) {
-        let trade = this._constructTradesFromMessage(datum, market);
+        // ensure market
+        let remoteId = datum.instrument_id;
+        let market = this._tradeSubs.get(remoteId);
+        if (!market) continue;
+
+        // construct and emit trade
+        let trade = this._constructTrade(datum, market);
         this.emit("trade", trade, market);
       }
       return;
@@ -276,40 +282,27 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructTradesFromMessage(datum, market) {
-    /*
-    [{ base: '1st',
-      binary: 0,
-      channel: 'addChannel',
-      data: { result: true },
-      product: 'spot',
-      quote: 'btc',
-      type: 'deal' },
-    { base: '1st',
-      binary: 0,
-      data:
-      [ { amount: '818.619',
-          side: 1,
-          createdDate: 1527013680457,
-          price: '0.00003803',
-          id: 4979071 },
-      ],
-      product: 'spot',
-      quote: 'btc',
-      type: 'deal' }]
-    */
-    let { amount, side, createdDate, price, id } = datum;
-    side = side === 1 ? "buy" : "sell";
+  _constructTrade(datum, market) {
+    /**
+      { instrument_id: 'ETH-BTC',
+       price: '0.02182',
+       side: 'sell',
+       size: '0.94',
+       timestamp: '2019-07-15T16:38:02.169Z',
+       trade_id: '776370532' }
+     */
+    let { price, side, size, timestamp, trade_id } = datum;
+    let ts = moment.utc(timestamp).valueOf();
 
     return new Trade({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: trade_id,
       side,
-      unix: createdDate,
+      unix: ts,
       price,
-      amount,
+      amount: size,
     });
   }
 
