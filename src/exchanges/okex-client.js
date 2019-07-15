@@ -173,6 +173,11 @@ class OKExClient extends BasicClient {
       return;
     }
 
+    // ignore unsubscribe
+    if (msg.event === "unsubscribe") {
+      return;
+    }
+
     // prevent failed messages from
     if (!msg.data) {
       console.warn("warn: failure response", JSON.stringify(msg));
