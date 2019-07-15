@@ -1,5 +1,6 @@
+const zlib = require("zlib");
 const semaphore = require("semaphore");
-const pako = require("pako");
+const moment = require("moment");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -8,8 +9,28 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
 class OKExClient extends BasicClient {
+  /**
+   * Implements OKEx V3 WebSocket API as defined in
+   * https://www.okex.com/docs/en/#spot_ws-general
+   *
+   * Limits:
+   *    1 connection / second
+   *    240 subscriptions / hour
+   *
+   * Connection will disconnect after 30 seconds of silence
+   * it is recommended to send a ping message that contains the
+   * message "ping".
+   *
+   * Order book depth includes maintenance of a checksum for the
+   * first 25 values in the orderbook. Each update includes a crc32
+   * checksum that can be run to validate that your order book
+   * matches the server. If the order book does not match you should
+   * issue a reconnect.
+   *
+   * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
+   */
   constructor() {
-    super("wss://real.okex.com:10441/websocket", "OKEx");
+    super("wss://real.okex.com:10442/ws/v3", "OKEx");
     this.on("connected", this._resetSemaphore.bind(this));
     this.on("connected", this._startPing.bind(this));
     this.on("disconnected", this._stopPing.bind(this));
@@ -26,16 +47,16 @@ class OKExClient extends BasicClient {
   }
 
   _startPing() {
-    this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
+    this._pingInterval = setInterval(this._sendPing.bind(this), 15000);
   }
 
   _stopPing() {
-    clearInterval(this._pingInterval)
+    clearInterval(this._pingInterval);
   }
-  
+
   _sendPing() {
     if (this._wss) {
-      this._wss.send(JSON.stringify({ event: "ping" }));
+      this._wss.send("ping");
     }
   }
 
@@ -43,8 +64,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_ticker`,
+          op: "subscribe",
+          args: [`spot/ticker:${remote_id}`],
         })
       );
     });
@@ -124,50 +145,47 @@ class OKExClient extends BasicClient {
   }
 
   _onMessage(raw) {
-    try {
-      let msgs = pako.inflateRaw(raw, { to: "string" });
-      msgs = JSON.parse(msgs);
-
-      if (Array.isArray(msgs)) {
-        for (let msg of msgs) {
-          this._processsMessage(msg);
-        }
-      } else {
-        this._processsMessage(msgs);
+    zlib.inflateRaw(raw, (err, resp) => {
+      if (err) {
+        console.error("failed to deflate", err);
+        return;
       }
-    } catch (err) {
-      console.warn(`failed to deflate ${err.message}`);
-    }
-    // pako.inflateRaw(raw, (err, msgs) => {
-    //   if (err) {
-    //     console.warn(`failed to deflate: ${err.message}`);
-    //     return;
-    //   }
-    //   try {
-    //     msgs = JSON.parse(msgs);
-    //     if (Array.isArray(msgs)) {
-    //       for (let msg of msgs) {
-    //         this._processsMessage(msg);
-    //       }
-    //     } else {
-    //       this._processsMessage(msgs);
-    //     }
-    //   } catch (ex) {
-    //     console.warn(`failed to parse json ${ex.message}`);
-    //   }
-    // });
+      let msg = JSON.parse(resp);
+      this._processsMessage(msg);
+    });
   }
 
   _processsMessage(msg) {
-    // clear semaphore
-    if (msg.data && msg.data.result) {
+    // clear semaphore on subscription event reply
+    if (msg.event === "subscribe") {
       this._sem.leave();
+      return;
+    }
+
+    // ignore pongs
+    if (msg === "pong") {
       return;
     }
 
     // prevent failed messages from
     if (msg.data && msg.data.result === false) {
       console.log("warn: failure response", JSON.stringify(msg));
+      return;
+    }
+
+    // tickers
+    if (msg.table === "spot/ticker") {
+      for (let datum of msg.data) {
+        // ensure market
+        let remoteId = datum.instrument_id;
+        let market = this._tickerSubs.get(remoteId);
+        if (!market) continue;
+
+        // construct and emit ticker
+        let ticker = this._constructTicker(datum, market);
+        this.emit("ticker", ticker, market);
+      }
+
       return;
     }
 
@@ -182,22 +200,6 @@ class OKExClient extends BasicClient {
         let trade = this._constructTradesFromMessage(datum, market);
         this.emit("trade", trade, market);
       }
-      return;
-    }
-
-    if (!msg.channel) {
-      if (msg.event !== "pong") console.log(msg);
-      return;
-    }
-
-    // tickers
-    if (msg.channel.endsWith("_ticker")) {
-      let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
-      let market = this._tickerSubs.get(remoteId);
-      if (!market) return;
-
-      let ticker = this._constructTicker(msg, market);
-      this.emit("ticker", ticker, market);
       return;
     }
 
@@ -230,40 +232,47 @@ class OKExClient extends BasicClient {
     }
   }
 
-  _constructTicker(msg, market) {
+  _constructTicker(data, market) {
     /*
-    { binary: 0,
-    channel: 'ok_sub_spot_eth_btc_ticker',
-    data:
-    { high: '0.07121405',
-      vol: '53824.717918',
-      last: '0.07071044',
-      low: '0.06909468',
-      buy: '0.07065946',
-      change: '0.00141498',
-      sell: '0.07071625',
-      dayLow: '0.06909468',
-      close: '0.07071044',
-      dayHigh: '0.07121405',
-      open: '0.06929546',
-      timestamp: 1531692991115 } }
+      { instrument_id: 'ETH-BTC',
+        last: '0.02172',
+        best_bid: '0.02172',
+        best_ask: '0.02173',
+        open_24h: '0.02254',
+        high_24h: '0.02262',
+        low_24h: '0.02051',
+        base_volume_24h: '378400.064179',
+        quote_volume_24h: '8226.4437921288',
+        timestamp: '2019-07-15T16:10:40.193Z' }
      */
-    let { open, vol, last, buy, change, sell, dayLow, dayHigh, timestamp } = msg.data;
-    let dayChangePercent = (parseFloat(change) / parseFloat(open)) * 100;
+    let {
+      last,
+      best_bid,
+      best_ask,
+      open_24h,
+      high_24h,
+      low_24h,
+      base_volume_24h,
+      timestamp,
+    } = data;
+
+    let change = parseFloat(last) - parseFloat(open_24h);
+    let changePercent = change / parseFloat(open_24h);
+    let ts = moment.utc(timestamp).valueOf();
     return new Ticker({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestamp: ts,
       last,
-      open,
-      high: dayHigh,
-      low: dayLow,
-      volume: vol,
-      change: change,
-      changePercent: dayChangePercent.toFixed(2),
-      bid: buy,
-      ask: sell,
+      open: open_24h,
+      high: high_24h,
+      low: low_24h,
+      volume: base_volume_24h,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(2),
+      bid: best_bid,
+      ask: best_ask,
     });
   }
 
