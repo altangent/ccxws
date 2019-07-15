@@ -104,22 +104,22 @@ class OKExClient extends BasicClient {
     );
   }
 
-  _sendSubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
+  _sendSubLevel2Snapshots(remote_id) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_depth_${depth}`,
+          op: "subscribe",
+          args: [`spot/depth5:${remote_id}`],
         })
       );
     });
   }
 
-  _sendUnsubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
+  _sendUnsubLevel2Snapshots(remote_id) {
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        channel: `ok_sub_spot_${remote_id}_depth_${depth}`,
+        op: "unsubscribe",
+        args: [`spot/depth5:${remote_id}`],
       })
     );
   }
@@ -128,8 +128,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_depth`,
+          op: "subscribe",
+          args: [`spot/depth:${remote_id}`],
         })
       );
     });
@@ -138,8 +138,8 @@ class OKExClient extends BasicClient {
   _sendUnsubLevel2Updates(remote_id) {
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        channel: `ok_sub_spot_${remote_id}_depth`,
+        op: "unsubscribe",
+        args: [`spot/depth:${remote_id}`],
       })
     );
   }
@@ -161,7 +161,7 @@ class OKExClient extends BasicClient {
         let msg = JSON.parse(raw);
         this._processsMessage(msg);
       } catch (ex) {
-        console.error("JSON parsing failed", ex.message, raw.toString("utf8"));
+        console.error(ex, raw.toString("utf8"));
       }
     });
   }
@@ -181,65 +181,152 @@ class OKExClient extends BasicClient {
 
     // tickers
     if (msg.table === "spot/ticker") {
-      for (let datum of msg.data) {
-        // ensure market
-        let remoteId = datum.instrument_id;
-        let market = this._tickerSubs.get(remoteId);
-        if (!market) continue;
-
-        // construct and emit ticker
-        let ticker = this._constructTicker(datum, market);
-        this.emit("ticker", ticker, market);
-      }
+      this._processTicker(msg);
       return;
     }
 
     // trades
     if (msg.table === "spot/trade") {
-      for (let datum of msg.data) {
-        // ensure market
-        let remoteId = datum.instrument_id;
-        let market = this._tradeSubs.get(remoteId);
-        if (!market) continue;
-
-        // construct and emit trade
-        let trade = this._constructTrade(datum, market);
-        this.emit("trade", trade, market);
-      }
+      this._processTrades(msg);
       return;
     }
 
     // l2 snapshots
-    if (msg.channel.endsWith("_5") || msg.channel.endsWith("_10") || msg.channel.endsWith("_20")) {
-      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
-      let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
-      if (!market) return;
-
-      let snapshot = this._constructLevel2Snapshot(msg, market);
-      this.emit("l2snapshot", snapshot, market);
+    if (msg.table === "spot/depth5") {
+      this._processLevel2Snapshot(msg);
       return;
     }
 
     // l2 updates
-    if (msg.channel.endsWith("depth")) {
-      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
-      let market = this._level2UpdateSubs.get(remote_id);
-      if (!market) return;
-
-      if (!this._hasSnapshot.has(remote_id)) {
-        let snapshot = this._constructLevel2Snapshot(msg, market);
-        this.emit("l2snapshot", snapshot, market);
-        this._hasSnapshot.add(remote_id);
-      } else {
-        let update = this._constructoL2Update(msg, market);
-        this.emit("l2update", update, market);
-      }
+    if (msg.table === "spot/depth") {
+      this._processLevel2Update(msg);
       return;
     }
   }
 
-  _constructTicker(data, market) {
-    /*
+  /**
+   * Process ticker messages in the format
+    { table: 'spot/ticker',
+      data:
+      [ { instrument_id: 'ETH-BTC',
+          last: '0.02181',
+          best_bid: '0.0218',
+          best_ask: '0.02181',
+          open_24h: '0.02247',
+          high_24h: '0.02262',
+          low_24h: '0.02051',
+          base_volume_24h: '379522.2418555',
+          quote_volume_24h: '8243.729793336415',
+          timestamp: '2019-07-15T17:10:55.671Z' } ] }
+   */
+  _processTicker(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remoteId = datum.instrument_id;
+      let market = this._tickerSubs.get(remoteId);
+      if (!market) continue;
+
+      // construct and emit ticker
+      let ticker = this._constructTicker(datum, market);
+      this.emit("ticker", ticker, market);
+    }
+  }
+
+  /**
+   * Processes trade messages in the format
+    { table: 'spot/trade',
+      data:
+      [ { instrument_id: 'ETH-BTC',
+          price: '0.0218',
+          side: 'sell',
+          size: '1.1',
+          timestamp: '2019-07-15T17:10:56.047Z',
+          trade_id: '776432498' } ] }
+   */
+  _processTrades(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remoteId = datum.instrument_id;
+      let market = this._tradeSubs.get(remoteId);
+      if (!market) continue;
+
+      // construct and emit trade
+      let trade = this._constructTrade(datum, market);
+      this.emit("trade", trade, market);
+    }
+  }
+
+  /**
+   * Processes a level 2 snapshot message in the format:
+      { table: 'spot/depth5',
+        data: [{
+            asks: [ ['0.02192', '1.204054', '3' ] ],
+            bids: [ ['0.02191', '15.117671', '3' ] ],
+            instrument_id: 'ETH-BTC',
+            timestamp: '2019-07-15T16:54:42.301Z' } ] }
+   */
+  _processLevel2Snapshot(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remote_id = datum.instrument_id;
+      let market = this._level2SnapshotSubs.get(remote_id);
+      if (!market) return;
+
+      // construct snapshot
+      let snapshot = this._constructLevel2Snapshot(datum, market);
+      this.emit("l2snapshot", snapshot, market);
+    }
+  }
+
+  /**
+   * Processes a level 2 update message in one of two formats.
+   * The first message received is the "partial" orderbook and contains
+   * 200 records in it.
+   *
+    { table: 'spot/depth',
+          action: 'partial',
+          data:
+            [ { instrument_id: 'ETH-BTC',
+                asks: [Array],
+                bids: [Array],
+                timestamp: '2019-07-15T17:18:31.737Z',
+                checksum: 723501244 } ] }
+   *
+   * Subsequent calls will include the updates stream for changes to
+   * the order book:
+   *
+      { table: 'spot/depth',
+      action: 'update',
+      data:
+        [ { instrument_id: 'ETH-BTC',
+            asks: [Array],
+            bids: [Array],
+            timestamp: '2019-07-15T17:18:32.289Z',
+            checksum: 680530848 } ] }
+   */
+  _processLevel2Update(msg) {
+    let action = msg.action;
+    for (let datum of msg.data) {
+      // ensure market
+      let remote_id = datum.instrument_id;
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) continue;
+
+      // handle updates
+      if (action === "partial") {
+        let snapshot = this._constructLevel2Snapshot(datum, market);
+        this.emit("l2snapshot", snapshot, market);
+      } else if (action === "update") {
+        let update = this._constructLevel2Update(datum, market);
+        this.emit("l2update", update, market);
+      } else {
+        console.error("Unknown action type", msg);
+      }
+    }
+  }
+
+  /**
+   * Constructs a ticker from the datum in the format:
       { instrument_id: 'ETH-BTC',
         last: '0.02172',
         best_bid: '0.02172',
@@ -250,7 +337,8 @@ class OKExClient extends BasicClient {
         base_volume_24h: '378400.064179',
         quote_volume_24h: '8226.4437921288',
         timestamp: '2019-07-15T16:10:40.193Z' }
-     */
+   */
+  _constructTicker(data, market) {
     let {
       last,
       best_bid,
@@ -282,15 +370,16 @@ class OKExClient extends BasicClient {
     });
   }
 
+  /**
+   * Constructs a trade from the message datum in format:
+    { instrument_id: 'ETH-BTC',
+      price: '0.02182',
+      side: 'sell',
+      size: '0.94',
+      timestamp: '2019-07-15T16:38:02.169Z',
+      trade_id: '776370532' }
+    */
   _constructTrade(datum, market) {
-    /**
-      { instrument_id: 'ETH-BTC',
-       price: '0.02182',
-       side: 'sell',
-       size: '0.94',
-       timestamp: '2019-07-15T16:38:02.169Z',
-       trade_id: '776370532' }
-     */
     let { price, side, size, timestamp, trade_id } = datum;
     let ts = moment.utc(timestamp).valueOf();
 
@@ -306,77 +395,63 @@ class OKExClient extends BasicClient {
     });
   }
 
-  _constructLevel2Snapshot(msg, market) {
-    /*
-    [{
-        "binary": 0,
-        "channel": "ok_sub_spot_bch_btc_depth",
-        "data": {
-            "asks": [],
-            "bids": [
-                [
-                    "115",
-                    "1"
-                ],
-                [
-                    "114",
-                    "1"
-                ],
-                [
-                    "1E-8",
-                    "0.0008792"
-                ]
-            ],
-            "timestamp": 1504529236946
-        }
-    }]
-    */
-    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
-    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+  /**
+   * Constructs a snapshot message from the datum in a
+   * snapshot message data property. Datum in the format:
+   *
+      { instrument_id: 'ETH-BTC',
+        asks: [ ['0.02192', '1.204054', '3' ] ],
+        bids: [ ['0.02191', '15.117671', '3' ] ],
+        timestamp: '2019-07-15T16:54:42.301Z' }
+   *
+   * The snapshot may also come from an update, in which case we need
+   * to include the checksum
+   *
+      { instrument_id: 'ETH-BTC',
+        asks: [ ['0.02192', '1.204054', '3' ] ],
+        bids: [ ['0.02191', '15.117671', '3' ] ],
+        timestamp: '2019-07-15T17:18:31.737Z',
+        checksum: 723501244 }
+
+   */
+  _constructLevel2Snapshot(datum, market) {
+    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
+    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
+    let ts = moment.utc(datum.timestamp).valueOf();
+    let checksum = datum.checksum;
     return new Level2Snapshot({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.data.timestamp,
+      timestampMs: ts,
       asks,
       bids,
+      checksum,
     });
   }
 
-  _constructoL2Update(msg, market) {
-    /*
-    [{
-        "binary": 0,
-        "channel": "ok_sub_spot_bch_btc_depth",
-        "data": {
-            "asks": [],
-            "bids": [
-                [
-                    "115",
-                    "1"
-                ],
-                [
-                    "114",
-                    "1"
-                ],
-                [
-                    "1E-8",
-                    "0.0008792"
-                ]
-            ],
-            "timestamp": 1504529236946
-        }
-    }]
-    */
-    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
-    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+  /**
+   * Constructs an update message from the datum in the update
+   * stream. Datum is in the format:
+    { instrument_id: 'ETH-BTC',
+      asks: [ ['0.02192', '1.204054', '3' ] ],
+      bids: [ ['0.02191', '15.117671', '3' ] ],
+      timestamp: '2019-07-15T17:18:32.289Z',
+      checksum: 680530848 }
+   */
+  _constructLevel2Update(datum, market) {
+    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
+    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
+    let ts = moment.utc(datum.timestamp).valueOf();
+    let checksum = datum.checksum;
     return new Level2Update({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.data.timestamp,
+      timestampMs: ts,
       asks,
       bids,
+      checksum,
     });
   }
 }
