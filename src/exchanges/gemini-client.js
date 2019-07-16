@@ -165,8 +165,10 @@ class GeminiClient extends EventEmitter {
    * Stops an interval to check if a reconnection is required
    */
   _stopReconnectWatcher(subscription) {
-    clearInterval(subscription.reconnectIntervalHandle);
-    subscription.reconnectIntervalHandle = undefined;
+    if (subscription) {
+      clearInterval(subscription.reconnectIntervalHandle);
+      subscription.reconnectIntervalHandle = undefined;
+    }
   }
 
   /**
