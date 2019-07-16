@@ -1,5 +1,6 @@
+const zlib = require("zlib");
 const semaphore = require("semaphore");
-const pako = require("pako");
+const moment = require("moment");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -7,9 +8,31 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
+const pongBuffer = Buffer.from("pong");
+
 class OKExClient extends BasicClient {
+  /**
+   * Implements OKEx V3 WebSocket API as defined in
+   * https://www.okex.com/docs/en/#spot_ws-general
+   *
+   * Limits:
+   *    1 connection / second
+   *    240 subscriptions / hour
+   *
+   * Connection will disconnect after 30 seconds of silence
+   * it is recommended to send a ping message that contains the
+   * message "ping".
+   *
+   * Order book depth includes maintenance of a checksum for the
+   * first 25 values in the orderbook. Each update includes a crc32
+   * checksum that can be run to validate that your order book
+   * matches the server. If the order book does not match you should
+   * issue a reconnect.
+   *
+   * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
+   */
   constructor() {
-    super("wss://real.okex.com:10441/websocket", "OKEx");
+    super("wss://real.okex.com:10442/ws/v3", "OKEx");
     this.on("connected", this._resetSemaphore.bind(this));
     this.on("connected", this._startPing.bind(this));
     this.on("disconnected", this._stopPing.bind(this));
@@ -26,16 +49,16 @@ class OKExClient extends BasicClient {
   }
 
   _startPing() {
-    this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
+    this._pingInterval = setInterval(this._sendPing.bind(this), 15000);
   }
 
   _stopPing() {
-    clearInterval(this._pingInterval)
+    clearInterval(this._pingInterval);
   }
-  
+
   _sendPing() {
     if (this._wss) {
-      this._wss.send(JSON.stringify({ event: "ping" }));
+      this._wss.send("ping");
     }
   }
 
@@ -43,8 +66,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_ticker`,
+          op: "subscribe",
+          args: [`spot/ticker:${remote_id}`],
         })
       );
     });
@@ -54,8 +77,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "removeChannel",
-          channel: `ok_sub_spot_${remote_id}_ticker`,
+          op: "unsubscribe",
+          args: [`spot/ticker:${remote_id}`],
         })
       );
     });
@@ -63,42 +86,40 @@ class OKExClient extends BasicClient {
 
   _sendSubTrades(remote_id) {
     this._sem.take(() => {
-      let [base, quote] = remote_id.split("_");
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          parameters: { base, binary: "0", product: "spot", quote, type: "deal" },
+          op: "subscribe",
+          args: [`spot/trade:${remote_id}`],
         })
       );
     });
   }
 
   _sendUnsubTrades(remote_id) {
-    let [base, quote] = remote_id.split("_");
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        parameters: { base, binary: "0", product: "spot", quote, type: "deal" },
+        op: "unsubscribe",
+        args: [`spot/trade:${remote_id}`],
       })
     );
   }
 
-  _sendSubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
+  _sendSubLevel2Snapshots(remote_id) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_depth_${depth}`,
+          op: "subscribe",
+          args: [`spot/depth5:${remote_id}`],
         })
       );
     });
   }
 
-  _sendUnsubLevel2Snapshots(remote_id, { depth = 20 } = {}) {
+  _sendUnsubLevel2Snapshots(remote_id) {
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        channel: `ok_sub_spot_${remote_id}_depth_${depth}`,
+        op: "unsubscribe",
+        args: [`spot/depth5:${remote_id}`],
       })
     );
   }
@@ -107,8 +128,8 @@ class OKExClient extends BasicClient {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
-          event: "addChannel",
-          channel: `ok_sub_spot_${remote_id}_depth`,
+          op: "subscribe",
+          args: [`spot/depth:${remote_id}`],
         })
       );
     });
@@ -117,264 +138,325 @@ class OKExClient extends BasicClient {
   _sendUnsubLevel2Updates(remote_id) {
     this._wss.send(
       JSON.stringify({
-        event: "removeChannel",
-        channel: `ok_sub_spot_${remote_id}_depth`,
+        op: "unsubscribe",
+        args: [`spot/depth:${remote_id}`],
       })
     );
   }
 
-  _onMessage(raw) {
-    try {
-      let msgs = pako.inflateRaw(raw, { to: "string" });
-      msgs = JSON.parse(msgs);
-
-      if (Array.isArray(msgs)) {
-        for (let msg of msgs) {
-          this._processsMessage(msg);
-        }
-      } else {
-        this._processsMessage(msgs);
+  _onMessage(compressed) {
+    zlib.inflateRaw(compressed, (err, raw) => {
+      if (err) {
+        console.error("failed to deflate", err);
+        return;
       }
-    } catch (err) {
-      console.warn(`failed to deflate ${err.message}`);
-    }
-    // pako.inflateRaw(raw, (err, msgs) => {
-    //   if (err) {
-    //     console.warn(`failed to deflate: ${err.message}`);
-    //     return;
-    //   }
-    //   try {
-    //     msgs = JSON.parse(msgs);
-    //     if (Array.isArray(msgs)) {
-    //       for (let msg of msgs) {
-    //         this._processsMessage(msg);
-    //       }
-    //     } else {
-    //       this._processsMessage(msgs);
-    //     }
-    //   } catch (ex) {
-    //     console.warn(`failed to parse json ${ex.message}`);
-    //   }
-    // });
+
+      // ignore pongs
+      if (raw.equals(pongBuffer)) {
+        return;
+      }
+
+      // process JSON message
+      try {
+        let msg = JSON.parse(raw);
+        this._processsMessage(msg);
+      } catch (ex) {
+        console.error(ex, raw.toString("utf8"));
+      }
+    });
   }
 
   _processsMessage(msg) {
-    // clear semaphore
-    if (msg.data && msg.data.result) {
+    // clear semaphore on subscription event reply
+    if (msg.event === "subscribe") {
       this._sem.leave();
       return;
     }
 
+    // ignore unsubscribe
+    if (msg.event === "unsubscribe") {
+      return;
+    }
+
     // prevent failed messages from
-    if (msg.data && msg.data.result === false) {
-      console.log("warn: failure response", JSON.stringify(msg));
-      return;
-    }
-
-    // trades
-    if (msg.product === "spot" && msg.type === "deal") {
-      let { base, quote } = msg;
-      let remote_id = `${base}_${quote}`;
-      let market = this._tradeSubs.get(remote_id);
-      if (!market) return;
-
-      for (let datum of msg.data) {
-        let trade = this._constructTradesFromMessage(datum, market);
-        this.emit("trade", trade, market);
-      }
-      return;
-    }
-
-    if (!msg.channel) {
-      if (msg.event !== "pong") console.log(msg);
+    if (!msg.data) {
+      console.warn("warn: failure response", JSON.stringify(msg));
       return;
     }
 
     // tickers
-    if (msg.channel.endsWith("_ticker")) {
-      let remoteId = msg.channel.substr("ok_sub_spot_".length).replace("_ticker", "");
-      let market = this._tickerSubs.get(remoteId);
-      if (!market) return;
+    if (msg.table === "spot/ticker") {
+      this._processTicker(msg);
+      return;
+    }
 
-      let ticker = this._constructTicker(msg, market);
-      this.emit("ticker", ticker, market);
+    // trades
+    if (msg.table === "spot/trade") {
+      this._processTrades(msg);
       return;
     }
 
     // l2 snapshots
-    if (msg.channel.endsWith("_5") || msg.channel.endsWith("_10") || msg.channel.endsWith("_20")) {
-      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace(/_depth_\d+/, "");
-      let market = this._level2SnapshotSubs.get(remote_id) || this._level2UpdateSubs.get(remote_id);
-      if (!market) return;
-
-      let snapshot = this._constructLevel2Snapshot(msg, market);
-      this.emit("l2snapshot", snapshot, market);
+    if (msg.table === "spot/depth5") {
+      this._processLevel2Snapshot(msg);
       return;
     }
 
     // l2 updates
-    if (msg.channel.endsWith("depth")) {
-      let remote_id = msg.channel.replace("ok_sub_spot_", "").replace("_depth", "");
-      let market = this._level2UpdateSubs.get(remote_id);
-      if (!market) return;
-
-      if (!this._hasSnapshot.has(remote_id)) {
-        let snapshot = this._constructLevel2Snapshot(msg, market);
-        this.emit("l2snapshot", snapshot, market);
-        this._hasSnapshot.add(remote_id);
-      } else {
-        let update = this._constructoL2Update(msg, market);
-        this.emit("l2update", update, market);
-      }
+    if (msg.table === "spot/depth") {
+      this._processLevel2Update(msg);
       return;
     }
   }
 
-  _constructTicker(msg, market) {
-    /*
-    { binary: 0,
-    channel: 'ok_sub_spot_eth_btc_ticker',
-    data:
-    { high: '0.07121405',
-      vol: '53824.717918',
-      last: '0.07071044',
-      low: '0.06909468',
-      buy: '0.07065946',
-      change: '0.00141498',
-      sell: '0.07071625',
-      dayLow: '0.06909468',
-      close: '0.07071044',
-      dayHigh: '0.07121405',
-      open: '0.06929546',
-      timestamp: 1531692991115 } }
-     */
-    let { open, vol, last, buy, change, sell, dayLow, dayHigh, timestamp } = msg.data;
-    let dayChangePercent = (parseFloat(change) / parseFloat(open)) * 100;
+  /**
+   * Process ticker messages in the format
+    { table: 'spot/ticker',
+      data:
+      [ { instrument_id: 'ETH-BTC',
+          last: '0.02181',
+          best_bid: '0.0218',
+          best_ask: '0.02181',
+          open_24h: '0.02247',
+          high_24h: '0.02262',
+          low_24h: '0.02051',
+          base_volume_24h: '379522.2418555',
+          quote_volume_24h: '8243.729793336415',
+          timestamp: '2019-07-15T17:10:55.671Z' } ] }
+   */
+  _processTicker(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remoteId = datum.instrument_id;
+      let market = this._tickerSubs.get(remoteId);
+      if (!market) continue;
+
+      // construct and emit ticker
+      let ticker = this._constructTicker(datum, market);
+      this.emit("ticker", ticker, market);
+    }
+  }
+
+  /**
+   * Processes trade messages in the format
+    { table: 'spot/trade',
+      data:
+      [ { instrument_id: 'ETH-BTC',
+          price: '0.0218',
+          side: 'sell',
+          size: '1.1',
+          timestamp: '2019-07-15T17:10:56.047Z',
+          trade_id: '776432498' } ] }
+   */
+  _processTrades(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remoteId = datum.instrument_id;
+      let market = this._tradeSubs.get(remoteId);
+      if (!market) continue;
+
+      // construct and emit trade
+      let trade = this._constructTrade(datum, market);
+      this.emit("trade", trade, market);
+    }
+  }
+
+  /**
+   * Processes a level 2 snapshot message in the format:
+      { table: 'spot/depth5',
+        data: [{
+            asks: [ ['0.02192', '1.204054', '3' ] ],
+            bids: [ ['0.02191', '15.117671', '3' ] ],
+            instrument_id: 'ETH-BTC',
+            timestamp: '2019-07-15T16:54:42.301Z' } ] }
+   */
+  _processLevel2Snapshot(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remote_id = datum.instrument_id;
+      let market = this._level2SnapshotSubs.get(remote_id);
+      if (!market) return;
+
+      // construct snapshot
+      let snapshot = this._constructLevel2Snapshot(datum, market);
+      this.emit("l2snapshot", snapshot, market);
+    }
+  }
+
+  /**
+   * Processes a level 2 update message in one of two formats.
+   * The first message received is the "partial" orderbook and contains
+   * 200 records in it.
+   *
+    { table: 'spot/depth',
+          action: 'partial',
+          data:
+            [ { instrument_id: 'ETH-BTC',
+                asks: [Array],
+                bids: [Array],
+                timestamp: '2019-07-15T17:18:31.737Z',
+                checksum: 723501244 } ] }
+   *
+   * Subsequent calls will include the updates stream for changes to
+   * the order book:
+   *
+      { table: 'spot/depth',
+      action: 'update',
+      data:
+        [ { instrument_id: 'ETH-BTC',
+            asks: [Array],
+            bids: [Array],
+            timestamp: '2019-07-15T17:18:32.289Z',
+            checksum: 680530848 } ] }
+   */
+  _processLevel2Update(msg) {
+    let action = msg.action;
+    for (let datum of msg.data) {
+      // ensure market
+      let remote_id = datum.instrument_id;
+      let market = this._level2UpdateSubs.get(remote_id);
+      if (!market) continue;
+
+      // handle updates
+      if (action === "partial") {
+        let snapshot = this._constructLevel2Snapshot(datum, market);
+        this.emit("l2snapshot", snapshot, market);
+      } else if (action === "update") {
+        let update = this._constructLevel2Update(datum, market);
+        this.emit("l2update", update, market);
+      } else {
+        console.error("Unknown action type", msg);
+      }
+    }
+  }
+
+  /**
+   * Constructs a ticker from the datum in the format:
+      { instrument_id: 'ETH-BTC',
+        last: '0.02172',
+        best_bid: '0.02172',
+        best_ask: '0.02173',
+        open_24h: '0.02254',
+        high_24h: '0.02262',
+        low_24h: '0.02051',
+        base_volume_24h: '378400.064179',
+        quote_volume_24h: '8226.4437921288',
+        timestamp: '2019-07-15T16:10:40.193Z' }
+   */
+  _constructTicker(data, market) {
+    let {
+      last,
+      best_bid,
+      best_ask,
+      open_24h,
+      high_24h,
+      low_24h,
+      base_volume_24h,
+      timestamp,
+    } = data;
+
+    let change = parseFloat(last) - parseFloat(open_24h);
+    let changePercent = change / parseFloat(open_24h);
+    let ts = moment.utc(timestamp).valueOf();
     return new Ticker({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestamp,
+      timestamp: ts,
       last,
-      open,
-      high: dayHigh,
-      low: dayLow,
-      volume: vol,
-      change: change,
-      changePercent: dayChangePercent.toFixed(2),
-      bid: buy,
-      ask: sell,
+      open: open_24h,
+      high: high_24h,
+      low: low_24h,
+      volume: base_volume_24h,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(2),
+      bid: best_bid,
+      ask: best_ask,
     });
   }
 
-  _constructTradesFromMessage(datum, market) {
-    /*
-    [{ base: '1st',
-      binary: 0,
-      channel: 'addChannel',
-      data: { result: true },
-      product: 'spot',
-      quote: 'btc',
-      type: 'deal' },
-    { base: '1st',
-      binary: 0,
-      data:
-      [ { amount: '818.619',
-          side: 1,
-          createdDate: 1527013680457,
-          price: '0.00003803',
-          id: 4979071 },
-      ],
-      product: 'spot',
-      quote: 'btc',
-      type: 'deal' }]
+  /**
+   * Constructs a trade from the message datum in format:
+    { instrument_id: 'ETH-BTC',
+      price: '0.02182',
+      side: 'sell',
+      size: '0.94',
+      timestamp: '2019-07-15T16:38:02.169Z',
+      trade_id: '776370532' }
     */
-    let { amount, side, createdDate, price, id } = datum;
-    side = side === 1 ? "buy" : "sell";
+  _constructTrade(datum, market) {
+    let { price, side, size, timestamp, trade_id } = datum;
+    let ts = moment.utc(timestamp).valueOf();
 
     return new Trade({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: trade_id,
       side,
-      unix: createdDate,
+      unix: ts,
       price,
-      amount,
+      amount: size,
     });
   }
 
-  _constructLevel2Snapshot(msg, market) {
-    /*
-    [{
-        "binary": 0,
-        "channel": "ok_sub_spot_bch_btc_depth",
-        "data": {
-            "asks": [],
-            "bids": [
-                [
-                    "115",
-                    "1"
-                ],
-                [
-                    "114",
-                    "1"
-                ],
-                [
-                    "1E-8",
-                    "0.0008792"
-                ]
-            ],
-            "timestamp": 1504529236946
-        }
-    }]
-    */
-    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
-    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+  /**
+   * Constructs a snapshot message from the datum in a
+   * snapshot message data property. Datum in the format:
+   *
+      { instrument_id: 'ETH-BTC',
+        asks: [ ['0.02192', '1.204054', '3' ] ],
+        bids: [ ['0.02191', '15.117671', '3' ] ],
+        timestamp: '2019-07-15T16:54:42.301Z' }
+   *
+   * The snapshot may also come from an update, in which case we need
+   * to include the checksum
+   *
+      { instrument_id: 'ETH-BTC',
+        asks: [ ['0.02192', '1.204054', '3' ] ],
+        bids: [ ['0.02191', '15.117671', '3' ] ],
+        timestamp: '2019-07-15T17:18:31.737Z',
+        checksum: 723501244 }
+
+   */
+  _constructLevel2Snapshot(datum, market) {
+    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
+    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
+    let ts = moment.utc(datum.timestamp).valueOf();
+    let checksum = datum.checksum;
     return new Level2Snapshot({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.data.timestamp,
+      timestampMs: ts,
       asks,
       bids,
+      checksum,
     });
   }
 
-  _constructoL2Update(msg, market) {
-    /*
-    [{
-        "binary": 0,
-        "channel": "ok_sub_spot_bch_btc_depth",
-        "data": {
-            "asks": [],
-            "bids": [
-                [
-                    "115",
-                    "1"
-                ],
-                [
-                    "114",
-                    "1"
-                ],
-                [
-                    "1E-8",
-                    "0.0008792"
-                ]
-            ],
-            "timestamp": 1504529236946
-        }
-    }]
-    */
-    let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
-    let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
+  /**
+   * Constructs an update message from the datum in the update
+   * stream. Datum is in the format:
+    { instrument_id: 'ETH-BTC',
+      asks: [ ['0.02192', '1.204054', '3' ] ],
+      bids: [ ['0.02191', '15.117671', '3' ] ],
+      timestamp: '2019-07-15T17:18:32.289Z',
+      checksum: 680530848 }
+   */
+  _constructLevel2Update(datum, market) {
+    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
+    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
+    let ts = moment.utc(datum.timestamp).valueOf();
+    let checksum = datum.checksum;
     return new Level2Update({
       exchange: "OKEx",
       base: market.base,
       quote: market.quote,
-      timestampMs: msg.data.timestamp,
+      timestampMs: ts,
       asks,
       bids,
+      checksum,
     });
   }
 }

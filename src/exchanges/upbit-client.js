@@ -226,9 +226,8 @@ class UpbitClient extends BasicClient {
        bid_size: 267304509.61145836 } ],
   stream_type: 'SNAPSHOT' }
     */
-
-    let asks = msg.orderbook_units.map(p => new Level2Point(p.ask_price, p.ask_size));
-    let bids = msg.orderbook_units.map(p => new Level2Point(p.bid_price, p.bid_size));
+    let asks = msg.orderbook_units.map(p => new Level2Point(s(p.ask_price), s(p.ask_size)));
+    let bids = msg.orderbook_units.map(p => new Level2Point(s(p.bid_price), s(p.bid_size)));
     return new Level2Snapshot({
       exchange: "Upbit",
       base: market.base,
@@ -237,6 +236,14 @@ class UpbitClient extends BasicClient {
       asks,
       bids,
     });
+  }
+}
+
+function s(v) {
+  if (typeof v === "number") {
+    return v.toFixed(8);
+  } else {
+    return v;
   }
 }
 
