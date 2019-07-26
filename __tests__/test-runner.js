@@ -51,16 +51,20 @@ function testClient(spec) {
     });
 
     if (spec.hasTickers) {
-      testSubscribeTicker(spec, state);
+      testTickers(spec, state);
     }
 
     if (spec.hasTrades) {
-      testSubscribeTrades(spec, state);
+      testTrades(spec, state);
+    }
+
+    if (spec.hasLevel2Snapshots) {
+      testLevel2Snapshots(spec, state);
     }
   });
 }
 
-function testSubscribeTicker(spec, state) {
+function testTickers(spec, state) {
   describe("subscribeTicker", () => {
     let result = {};
     let client;
@@ -132,7 +136,7 @@ function testSubscribeTicker(spec, state) {
   });
 }
 
-function testSubscribeTrades(spec, state) {
+function testTrades(spec, state) {
   describe("subscribeTrades", () => {
     let result = {};
     let client;
@@ -152,7 +156,7 @@ function testSubscribeTrades(spec, state) {
     }).timeout(60000);
 
     it("should unsubscribe from trades", () => {
-      client.subscribeTrades(spec.markets[0]);
+      client.unsubscribeTrades(spec.markets[0]);
     });
 
     describe("results", () => {
@@ -186,6 +190,98 @@ function testSubscribeTrades(spec, state) {
 
       testNumberString(result, "trade.price");
       testNumberString(result, "trade.amount");
+    });
+  });
+}
+
+function testLevel2Snapshots(spec, state) {
+  describe("subscribeLevel2Snapshots", () => {
+    let result = {};
+    let client;
+
+    before(() => {
+      client = state.client;
+    });
+
+    it("should subscribe and emit a l2snapshot", done => {
+      client.subscribeLevel2Snapshots(spec.markets[0]);
+      client.on("l2snapshot", (snapshot, market) => {
+        result.snapshot = snapshot;
+        result.market = market;
+        client.removeAllListeners("l2snapshot");
+        done();
+      });
+    }).timeout(60000);
+
+    it("should unsubscribe from l2snapshot", () => {
+      client.unsubscribeLevel2Snapshots(spec.markets[0]);
+    });
+
+    describe("results", () => {
+      it("market should be the subscribing market", () => {
+        expect(result.market).to.equal(spec.markets[0]);
+      });
+
+      it("snapshot.exchange should be the exchange name", () => {
+        expect(result.snapshot.exchange).to.equal(spec.exchangeName);
+      });
+
+      it("snapshot.base should match market.base", () => {
+        expect(result.snapshot.base).to.equal(spec.markets[0].base);
+      });
+
+      it("snapshot.quote should match market.quote", () => {
+        expect(result.snapshot.quote).to.equal(spec.markets[0].quote);
+      });
+
+      if (spec.level2Snapshot.hasTimestampMs) {
+        testTimestampMs(result, "snapshot.timestampMs");
+      } else {
+        testUndefined(result, "snapshot.timestampMs");
+      }
+
+      if (spec.level2Snapshot.hasSequenceId) {
+        testString(result, "snapshot.sequenceId");
+      } else {
+        testUndefined(result, "snapshot.sequenceId");
+      }
+
+      it("snapshot.bid/ask.price should be a string", () => {
+        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).price;
+        expect(actual).to.be.a("string");
+      });
+
+      it("snapshot.bid/ask.price should parse to a number", () => {
+        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).price;
+        expect(parseFloat(actual)).to.not.be.NaN;
+      });
+
+      it("snapshot.bid/ask.size should be a string", () => {
+        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).size;
+        expect(actual).to.be.a("string");
+      });
+
+      it("snapshot.bid/ask.size should parse to a number", () => {
+        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).size;
+        expect(parseFloat(actual)).to.not.be.NaN;
+      });
+
+      if (spec.level2Snapshot.hasCount) {
+        it("snapshot.bid/ask.count should be a string", () => {
+          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
+          expect(actual).to.be.a("string");
+        });
+
+        it("snapshot.bid/ask.count should parse to a number", () => {
+          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
+          expect(parseFloat(actual)).to.not.be.NaN;
+        });
+      } else {
+        it("snapshot.bid/ask.count should undefined", () => {
+          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
+          expect(actual).to.be.undefined;
+        });
+      }
     });
   });
 }

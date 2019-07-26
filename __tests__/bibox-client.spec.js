@@ -44,31 +44,13 @@ testClient({
   trade: {
     hasTradeId: false,
   },
+
+  level2Snapshot: {
+    hasTimestampMs: true,
+    hasSequenceId: false,
+    hasCount: false,
+  },
 });
-
-//   test("should subscribe and emit trade events", done => {
-//     client.subscribeTrades(market1);
-//     client.subscribeTrades(market2);
-//     client.on("trade", (trade, market) => {
-//       expect(market).toBeDefined();
-//       expect(market.id).toMatch(/BTC_USDT|ETH_BTC/);
-//       expect(trade.fullId).toMatch(/Bibox:BTC\/USDT|Bibox:ETH\/BTC/);
-//       expect(trade.exchange).toMatch("Bibox");
-//       expect(trade.base).toMatch(/BTC|ETH/);
-//       expect(trade.quote).toMatch(/USDT|BTC/);
-//       expect(trade.tradeId).toBeUndefined();
-//       expect(trade.unix).toBeGreaterThan(1522540800000);
-//       expect(trade.side).toMatch(/buy|sell/);
-//       expect(typeof trade.price).toBe("string");
-//       expect(typeof trade.amount).toBe("string");
-//       expect(parseFloat(trade.price)).toBeGreaterThan(0);
-//       done();
-//     });
-//   }, 30000);
-
-//   test("should unsubscribe from trade events", () => {
-//     client.unsubscribeTrades(market1);
-//   });
 
 //   test("should subscribe and emit level2 snapshots", done => {
 //     client.subscribeLevel2Snapshots(market1);
