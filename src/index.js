@@ -35,6 +35,7 @@ module.exports = {
   Huobi: huobi,
   Kraken: kraken,
   OKEx: okex,
+  okex3: okex,
   Poloniex: poloniex,
   Upbit: upbit,
 
