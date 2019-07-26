@@ -40,6 +40,10 @@ testClient({
     hasAsk: true,
     hasAskVolume: false,
   },
+
+  trade: {
+    hasTradeId: false,
+  },
 });
 
 //   test("should subscribe and emit trade events", done => {

@@ -24,27 +24,38 @@ function testClient(spec) {
       sandbox.restore();
     });
 
-    // This section describes the capabilities of the client and ensures
-    // that the client properly indicates its capabilities
     describe("capabilities", () => {
-      let capabilities = [
-        ["tickers", "hasTickers", "hasTickers"],
-        ["trades", "hasTrades", "hasT"],
-        ["level2 snapshots", "hasLevel2Snapshots"],
-        ["level2 updates", "hasLevel2Updates"],
-        ["level3 snapshots", "hasLevel3Snapshots"],
-        ["level3 updates", "hasLevel3Updates"],
-      ];
+      it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
+        expect(state.client.hasTickers).to.equal(spec.hasTickers);
+      });
 
-      for (let [name, propName] of capabilities) {
-        it(`should ${spec[propName] ? "support" : "not support"} ${name}`, () => {
-          expect(state.client[propName]).to.equal(spec[propName]);
-        });
-      }
+      it(`should ${spec.hasTrades ? "support" : "not support"} trades`, () => {
+        expect(state.client.hasTrades).to.equal(spec.hasTrades);
+      });
+
+      it(`should ${spec.hasLevel2Snapshots ? "support" : "not support"} level2 snapshots`, () => {
+        expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
+      });
+
+      it(`should ${spec.hasLevel2Updates ? "support" : "not support"} level2 updates`, () => {
+        expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
+      });
+
+      it(`should ${spec.hasLevel3Snapshots ? "support" : "not support"} level3 snapshots`, () => {
+        expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
+      });
+
+      it(`should ${spec.hasLevel3Updates ? "support" : "not support"} level3 updates`, () => {
+        expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
+      });
     });
 
     if (spec.hasTickers) {
       testSubscribeTicker(spec, state);
+    }
+
+    if (spec.hasTrades) {
+      testSubscribeTrades(spec, state);
     }
   });
 }
@@ -90,16 +101,8 @@ function testSubscribeTicker(spec, state) {
       });
 
       if (spec.ticker.hasTimestamp) {
-        it("ticker.timestamp should be a number", () => {
-          expect(result.ticker.timestamp).to.be.a("number");
-        });
-
-        it("ticker.timestamp should be in milliseconds", () => {
-          expect(result.ticker.timestamp).to.be.greaterThan(1531677480000);
-        });
-      }
-
-      if (!spec.ticker.hasTimestamp) {
+        testTimestampMs(result, "ticker.timestamp");
+      } else {
         testUndefined(result, "ticker.timestamp");
       }
 
@@ -129,11 +132,72 @@ function testSubscribeTicker(spec, state) {
   });
 }
 
+function testSubscribeTrades(spec, state) {
+  describe("subscribeTrades", () => {
+    let result = {};
+    let client;
+
+    before(() => {
+      client = state.client;
+    });
+
+    it("should subscribe and emit a trade", done => {
+      client.subscribeTrades(spec.markets[0]);
+      client.on("trade", (trade, market) => {
+        result.trade = trade;
+        result.market = market;
+        client.removeAllListeners("trade");
+        done();
+      });
+    }).timeout(60000);
+
+    it("should unsubscribe from trades", () => {
+      client.subscribeTrades(spec.markets[0]);
+    });
+
+    describe("results", () => {
+      it("market should be the subscribing market", () => {
+        expect(result.market).to.equal(spec.markets[0]);
+      });
+
+      it("trade.exchange should be the exchange name", () => {
+        expect(result.trade.exchange).to.equal(spec.exchangeName);
+      });
+
+      it("trade.base should match market.base", () => {
+        expect(result.trade.base).to.equal(spec.markets[0].base);
+      });
+
+      it("trade.quote should match market.quote", () => {
+        expect(result.trade.quote).to.equal(spec.markets[0].quote);
+      });
+
+      if (spec.trade.hasTradeId) {
+        testString(result, "trade.tradeId");
+      } else {
+        testUndefined(result, "trade.tradeId");
+      }
+
+      testTimestampMs(result, "trade.unix");
+
+      it("trade.side should be either 'buy' or 'sell'", () => {
+        expect(result.trade.side).to.match(/buy|sell/);
+      });
+
+      testNumberString(result, "trade.price");
+      testNumberString(result, "trade.amount");
+    });
+  });
+}
+
+//////////////////////////////////////////////////////
+
 function testNumberString(result, prop) {
   it(`${prop} should be a string`, () => {
     let actual = deepValue(result, prop);
     expect(actual).to.be.a("string");
   });
+
   it(`${prop} should parse to a number`, () => {
     let actual = deepValue(result, prop);
     expect(parseFloat(actual)).to.not.be.NaN;
@@ -144,6 +208,30 @@ function testUndefined(result, propPath) {
   it(`${propPath} should be undefined`, () => {
     let actual = deepValue(result, propPath);
     expect(actual).to.be.undefined;
+  });
+}
+
+function testTimestampMs(result, propPath) {
+  it(`${propPath} should be a number`, () => {
+    let actual = deepValue(result, propPath);
+    expect(actual).to.be.a("number");
+  });
+
+  it(`${propPath} should be in milliseconds`, () => {
+    let actual = deepValue(result, propPath);
+    expect(actual).to.be.greaterThan(1531677480000);
+  });
+}
+
+function testString(result, propPath) {
+  it(`${propPath} should be a string`, () => {
+    let actual = deepValue(result, propPath);
+    expect(actual).to.be.a("string");
+  });
+
+  it(`${propPath} should not be empty`, () => {
+    let actual = deepValue(result, propPath);
+    expect(actual).to.not.equal("");
   });
 }
 
