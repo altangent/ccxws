@@ -31,10 +31,14 @@
     "ws": "^5.1.1"
   },
   "devDependencies": {
+    "chai": "^4.2.0",
     "coveralls": "^3.0.3",
     "eslint": "^5.15.3",
     "jest": "^24.5.0",
     "jest-circus": "^24.5.0",
-    "prettier": "^1.16.4"
+    "mocha": "^6.2.0",
+    "nyc": "^14.1.1",
+    "prettier": "^1.16.4",
+    "sinon": "^7.3.2"
   }
 }

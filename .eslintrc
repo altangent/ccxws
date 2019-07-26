@@ -6,7 +6,8 @@
   "env": {
     "node": true,
     "es6": true,
-    "jest": true
+    "jest": true,
+    "mocha": true
   },
   "extends": ["eslint:recommended"],
   "rules": {
