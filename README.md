@@ -49,28 +49,28 @@ binance.subscribeLevel2Snapshots(market);
 
 ## Exchanges
 
-| Exchange     | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
-| ------------ | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Bibox        | bibox       | Support | Support | Support        |               | -              | -             |
-| Binance      | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
-| Bitfinex     | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| bitFlyer     | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
-| BitMEX       | bitmex      |         | Support | -              | Support\*     | -              | -             |
-| Bitstamp     | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
-| Bittrex      | bittrex     | Support | Support | -              | Support\*     | -              | -             |
-| Cex.io       | cex         | Support | Support | -              | Support\*     | -              | -             |
-| Coinex       | coinex      | Support | Support | -              | Support\*     | -              | -             |
-| Coinbase Pro | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
-| Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
-| Gemini       | gemini      | -       | Support | -              | Support\*     | -              | -             |
-| HitBTC       | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
-| Huobi        | huobi       | Support | Support | Support        | -             | -              | -             |
-| Kraken       | kraken      | Support | Support | -              | Support\*     | -              | -             |
-| OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
-| Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
-| Upbit        | upbit       | Support | Support | Support        | -             | -              | -             |
-| ZB           | zb          | Support | Support | Support        | -             | -              | -             |
+| Exchange     | API | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
+| ------------ | --- | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
+| Bibox        | 1   | bibox       | Support | Support | Support        |               | -              | -             |
+| Binance      | 1   | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
+| Bitfinex     | 1.1 | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
+| bitFlyer     | 1   | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
+| BitMEX       | 1   | bitmex      |         | Support | -              | Support\*     | -              | -             |
+| Bitstamp     | 2   | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
+| Bittrex      | 1   | bittrex     | Support | Support | -              | Support\*     | -              | -             |
+| Cex.io       | 1   | cex         | Support | Support | -              | Support\*     | -              | -             |
+| Coinbase Pro | 1   | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
+| Coinex       | 1   | coinex      | Support | Support | -              | Support\*     | -              | -             |
+| Ethfinex     | 1   | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
+| Gate.io      | 3   | gateio      | Support | Support | -              | Support\*     | -              | -             |
+| Gemini       | 1   | gemini      | -       | Support | -              | Support\*     | -              | -             |
+| HitBTC       | 2   | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
+| Huobi        | 1   | huobi       | Support | Support | Support        | -             | -              | -             |
+| Kraken       | 0   | kraken      | Support | Support | -              | Support\*     | -              | -             |
+| OKEx         | 3   | okex        | Support | Support | Support        | Support\*     | -              | -             |
+| Poloniex     | 2   | poloniex    | Support | Support | -              | Support\*     | -              | -             |
+| Upbit        | 1   | upbit       | Support | Support | Support        | -             | -              | -             |
+| ZB           | 1   | zb          | Support | Support | Support        | -             | -              | -             |
 
 Notes:
 
