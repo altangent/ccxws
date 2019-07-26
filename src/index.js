@@ -20,25 +20,6 @@ const upbit = require("./exchanges/upbit-client");
 const zb = require("./exchanges/zb-client");
 
 module.exports = {
-  // export all legacy exchange names
-  Bibox: bibox,
-  Binance: binance,
-  Bitfinex: bitfinex,
-  Bitflyer: bitflyer,
-  BitMEX: bitmex,
-  Bitstamp: bitstamp,
-  Bittrex: bittrex,
-  Ethfinex: ethfinex,
-  Gateio: gateio,
-  Gemini: gemini,
-  HitBTC: hitbtc,
-  Huobi: huobi,
-  Kraken: kraken,
-  OKEx: okex,
-  okex3: okex,
-  Poloniex: poloniex,
-  Upbit: upbit,
-
   // export all exchanges
   bibox,
   binance,
@@ -54,12 +35,34 @@ module.exports = {
   gateio,
   gemini,
   hitbtc,
+  hitbtc2: hitbtc,
   huobi,
+  huobipro: huobi,
   kraken,
   okex,
+  okex3: okex,
   poloniex,
   upbit,
   zb,
+
+  // export all legacy exchange names
+  Bibox: bibox,
+  Binance: binance,
+  Bitfinex: bitfinex,
+  Bitflyer: bitflyer,
+  BitMEX: bitmex,
+  Bitstamp: bitstamp,
+  Bittrex: bittrex,
+  Ethfinex: ethfinex,
+  Gateio: gateio,
+  Gemini: gemini,
+  HitBTC: hitbtc,
+  Huobi: huobi,
+  Kraken: kraken,
+  OKEx: okex,
+
+  Poloniex: poloniex,
+  Upbit: upbit,
 
   // export all types
   Auction: require("./auction"),

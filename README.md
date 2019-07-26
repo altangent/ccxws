@@ -30,8 +30,8 @@ const binance = new ccxws.binance();
 // market could be from CCXT or genearted by the user
 const market = {
   id: "BTCUSDT", // remote_id used by the exchange
-  base: "BTC", // standardized base symbol for Cardano
-  quote: "USDT", // standardized quote symbol for Bitcoin
+  base: "BTC", // standardized base symbol for Bitcoin
+  quote: "USDT", // standardized quote symbol for Tether
 };
 
 // handle trade events
@@ -49,33 +49,33 @@ binance.subscribeLevel2Snapshots(market);
 
 ## Exchanges
 
-| Exchange     | API | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
-| ------------ | --- | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Bibox        | 1   | bibox       | Support | Support | Support        |               | -              | -             |
-| Binance      | 1   | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
-| Bitfinex     | 1.1 | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| bitFlyer     | 1   | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
-| BitMEX       | 1   | bitmex      |         | Support | -              | Support\*     | -              | -             |
-| Bitstamp     | 2   | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
-| Bittrex      | 1   | bittrex     | Support | Support | -              | Support\*     | -              | -             |
-| Cex.io       | 1   | cex         | Support | Support | -              | Support\*     | -              | -             |
-| Coinbase Pro | 1   | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
-| Coinex       | 1   | coinex      | Support | Support | -              | Support\*     | -              | -             |
-| Ethfinex     | 1   | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| Gate.io      | 3   | gateio      | Support | Support | -              | Support\*     | -              | -             |
-| Gemini       | 1   | gemini      | -       | Support | -              | Support\*     | -              | -             |
-| HitBTC       | 2   | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
-| Huobi        | 1   | huobi       | Support | Support | Support        | -             | -              | -             |
-| Kraken       | 0   | kraken      | Support | Support | -              | Support\*     | -              | -             |
-| OKEx         | 3   | okex        | Support | Support | Support        | Support\*     | -              | -             |
-| Poloniex     | 2   | poloniex    | Support | Support | -              | Support\*     | -              | -             |
-| Upbit        | 1   | upbit       | Support | Support | Support        | -             | -              | -             |
-| ZB           | 1   | zb          | Support | Support | Support        | -             | -              | -             |
+| Exchange     | API | Class       | Ticker   | Trades   | OB-L2<br/>Snapshot | OB-L2<br/>Updates | OB-L3<br/>Snapshot | OB-L3<br/>Updates |
+| ------------ | --- | ----------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
+| Bibox        | 1   | bibox       | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
+| Binance      | 1   | binance     | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Bitfinex     | 1.1 | bitfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| bitFlyer     | 1   | bitflyer    | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  | -                 |
+| BitMEX       | 1   | bitmex      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Bitstamp     | 2   | bitstamp    | -        | &#10003; | &#10003;           | &#10003;\*\*      | -                  | &#10003;          |
+| Bittrex      | 1   | bittrex     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Cex.io       | 1   | cex         | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Coinbase Pro | 1   | coinbasepro | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;          |
+| Coinex       | 1   | coinex      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Ethfinex     | 1   | ethfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| Gate.io      | 3   | gateio      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Gemini       | 1   | gemini      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| HitBTC       | 2   | hitbtc2     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Huobi        | 1   | huobipro    | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| Kraken       | 0   | kraken      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| OKEx         | 3   | okex3       | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
+| Poloniex     | 2   | poloniex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Upbit        | 1   | upbit       | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| ZB           | 1   | zb          | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 
 Notes:
 
-- Support\*: Broadcasts a snapshot event at startup
-- Support\*\*: Broadcasts a snapshot by using the REST API
+- &#10003;\* broadcasts a snapshot event at startup
+- &#10003;\*\* broadcasts a snapshot by using the REST API
 
 ## Definitions
 
