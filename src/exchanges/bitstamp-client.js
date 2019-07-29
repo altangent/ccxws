@@ -161,7 +161,7 @@ class BitstampClient extends BasicClient {
       exchange: "Bitstamp",
       base: market.base,
       quote: market.quote,
-      tradeId: data.id,
+      tradeId: data.id.toFixed(),
       unix: Math.round(parseInt(data.microtimestamp) / 1000), // convert to milli
       side: data.type === 1 ? "sell" : "buy",
       price: data.price_str,

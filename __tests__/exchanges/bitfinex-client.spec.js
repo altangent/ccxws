@@ -41,7 +41,6 @@ testClient({
   },
 
   l2snapshot: {
-    hasSnapshot: true,
     hasTimestampMs: false,
     hasSequenceId: false,
     hasCount: true,
@@ -55,7 +54,6 @@ testClient({
   },
 
   l3snapshot: {
-    hasSnapshot: true,
     hasTimestampMs: false,
     hasSequenceId: false,
     hasCount: true,
