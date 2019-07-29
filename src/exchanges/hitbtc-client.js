@@ -193,7 +193,7 @@ class HitBTCClient extends BasicClient {
       exchange: "HitBTC",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       side,
       unix,
       price,

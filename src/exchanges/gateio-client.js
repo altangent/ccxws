@@ -41,14 +41,16 @@ class GateioSingleClient extends BasicClient {
   }
 
   _stopPing() {
-    clearInterval(this._pingInterval)
+    clearInterval(this._pingInterval);
   }
 
   _sendPing() {
     if (this._wss) {
-      this._wss.send(JSON.stringify({ 
-        method: "server.ping"
-      }));
+      this._wss.send(
+        JSON.stringify({
+          method: "server.ping",
+        })
+      );
     }
   }
 
@@ -182,7 +184,7 @@ class GateioSingleClient extends BasicClient {
       exchange: "Gateio",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       unix,
       side: type,
       price,

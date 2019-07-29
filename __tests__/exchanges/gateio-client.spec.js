@@ -1,13 +1,13 @@
 const { testClient } = require("../test-runner");
-const BitfinexClient = require("../../src/exchanges/bitfinex-client");
+const GateioClient = require("../../src/exchanges/gateio-client");
 
 testClient({
-  clientFactory: () => new BitfinexClient(),
-  clientName: "BitfinexClient",
-  exchangeName: "Bitfinex",
+  clientFactory: () => new GateioClient(),
+  clientName: "GateioClient",
+  exchangeName: "Gateio",
   markets: [
     {
-      id: "BTCUSD",
+      id: "BTC_USDT",
       base: "BTC",
       quote: "USDT",
     },
@@ -18,7 +18,7 @@ testClient({
   hasLevel2Snapshots: false,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
-  hasLevel3Updates: true,
+  hasLevel3Updates: false,
 
   ticker: {
     hasTimestamp: true,
@@ -27,13 +27,13 @@ testClient({
     hasHigh: true,
     hasLow: true,
     hasVolume: true,
-    hasQuoteVolume: false,
+    hasQuoteVolume: true,
     hasChange: true,
     hasChangePercent: true,
-    hasBid: true,
-    hasBidVolume: true,
-    hasAsk: true,
-    hasAskVolume: true,
+    hasBid: false,
+    hasBidVolume: false,
+    hasAsk: false,
+    hasAskVolume: false,
   },
 
   trade: {
@@ -43,25 +43,13 @@ testClient({
   l2snapshot: {
     hasTimestampMs: false,
     hasSequenceId: false,
-    hasCount: true,
+    hasCount: false,
   },
 
   l2update: {
     hasSnapshot: true,
     hasTimestampMs: false,
     hasSequenceId: false,
-    hasCount: true,
-  },
-
-  l3snapshot: {
-    hasTimestampMs: false,
-    hasSequenceId: false,
-  },
-
-  l3update: {
-    hasSnapshot: true,
-    hasTimestampMs: false,
-    hasSequenceId: false,
-    hasCount: true,
+    hasCount: false,
   },
 });

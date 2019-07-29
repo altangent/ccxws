@@ -152,7 +152,6 @@ class HuobiClient extends BasicClient {
   _constructTradesFromMessage(datum, market) {
     let { amount, direction, ts, price, id } = datum;
     let unix = Math.trunc(parseInt(ts));
-
     return new Trade({
       exchange: "Huobi",
       base: market.base,
@@ -161,7 +160,7 @@ class HuobiClient extends BasicClient {
       side: direction,
       unix,
       price,
-      amount,
+      amount: typeof amount === "number" ? amount.toFixed(8) : amount,
     });
   }
 

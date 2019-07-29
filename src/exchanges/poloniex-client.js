@@ -333,7 +333,7 @@ class PoloniexClient extends BasicClient {
       exchange: "Poloniex",
       base: market.base,
       quote: market.quote,
-      tradeId: trade_id,
+      tradeId: trade_id.toFixed(),
       side,
       unix,
       price,

@@ -1,15 +1,15 @@
 const { testClient } = require("../test-runner");
-const BitfinexClient = require("../../src/exchanges/bitfinex-client");
+const BittrexClient = require("../../src/exchanges/bittrex-client");
 
 testClient({
-  clientFactory: () => new BitfinexClient(),
-  clientName: "BitfinexClient",
-  exchangeName: "Bitfinex",
+  clientFactory: () => new BittrexClient(),
+  clientName: "BittrexClient",
+  exchangeName: "Bittrex",
   markets: [
     {
-      id: "BTCUSD",
+      id: "USDT-BTC",
       base: "BTC",
-      quote: "USDT",
+      quote: "USD",
     },
   ],
 
@@ -18,7 +18,7 @@ testClient({
   hasLevel2Snapshots: false,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
-  hasLevel3Updates: true,
+  hasLevel3Updates: false,
 
   ticker: {
     hasTimestamp: true,
@@ -27,13 +27,13 @@ testClient({
     hasHigh: true,
     hasLow: true,
     hasVolume: true,
-    hasQuoteVolume: false,
+    hasQuoteVolume: true,
     hasChange: true,
     hasChangePercent: true,
     hasBid: true,
-    hasBidVolume: true,
+    hasBidVolume: false,
     hasAsk: true,
-    hasAskVolume: true,
+    hasAskVolume: false,
   },
 
   trade: {
@@ -42,26 +42,14 @@ testClient({
 
   l2snapshot: {
     hasTimestampMs: false,
-    hasSequenceId: false,
-    hasCount: true,
+    hasSequenceId: true,
+    hasCount: false,
   },
 
   l2update: {
     hasSnapshot: true,
     hasTimestampMs: false,
-    hasSequenceId: false,
-    hasCount: true,
-  },
-
-  l3snapshot: {
-    hasTimestampMs: false,
-    hasSequenceId: false,
-  },
-
-  l3update: {
-    hasSnapshot: true,
-    hasTimestampMs: false,
-    hasSequenceId: false,
-    hasCount: true,
+    hasSequenceId: true,
+    hasCount: false,
   },
 });

@@ -1,15 +1,15 @@
 const { testClient } = require("../test-runner");
-const BitfinexClient = require("../../src/exchanges/bitfinex-client");
+const EthfinexClient = require("../../src/exchanges/ethfinex-client");
 
 testClient({
-  clientFactory: () => new BitfinexClient(),
-  clientName: "BitfinexClient",
-  exchangeName: "Bitfinex",
+  clientFactory: () => new EthfinexClient(),
+  clientName: "EthfinexClient",
+  exchangeName: "Ethfinex",
   markets: [
     {
-      id: "BTCUSD",
-      base: "BTC",
-      quote: "USDT",
+      id: "ETHUSD",
+      base: "ETH",
+      quote: "USD",
     },
   ],
 

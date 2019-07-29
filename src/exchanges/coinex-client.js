@@ -45,7 +45,7 @@ class CoinexSingleClient extends BasicClient {
   }
 
   _stopPing() {
-    clearInterval(this._pingInterval)
+    clearInterval(this._pingInterval);
   }
 
   _sendPing() {
@@ -230,7 +230,7 @@ class CoinexSingleClient extends BasicClient {
       exchange: "Coinex",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       unix: unix,
       side: type,
       price,
