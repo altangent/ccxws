@@ -1,19 +1,38 @@
-const winston = require("winston");
+const crypto = require("crypto");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const BasicAuthClient = require("../basic-auth-client");
 const BasicMultiClient = require("../basic-multiclient");
+const BasicClient = require("../basic-client");
 const Watcher = require("../watcher");
 
+function createSignature(timestamp, apiKey, apiSecret) {
+  var hmac = crypto.createHmac("sha256", apiSecret);
+  hmac.update(timestamp + apiKey);
+  return hmac.digest("hex");
+}
+
+function createAuthToken(apiKey, apiSecret) {
+  var timestamp = Math.floor(Date.now() / 1000);
+  return {
+    key: apiKey,
+    signature: createSignature(timestamp, apiKey, apiSecret),
+    timestamp,
+  };
+}
+
 class CexClient extends BasicMultiClient {
-  constructor(args) {
+  /**
+   * Creates a new CEX.io client using the supplied credentials
+   * @param {{ apiKey: string, apiSecret: string }} auth
+   */
+  constructor(auth) {
     super();
     this._clients = new Map();
 
     this._name = "CEX_MULTI";
-    this.auth = args;
+    this.auth = auth;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
@@ -24,7 +43,7 @@ class CexClient extends BasicMultiClient {
   }
 }
 
-class SingleCexClient extends BasicAuthClient {
+class SingleCexClient extends BasicClient {
   constructor(args) {
     super("wss://ws.cex.io/ws", "CEX");
     this._watcher = new Watcher(this, 15 * 60 * 1000);
@@ -33,6 +52,36 @@ class SingleCexClient extends BasicAuthClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
+  }
+
+  /**
+   * This method is fired anytime the socket is opened, whether
+   * the first time, or any subsequent reconnects.
+   * Since this is an authenticated feed, we first send an authenticate
+   * request, and the normal subscriptions happen after authentication has
+   * completed in the _onAuthorized method.
+   */
+  _onConnected() {
+    this.emit("connected");
+    this._sendAuthorizeRequest();
+  }
+
+  /**
+   * Trigger after an authorization packet has been successfully received.
+   * This code triggers the usual _onConnected code afterwards.
+   */
+  _onAuthorized() {
+    this.emit("authorized");
+    super._onConnected();
+  }
+
+  _sendAuthorizeRequest() {
+    this._wss.send(
+      JSON.stringify({
+        e: "auth",
+        auth: createAuthToken(this.auth.apiKey, this.auth.apiSecret),
+      })
+    );
   }
 
   _sendPong() {
@@ -53,12 +102,10 @@ class SingleCexClient extends BasicAuthClient {
   _sendUnsubTicker() {}
 
   _sendSubTrades(remote_id) {
-    let localRemote_id = remote_id; //`pair-${remote_id}`;
-    winston.info("subscribing to trades", "CEX", localRemote_id);
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
-        rooms: [remote_id],
+        rooms: [`pair-${remote_id}`],
       })
     );
   }
@@ -66,15 +113,15 @@ class SingleCexClient extends BasicAuthClient {
   _sendUnsubTrades() {}
 
   _sendSubLevel2Snapshots(remote_id) {
-    let localRemote_id = remote_id;
-    winston.info("subscribing to level2 snapshots", "SINGLE CEX", localRemote_id);
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
-        rooms: [remote_id],
+        rooms: [`pair-${remote_id}`],
       })
     );
   }
+
+  _sendUnsubLevel2Snapshots() {}
 
   _constructTicker(data, market) {
     // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
@@ -104,7 +151,7 @@ class SingleCexClient extends BasicAuthClient {
       exchange: "CEX",
       base: market.base,
       quote: market.quote,
-      sequenceId: msg.id,
+      sequenceId: msg.id.toFixed(),
       asks,
       bids,
     });
@@ -178,7 +225,7 @@ class SingleCexClient extends BasicAuthClient {
       if (!market) return;
 
       // sell/buy:timestamp_ms:amount:price:transaction_id
-      for (let rawTrade of data) {
+      for (let rawTrade of data.reverse()) {
         let tradeData = rawTrade.split(":");
         let trade = this._constructTrade(tradeData, market);
         this.emit("trade", trade, market);

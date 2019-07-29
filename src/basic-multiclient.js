@@ -13,6 +13,7 @@ class BasicMultiClient extends EventEmitter {
     this.hasTrades = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
+    this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
     this.throttleMs = 250;
     this.sem = semaphore(3); // this can be overriden to allow more or less

@@ -50,15 +50,15 @@ function testClient(spec) {
       });
     });
 
-    if (spec.hasTickers) {
+    if (spec.hasTickers && spec.ticker) {
       testTickers(spec, state);
     }
 
-    if (spec.hasTrades) {
+    if (spec.hasTrades && spec.trade) {
       testTrades(spec, state);
     }
 
-    if (spec.hasLevel2Snapshots) {
+    if (spec.hasLevel2Snapshots && spec.level2Snapshot) {
       testLevel2Snapshots(spec, state);
     }
 
@@ -87,7 +87,9 @@ function testTickers(spec, state) {
         client.removeAllListeners("ticker");
         done();
       });
-    }).timeout(10000);
+    })
+      .timeout(60000)
+      .retries(5);
 
     it("should unsubscribe from tickers", () => {
       client.unsubscribeTicker(spec.markets[0]);
@@ -159,7 +161,9 @@ function testTrades(spec, state) {
         client.removeAllListeners("trade");
         done();
       });
-    }).timeout(60000);
+    })
+      .timeout(60000)
+      .retries(5);
 
     it("should unsubscribe from trades", () => {
       client.unsubscribeTrades(spec.markets[0]);
@@ -217,7 +221,9 @@ function testLevel2Snapshots(spec, state) {
         client.removeAllListeners("l2snapshot");
         done();
       });
-    }).timeout(60000);
+    })
+      .timeout(60000)
+      .retries(5);
 
     it("should unsubscribe from l2snapshot", () => {
       client.unsubscribeLevel2Snapshots(spec.markets[0]);
