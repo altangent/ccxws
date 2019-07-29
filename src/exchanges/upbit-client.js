@@ -18,6 +18,7 @@ class UpbitClient extends BasicClient {
 
   _sendSubTicker() {
     this._debounce("sub-ticker", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._tickerSubs.keys());
       this._wss.send(JSON.stringify([{ ticket: "tickers" }, { type: "ticker", codes: codes }]));
     });
@@ -25,6 +26,7 @@ class UpbitClient extends BasicClient {
 
   _sendUnsubTicker() {
     this._debounce("unsub-ticker", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._tickerSubs.keys());
       this._wss.send(JSON.stringify([{ ticket: "tickers" }, { type: "ticker", codes: codes }]));
     });
@@ -32,6 +34,7 @@ class UpbitClient extends BasicClient {
 
   _sendSubTrades() {
     this._debounce("sub-trades", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._tradeSubs.keys());
       this._wss.send(JSON.stringify([{ ticket: "trades" }, { type: "trade", codes: codes }]));
     });
@@ -39,6 +42,7 @@ class UpbitClient extends BasicClient {
 
   _sendUnsubTrades() {
     this._debounce("unsub-trades", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._tradeSubs.keys());
       this._wss.send(JSON.stringify([{ ticket: "trades" }, { type: "trade", codes: codes }]));
     });
@@ -46,6 +50,7 @@ class UpbitClient extends BasicClient {
 
   _sendSubLevel2Snapshots() {
     this._debounce("sub-l2snapshots", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
         JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
@@ -55,6 +60,7 @@ class UpbitClient extends BasicClient {
 
   _sendUnsubLevel2Snapshots() {
     this._debounce("unsub-l2snapshots", () => {
+      if (!this._wss) return;
       let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
         JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])

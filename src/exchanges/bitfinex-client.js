@@ -253,7 +253,7 @@ class BitfinexClient extends BasicClient {
     let bids = [];
     let asks = [];
     msg[1].forEach(p => {
-      let point = new Level3Point(p[0], p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
+      let point = new Level3Point(p[0].toFixed(), p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
       if (p[2] > 0) bids.push(point);
       else asks.push(point);
     });
@@ -271,7 +271,7 @@ class BitfinexClient extends BasicClient {
     let bids = [];
     let asks = [];
 
-    let point = new Level3Point(msg[1], msg[2].toFixed(8), Math.abs(msg[3]).toFixed(8));
+    let point = new Level3Point(msg[1].toFixed(), msg[2].toFixed(8), Math.abs(msg[3]).toFixed(8));
     if (msg[3] > 0) bids.push(point);
     else asks.push(point);
 

@@ -200,6 +200,12 @@ function testTrades(spec, state) {
         testUndefined(result, "trade.tradeId");
       }
 
+      if (spec.trade.tradeIdPattern) {
+        it(`trade.tradeId should match pattern ${spec.trade.tradeIdPattern}`, () => {
+          expect(result.trade.tradeId).to.match(spec.trade.tradeIdPattern);
+        });
+      }
+
       testTimestampMs(result, "trade.unix");
 
       it("trade.side should be either 'buy' or 'sell'", () => {
@@ -386,7 +392,12 @@ function testLevel3Updates(spec, state) {
       client.on("l3update", (update, market) => {
         result.update = update;
         result.market = market;
-        if ((!spec.l2update.hasSnapshot || result.snapshot) && result.update) {
+        if (
+          // check if done override method exists method in spec
+          (!spec.l3update.done || spec.l3update.done(spec, result, update, market)) &&
+          // check if we require a snapshot
+          (!spec.l3update.hasSnapshot || result.snapshot)
+        ) {
           client.removeAllListeners("l3update");
           done();
         }
@@ -438,15 +449,17 @@ function testLevel3Result(spec, result, type) {
     testUndefined(result, `${type}.sequenceId`);
   }
 
-  it(`${type}.bid/ask.orderId should be a number`, () => {
+  it(`${type}.bid/ask.orderId should be a string`, () => {
     let actual = (result[type].bids[0] || result[type].asks[0]).orderId;
-    expect(actual).to.be.a("number");
+    expect(actual).to.be.a("string");
   });
 
-  it(`${type}.bid/ask.orderId should be positive`, () => {
-    let actual = (result[type].bids[0] || result[type].asks[0]).orderId;
-    expect(actual).to.be.greaterThan(0);
-  });
+  if (spec[`l3${type}`].orderIdPattern) {
+    it(`${type}.bid/ask.orderId should match ${spec[`l3${type}`].orderIdPattern}`, () => {
+      let actual = (result[type].bids[0] || result[type].asks[0]).orderId;
+      expect(actual).to.match(spec[`l3${type}`].orderIdPattern);
+    });
+  }
 
   it(`${type}.bid/ask.price should be a string`, () => {
     let actual = (result[type].bids[0] || result[type].asks[0]).price;

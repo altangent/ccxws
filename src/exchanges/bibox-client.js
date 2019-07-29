@@ -68,7 +68,6 @@ class BiboxClient extends EventEmitter {
   }
 
   unsubscribeLevel2Snapshots(market) {
-    console.log("called unsub");
     this._unsubscribe(market, MarketObjectTypes.level2snapshot);
   }
 
