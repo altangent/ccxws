@@ -12,7 +12,7 @@ function testClient(spec) {
     let sandbox;
 
     before(() => {
-      state.client = new spec.client();
+      state.client = spec.clientFactory();
     });
 
     beforeEach(() => {
@@ -61,6 +61,12 @@ function testClient(spec) {
     if (spec.hasLevel2Snapshots) {
       testLevel2Snapshots(spec, state);
     }
+
+    describe("close", () => {
+      it("should close client", () => {
+        state.client.close();
+      });
+    });
   });
 }
 

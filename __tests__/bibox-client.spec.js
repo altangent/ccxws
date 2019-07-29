@@ -2,7 +2,7 @@ const { testClient } = require("./test-runner");
 const BiboxClient = require("../src/exchanges/bibox-client");
 
 testClient({
-  client: BiboxClient,
+  clientFactory: () => new BiboxClient(),
   clientName: "BiboxClient",
   exchangeName: "Bibox",
   markets: [
