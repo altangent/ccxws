@@ -45,7 +45,7 @@ testClient({
     hasTradeId: false,
   },
 
-  level2Snapshot: {
+  l2snapshot: {
     hasTimestampMs: true,
     hasSequenceId: false,
     hasCount: false,

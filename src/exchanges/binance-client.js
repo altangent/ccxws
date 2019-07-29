@@ -36,6 +36,15 @@ class BinanceClient extends EventEmitter {
     this.REST_REQUEST_DELAY_MS = 1000;
   }
 
+  get subCount() {
+    return (
+      this._tickerSubs.size +
+      this._tradeSubs.size +
+      this._level2SnapshotSubs.size +
+      this._level2UpdateSubs.size
+    );
+  }
+
   //////////////////////////////////////////////
 
   subscribeTicker(market) {
@@ -107,6 +116,7 @@ class BinanceClient extends EventEmitter {
    */
   _reconnect() {
     clearTimeout(this._reconnectDebounce);
+    if (this.subCount === 0) return;
     this._reconnectDebounce = setTimeout(() => {
       this._close();
       this._connect();
@@ -261,7 +271,7 @@ class BinanceClient extends EventEmitter {
       exchange: "Binance",
       base: market.base,
       quote: market.quote,
-      tradeId: trade_id,
+      tradeId: trade_id.toFixed(),
       unix,
       side,
       price,

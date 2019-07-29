@@ -58,8 +58,12 @@ function testClient(spec) {
       testTrades(spec, state);
     }
 
-    if (spec.hasLevel2Snapshots && spec.level2Snapshot) {
+    if (spec.hasLevel2Snapshots && spec.l2snapshot) {
       testLevel2Snapshots(spec, state);
+    }
+
+    if (spec.hasLevel2Updates && spec.l2update) {
+      testLevel2Updates(spec, state);
     }
 
     describe("close", () => {
@@ -234,71 +238,132 @@ function testLevel2Snapshots(spec, state) {
         expect(result.market).to.equal(spec.markets[0]);
       });
 
-      it("snapshot.exchange should be the exchange name", () => {
-        expect(result.snapshot.exchange).to.equal(spec.exchangeName);
-      });
-
-      it("snapshot.base should match market.base", () => {
-        expect(result.snapshot.base).to.equal(spec.markets[0].base);
-      });
-
-      it("snapshot.quote should match market.quote", () => {
-        expect(result.snapshot.quote).to.equal(spec.markets[0].quote);
-      });
-
-      if (spec.level2Snapshot.hasTimestampMs) {
-        testTimestampMs(result, "snapshot.timestampMs");
-      } else {
-        testUndefined(result, "snapshot.timestampMs");
-      }
-
-      if (spec.level2Snapshot.hasSequenceId) {
-        testString(result, "snapshot.sequenceId");
-      } else {
-        testUndefined(result, "snapshot.sequenceId");
-      }
-
-      it("snapshot.bid/ask.price should be a string", () => {
-        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).price;
-        expect(actual).to.be.a("string");
-      });
-
-      it("snapshot.bid/ask.price should parse to a number", () => {
-        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).price;
-        expect(parseFloat(actual)).to.not.be.NaN;
-      });
-
-      it("snapshot.bid/ask.size should be a string", () => {
-        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).size;
-        expect(actual).to.be.a("string");
-      });
-
-      it("snapshot.bid/ask.size should parse to a number", () => {
-        let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).size;
-        expect(parseFloat(actual)).to.not.be.NaN;
-      });
-
-      if (spec.level2Snapshot.hasCount) {
-        it("snapshot.bid/ask.count should be a string", () => {
-          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
-          expect(actual).to.be.a("string");
-        });
-
-        it("snapshot.bid/ask.count should parse to a number", () => {
-          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
-          expect(parseFloat(actual)).to.not.be.NaN;
-        });
-      } else {
-        it("snapshot.bid/ask.count should undefined", () => {
-          let actual = (result.snapshot.bids[0] || result.snapshot.asks[0]).count;
-          expect(actual).to.be.undefined;
-        });
-      }
+      testLevel2Result(spec, result, "snapshot");
     });
   });
 }
 
+function testLevel2Updates(spec, state) {
+  describe("subscribeLevel2Updates", () => {
+    let result = {};
+    let client;
+
+    before(() => {
+      client = state.client;
+    });
+
+    it("should subscribe and emit a l2update", done => {
+      client.subscribeLevel2Updates(spec.markets[0]);
+      client.on("l2snapshot", (snapshot, market) => {
+        result.snapshot = snapshot;
+        result.market = market;
+      });
+      client.on("l2update", (update, market) => {
+        result.update = update;
+        result.market = market;
+        if ((!spec.l2update.hasSnapshot || result.snapshot) && result.update) {
+          client.removeAllListeners("l2update");
+          done();
+        }
+      });
+    })
+      .timeout(60000)
+      .retries(5);
+
+    it("should unsubscribe from l2update", () => {
+      client.unsubscribeLevel2Updates(spec.markets[0]);
+    });
+
+    describe("results", () => {
+      it("market should be the subscribing market", () => {
+        expect(result.market).to.equal(spec.markets[0]);
+      });
+
+      if (spec.l2update.hasSnapshot) {
+        testLevel2Result(spec, result, "snapshot");
+      }
+
+      testLevel2Result(spec, result, "update");
+    });
+  });
+}
+
+function testLevel2Result(spec, result, type) {
+  it(`${type}.exchange should be the exchange name`, () => {
+    expect(result[type].exchange).to.equal(spec.exchangeName);
+  });
+
+  it(`${type}.base should match market.base`, () => {
+    expect(result[type].base).to.equal(spec.markets[0].base);
+  });
+
+  it(`${type}.quote should match market.quote`, () => {
+    expect(result[type].quote).to.equal(spec.markets[0].quote);
+  });
+
+  if (spec[`l2${type}`].hasTimestampMs) {
+    testTimestampMs(result, `${type}.timestampMs`);
+  } else {
+    testUndefined(result, `${type}.timestampMs`);
+  }
+
+  if (spec[`l2${type}`].hasSequenceId) {
+    testPositiveNumber(result, `${type}.sequenceId`);
+  } else {
+    testUndefined(result, `${type}.sequenceId`);
+  }
+
+  it(`${type}.bid/ask.price should be a string`, () => {
+    let actual = (result[type].bids[0] || result[type].asks[0]).price;
+    expect(actual).to.be.a("string");
+  });
+
+  it(`${type}.bid/ask.price should parse to a number`, () => {
+    let actual = (result[type].bids[0] || result[type].asks[0]).price;
+    expect(parseFloat(actual)).to.not.be.NaN;
+  });
+
+  it(`${type}.bid/ask.size should be a string`, () => {
+    let actual = (result[type].bids[0] || result[type].asks[0]).size;
+    expect(actual).to.be.a("string");
+  });
+
+  it(`${type}.bid/ask.size should parse to a number`, () => {
+    let actual = (result[type].bids[0] || result[type].asks[0]).size;
+    expect(parseFloat(actual)).to.not.be.NaN;
+  });
+
+  if (spec[`l2${type}`].hasCount) {
+    it(`${type}.bid/ask.count should be a string`, () => {
+      let actual = (result[type].bids[0] || result[type].asks[0]).count;
+      expect(actual).to.be.a("string");
+    });
+
+    it(`${type}.bid/ask.count should parse to a number`, () => {
+      let actual = (result[type].bids[0] || result[type].asks[0]).count;
+      expect(parseFloat(actual)).to.not.be.NaN;
+    });
+  } else {
+    it(`${type}.bid/ask.count should undefined`, () => {
+      let actual = (result[type].bids[0] || result[type].asks[0]).count;
+      expect(actual).to.be.undefined;
+    });
+  }
+}
+
 //////////////////////////////////////////////////////
+
+function testPositiveNumber(result, prop) {
+  it(`${prop} should be a number`, () => {
+    let actual = deepValue(result, prop);
+    expect(actual).to.be.a("number");
+  });
+
+  it(`${prop} should be positive`, () => {
+    let actual = deepValue(result, prop);
+    expect(actual).to.be.greaterThan(0);
+  });
+}
 
 function testNumberString(result, prop) {
   it(`${prop} should be a string`, () => {

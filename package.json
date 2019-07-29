@@ -18,7 +18,7 @@
     "test:mocha": "mocha --recursive \"__tests__/**/*.spec.js\"",
     "coverage": "nyc --reporter=lcov --reporter=text npm run test:mocha",
     "test": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32",
-    "test:ci": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32 && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "test:ci": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": "altangent/ccxws",
   "dependencies": {

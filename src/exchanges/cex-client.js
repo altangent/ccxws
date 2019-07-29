@@ -151,7 +151,7 @@ class SingleCexClient extends BasicClient {
       exchange: "CEX",
       base: market.base,
       quote: market.quote,
-      sequenceId: msg.id.toFixed(),
+      sequenceId: msg.id,
       asks,
       bids,
     });

@@ -1,26 +1,22 @@
 const { testClient } = require("./test-runner");
-const CexClient = require("../src/exchanges/cex-client");
+const BinanceClient = require("../src/exchanges/binance-client");
 
 testClient({
-  clientFactory: () =>
-    new CexClient({
-      apiKey: process.env.CEX_API_KEY,
-      apiSecret: process.env.CEX_API_SECRET,
-    }),
-  clientName: "CexClient",
-  exchangeName: "CEX",
+  clientFactory: () => new BinanceClient(),
+  clientName: "BinanceClient",
+  exchangeName: "Binance",
   markets: [
     {
-      id: "BTC-USD",
+      id: "BTCUSDT",
       base: "BTC",
-      quote: "USD",
+      quote: "USDT",
     },
   ],
 
   hasTickers: true,
   hasTrades: true,
   hasLevel2Snapshots: true,
-  hasLevel2Updates: false,
+  hasLevel2Updates: true,
   hasLevel3Snapshots: false,
   hasLevel3Updates: false,
 
@@ -28,16 +24,16 @@ testClient({
     hasTimestamp: true,
     hasLast: true,
     hasOpen: true,
-    hasHigh: false,
-    hasLow: false,
+    hasHigh: true,
+    hasLow: true,
     hasVolume: true,
-    hasQuoteVolume: false,
+    hasQuoteVolume: true,
     hasChange: true,
     hasChangePercent: true,
-    hasBid: false,
-    hasBidVolume: false,
-    hasAsk: false,
-    hasAskVolume: false,
+    hasBid: true,
+    hasBidVolume: true,
+    hasAsk: true,
+    hasAskVolume: true,
   },
 
   trade: {
@@ -45,6 +41,13 @@ testClient({
   },
 
   l2snapshot: {
+    hasTimestampMs: false,
+    hasSequenceId: true,
+    hasCount: false,
+  },
+
+  l2update: {
+    hasSnapshot: true,
     hasTimestampMs: false,
     hasSequenceId: true,
     hasCount: false,
