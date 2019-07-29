@@ -56,6 +56,10 @@ describe("BasicClient", () => {
     sandbox.stub(winston);
   });
 
+  after(() => {
+    sandbox.restore();
+  });
+
   before(() => {
     instance = buildInstance();
     instance._connect();
