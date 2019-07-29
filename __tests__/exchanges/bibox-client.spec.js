@@ -1,5 +1,5 @@
-const { testClient } = require("./test-runner");
-const BiboxClient = require("../src/exchanges/bibox-client");
+const { testClient } = require("../test-runner");
+const BiboxClient = require("../../src/exchanges/bibox-client");
 
 testClient({
   clientFactory: () => new BiboxClient(),

@@ -1,5 +1,5 @@
-const { testClient } = require("./test-runner");
-const BinanceClient = require("../src/exchanges/binance-client");
+const { testClient } = require("../test-runner");
+const BinanceClient = require("../../src/exchanges/binance-client");
 
 testClient({
   clientFactory: () => new BinanceClient(),

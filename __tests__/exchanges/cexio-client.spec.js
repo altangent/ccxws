@@ -1,5 +1,5 @@
-const { testClient } = require("./test-runner");
-const CexClient = require("../src/exchanges/cex-client");
+const { testClient } = require("../test-runner");
+const CexClient = require("../../src/exchanges/cex-client");
 
 testClient({
   clientFactory: () =>

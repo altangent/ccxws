@@ -28,6 +28,7 @@ class BasicTradeClient extends EventEmitter {
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
+    this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
   }
 

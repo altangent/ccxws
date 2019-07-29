@@ -196,7 +196,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       unix: unix * 1000,
       side,
       price,
