@@ -208,6 +208,10 @@ function testTrades(spec, state) {
 
       testNumberString(result, "trade.price");
       testNumberString(result, "trade.amount");
+
+      if (spec.trade.tests) {
+        spec.trade.tests(spec, result);
+      }
     });
   });
 }
@@ -265,7 +269,12 @@ function testLevel2Updates(spec, state) {
       client.on("l2update", (update, market) => {
         result.update = update;
         result.market = market;
-        if ((!spec.l2update.hasSnapshot || result.snapshot) && result.update) {
+        if (
+          // check if done override method exists method in spec
+          (!spec.l2update.done || spec.l2update.done(spec, result, update, market)) &&
+          // check if we require a snapshot
+          (!spec.l2update.hasSnapshot || result.snapshot)
+        ) {
           client.removeAllListeners("l2update");
           done();
         }
@@ -288,6 +297,10 @@ function testLevel2Updates(spec, state) {
       }
 
       testLevel2Result(spec, result, "update");
+
+      if (spec.l2update.tests) {
+        spec.l2update.tests(spec, result);
+      }
     });
   });
 }
