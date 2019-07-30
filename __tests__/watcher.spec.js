@@ -1,4 +1,5 @@
 const { expect } = require("chai");
+const winston = require("winston");
 const sinon = require("sinon");
 const EventEmitter = require("events").EventEmitter;
 const Watcher = require("../src/watcher");
@@ -17,11 +18,18 @@ function wait(ms) {
 describe("Watcher", () => {
   let sut;
   let client;
+  let sandbox;
 
   before(() => {
+    sandbox = sinon.createSandbox();
+    sandbox.stub(winston);
     client = new MockClient();
     sut = new Watcher(client, 100);
     sinon.spy(sut, "stop");
+  });
+
+  after(() => {
+    sandbox.restore();
   });
 
   describe("start", () => {

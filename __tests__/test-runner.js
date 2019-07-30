@@ -484,11 +484,11 @@ function testLevel3Result(spec, result, type) {
   });
 
   it(`${type}.base should match market.base`, () => {
-    expect(result[type].base).to.be.oneOf(spec.marketsBaseList);
+    expect(result[type].base).to.be.oneOf(spec.marketBaseList);
   });
 
   it(`${type}.quote should match market.quote`, () => {
-    expect(result[type].quote).to.be.oneOf(spec.marketsQuoteList);
+    expect(result[type].quote).to.be.oneOf(spec.marketQuoteList);
   });
 
   if (spec[`l3${type}`].hasTimestampMs) {

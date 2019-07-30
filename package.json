@@ -15,7 +15,7 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "mocha-parallel-tests --max-parallel 32 --exit --recursive \"__tests__/**/*.spec.js\"",
+    "test": "mocha-parallel-tests --exit --recursive \"__tests__/**/*.spec.js\"",
     "coverage": "nyc --reporter=lcov --reporter=text npm run test",
     "test:ci": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
