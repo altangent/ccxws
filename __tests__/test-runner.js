@@ -80,7 +80,11 @@ function testClient(spec) {
 
 function testTickers(spec, state) {
   describe("subscribeTicker", () => {
-    let result = {};
+    let result = {
+      ticker: null,
+      market: null,
+      ready: false,
+    };
     let client;
 
     before(() => {
@@ -90,6 +94,7 @@ function testTickers(spec, state) {
     it("should subscribe and emit a ticker", done => {
       client.subscribeTicker(spec.markets[0]);
       client.on("ticker", (ticker, market) => {
+        result.ready = true;
         result.ticker = ticker;
         result.market = market;
         client.removeAllListeners("ticker");
@@ -104,6 +109,10 @@ function testTickers(spec, state) {
     });
 
     describe("results", () => {
+      before(function() {
+        if (!result.ready) return this.skip();
+      });
+
       it("market should be the subscribing market", () => {
         expect(result.market).to.equal(spec.markets[0]);
       });
@@ -164,6 +173,7 @@ function testTrades(spec, state) {
     it("should subscribe and emit a trade", done => {
       client.subscribeTrades(spec.markets[0]);
       client.on("trade", (trade, market) => {
+        result.ready = true;
         result.trade = trade;
         result.market = market;
         client.removeAllListeners("trade");
@@ -178,6 +188,10 @@ function testTrades(spec, state) {
     });
 
     describe("results", () => {
+      before(function() {
+        if (!result.ready) return this.skip();
+      });
+
       it("market should be the subscribing market", () => {
         expect(result.market).to.equal(spec.markets[0]);
       });
@@ -234,6 +248,7 @@ function testLevel2Snapshots(spec, state) {
     it("should subscribe and emit a l2snapshot", done => {
       client.subscribeLevel2Snapshots(spec.markets[0]);
       client.on("l2snapshot", (snapshot, market) => {
+        result.ready = true;
         result.snapshot = snapshot;
         result.market = market;
         client.removeAllListeners("l2snapshot");
@@ -248,6 +263,10 @@ function testLevel2Snapshots(spec, state) {
     });
 
     describe("results", () => {
+      before(function() {
+        if (!result.ready) return this.skip();
+      });
+
       it("market should be the subscribing market", () => {
         expect(result.market).to.equal(spec.markets[0]);
       });
@@ -269,6 +288,7 @@ function testLevel2Updates(spec, state) {
     it("should subscribe and emit a l2update", done => {
       client.subscribeLevel2Updates(spec.markets[0]);
       client.on("l2snapshot", (snapshot, market) => {
+        result.ready = true;
         result.snapshot = snapshot;
         result.market = market;
       });
@@ -281,6 +301,7 @@ function testLevel2Updates(spec, state) {
           // check if we require a snapshot
           (!spec.l2update.hasSnapshot || result.snapshot)
         ) {
+          result.ready = true;
           client.removeAllListeners("l2update");
           done();
         }
@@ -294,6 +315,13 @@ function testLevel2Updates(spec, state) {
     });
 
     describe("results", () => {
+      before(function() {
+        if (!result.ready) {
+          this.skip();
+          return;
+        }
+      });
+
       it("market should be the subscribing market", () => {
         expect(result.market).to.equal(spec.markets[0]);
       });
@@ -376,7 +404,9 @@ function testLevel2Result(spec, result, type) {
 
 function testLevel3Updates(spec, state) {
   describe("subscribeLevel3Updates", () => {
-    let result = {};
+    let result = {
+      ready: false,
+    };
     let client;
 
     before(() => {
@@ -398,6 +428,7 @@ function testLevel3Updates(spec, state) {
           // check if we require a snapshot
           (!spec.l3update.hasSnapshot || result.snapshot)
         ) {
+          result.ready = true;
           client.removeAllListeners("l3update");
           done();
         }
@@ -411,6 +442,10 @@ function testLevel3Updates(spec, state) {
     });
 
     describe("results", () => {
+      before(function() {
+        if (!result.ready) return this.skip();
+      });
+
       it("market should be the subscribing market", () => {
         expect(result.market).to.equal(spec.markets[0]);
       });
