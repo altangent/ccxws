@@ -16,6 +16,11 @@ testClient({
       base: "ETH",
       quote: "BTC",
     },
+    {
+      id: "USDT_ETH",
+      base: "ETH",
+      quote: "USDT",
+    },
   ],
 
   hasTickers: true,

@@ -13,6 +13,9 @@ function testClient(spec) {
 
     before(() => {
       state.client = spec.clientFactory();
+      spec.marketIdList = spec.markets.map(p => p.id);
+      spec.marketBaseList = spec.markets.map(p => p.base);
+      spec.marketQuoteList = spec.markets.map(p => p.quote);
     });
 
     beforeEach(() => {
@@ -80,11 +83,7 @@ function testClient(spec) {
 
 function testTickers(spec, state) {
   describe("subscribeTicker", () => {
-    let result = {
-      ticker: null,
-      market: null,
-      ready: false,
-    };
+    let result = {};
     let client;
 
     before(() => {
@@ -92,7 +91,9 @@ function testTickers(spec, state) {
     });
 
     it("should subscribe and emit a ticker", done => {
-      client.subscribeTicker(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.subscribeTicker(market);
+      }
       client.on("ticker", (ticker, market) => {
         result.ready = true;
         result.ticker = ticker;
@@ -102,10 +103,12 @@ function testTickers(spec, state) {
       });
     })
       .timeout(60000)
-      .retries(5);
+      .retries(3);
 
     it("should unsubscribe from tickers", () => {
-      client.unsubscribeTicker(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.unsubscribeTicker(market);
+      }
     });
 
     describe("results", () => {
@@ -114,7 +117,7 @@ function testTickers(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.equal(spec.markets[0]);
+        expect(result.market).to.be.oneOf(spec.markets);
       });
 
       it("ticker.exchange should be the exchange name", () => {
@@ -122,11 +125,11 @@ function testTickers(spec, state) {
       });
 
       it("ticker.base should match market.base", () => {
-        expect(result.ticker.base).to.equal(spec.markets[0].base);
+        expect(result.ticker.base).to.be.oneOf(spec.marketBaseList);
       });
 
       it("ticker.quote should match market.quote", () => {
-        expect(result.ticker.quote).to.equal(spec.markets[0].quote);
+        expect(result.ticker.quote).to.be.oneOf(spec.marketQuoteList);
       });
 
       if (spec.ticker.hasTimestamp) {
@@ -171,7 +174,9 @@ function testTrades(spec, state) {
     });
 
     it("should subscribe and emit a trade", done => {
-      client.subscribeTrades(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.subscribeTrades(market);
+      }
       client.on("trade", (trade, market) => {
         result.ready = true;
         result.trade = trade;
@@ -181,10 +186,12 @@ function testTrades(spec, state) {
       });
     })
       .timeout(60000)
-      .retries(5);
+      .retries(3);
 
     it("should unsubscribe from trades", () => {
-      client.unsubscribeTrades(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.unsubscribeTrades(market);
+      }
     });
 
     describe("results", () => {
@@ -193,7 +200,7 @@ function testTrades(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.equal(spec.markets[0]);
+        expect(result.market).to.be.oneOf(spec.markets);
       });
 
       it("trade.exchange should be the exchange name", () => {
@@ -201,11 +208,11 @@ function testTrades(spec, state) {
       });
 
       it("trade.base should match market.base", () => {
-        expect(result.trade.base).to.equal(spec.markets[0].base);
+        expect(result.trade.base).to.be.oneOf(spec.marketBaseList);
       });
 
       it("trade.quote should match market.quote", () => {
-        expect(result.trade.quote).to.equal(spec.markets[0].quote);
+        expect(result.trade.quote).to.be.oneOf(spec.marketQuoteList);
       });
 
       if (spec.trade.hasTradeId) {
@@ -246,7 +253,9 @@ function testLevel2Snapshots(spec, state) {
     });
 
     it("should subscribe and emit a l2snapshot", done => {
-      client.subscribeLevel2Snapshots(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.subscribeLevel2Snapshots(market);
+      }
       client.on("l2snapshot", (snapshot, market) => {
         result.ready = true;
         result.snapshot = snapshot;
@@ -256,10 +265,12 @@ function testLevel2Snapshots(spec, state) {
       });
     })
       .timeout(60000)
-      .retries(5);
+      .retries(3);
 
     it("should unsubscribe from l2snapshot", () => {
-      client.unsubscribeLevel2Snapshots(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.unsubscribeLevel2Snapshots(market);
+      }
     });
 
     describe("results", () => {
@@ -268,7 +279,7 @@ function testLevel2Snapshots(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.equal(spec.markets[0]);
+        expect(result.market).to.be.oneOf(spec.markets);
       });
 
       testLevel2Result(spec, result, "snapshot");
@@ -286,7 +297,9 @@ function testLevel2Updates(spec, state) {
     });
 
     it("should subscribe and emit a l2update", done => {
-      client.subscribeLevel2Updates(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.subscribeLevel2Updates(market);
+      }
       client.on("l2snapshot", (snapshot, market) => {
         result.ready = true;
         result.snapshot = snapshot;
@@ -308,10 +321,12 @@ function testLevel2Updates(spec, state) {
       });
     })
       .timeout(60000)
-      .retries(5);
+      .retries(3);
 
     it("should unsubscribe from l2update", () => {
-      client.unsubscribeLevel2Updates(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.unsubscribeLevel2Updates(market);
+      }
     });
 
     describe("results", () => {
@@ -323,7 +338,7 @@ function testLevel2Updates(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.equal(spec.markets[0]);
+        expect(result.market).to.be.oneOf(spec.markets);
       });
 
       if (spec.l2update.hasSnapshot) {
@@ -345,11 +360,11 @@ function testLevel2Result(spec, result, type) {
   });
 
   it(`${type}.base should match market.base`, () => {
-    expect(result[type].base).to.equal(spec.markets[0].base);
+    expect(result[type].base).to.be.oneOf(spec.marketBaseList);
   });
 
   it(`${type}.quote should match market.quote`, () => {
-    expect(result[type].quote).to.equal(spec.markets[0].quote);
+    expect(result[type].quote).to.be.oneOf(spec.marketQuoteList);
   });
 
   if (spec[`l2${type}`].hasTimestampMs) {
@@ -414,7 +429,9 @@ function testLevel3Updates(spec, state) {
     });
 
     it("should subscribe and emit a l3update", done => {
-      client.subscribeLevel3Updates(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.subscribeLevel3Updates(market);
+      }
       client.on("l3snapshot", (snapshot, market) => {
         result.snapshot = snapshot;
         result.market = market;
@@ -435,10 +452,12 @@ function testLevel3Updates(spec, state) {
       });
     })
       .timeout(60000)
-      .retries(5);
+      .retries(3);
 
     it("should unsubscribe from l3update", () => {
-      client.unsubscribeLevel3Updates(spec.markets[0]);
+      for (let market of spec.markets) {
+        client.unsubscribeLevel3Updates(market);
+      }
     });
 
     describe("results", () => {
@@ -447,7 +466,7 @@ function testLevel3Updates(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.equal(spec.markets[0]);
+        expect(result.market).to.be.oneOf(spec.markets);
       });
 
       if (spec.l3update.hasSnapshot) {
@@ -465,11 +484,11 @@ function testLevel3Result(spec, result, type) {
   });
 
   it(`${type}.base should match market.base`, () => {
-    expect(result[type].base).to.equal(spec.markets[0].base);
+    expect(result[type].base).to.be.oneOf(spec.marketsBaseList);
   });
 
   it(`${type}.quote should match market.quote`, () => {
-    expect(result[type].quote).to.equal(spec.markets[0].quote);
+    expect(result[type].quote).to.be.oneOf(spec.marketsQuoteList);
   });
 
   if (spec[`l3${type}`].hasTimestampMs) {

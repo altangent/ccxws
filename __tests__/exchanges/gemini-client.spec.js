@@ -11,6 +11,16 @@ testClient({
       base: "BTC",
       quote: "USD",
     },
+    {
+      id: "ethusd",
+      base: "ETH",
+      quote: "USD",
+    },
+    {
+      id: "ltcusd",
+      base: "LTC",
+      quote: "USD",
+    },
   ],
 
   hasTickers: false,

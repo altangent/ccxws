@@ -11,6 +11,21 @@ testClient({
       base: "BTC",
       quote: "USD",
     },
+    {
+      id: "BTC-ETH",
+      base: "ETH",
+      quote: "BTC",
+    },
+    {
+      id: "BTC-LTC",
+      base: "LTC",
+      quote: "BTC",
+    },
+    {
+      id: "BTC-XRP",
+      base: "XRP",
+      quote: "BTC",
+    },
   ],
 
   hasTickers: true,
