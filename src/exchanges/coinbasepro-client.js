@@ -28,6 +28,16 @@ class CoinbaseProClient extends BasicClient {
     );
   }
 
+  _sendUnsubTicker(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        type: "unsubscribe",
+        product_ids: [remote_id],
+        channels: ["ticker"],
+      })
+    );
+  }
+
   _sendSubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
@@ -164,7 +174,7 @@ class CoinbaseProClient extends BasicClient {
       exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
-      tradeId: trade_id,
+      tradeId: trade_id.toFixed(),
       unix,
       side,
       price,

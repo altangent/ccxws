@@ -113,6 +113,7 @@ class KrakenClient extends BasicClient {
   _debounceSend(debounceKey, subMap, subscribe, subscription) {
     this._debounce(debounceKey, () => {
       let wsSymbols = this._wsSymbolsFromSubMap(subMap);
+      if (!this._wss) return;
       this._wss.send(
         JSON.stringify({
           event: subscribe ? "subscribe" : "unsubscribe",

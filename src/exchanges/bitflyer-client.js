@@ -171,7 +171,7 @@ class BitFlyerClient extends BasicClient {
       exchange: "bitFlyer",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       unix,
       side: side.toLowerCase(),
       price: price.toFixed(8),

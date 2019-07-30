@@ -40,6 +40,7 @@ class BiboxClient extends EventEmitter {
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = false;
+    this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
     this.subsPerClient = 20;
     this.throttleMs = 200;
@@ -67,7 +68,7 @@ class BiboxClient extends EventEmitter {
   }
 
   unsubscribeLevel2Snapshots(market) {
-    this._unsubscribe(market, MarketObjectTypes.level2Snapshot);
+    this._unsubscribe(market, MarketObjectTypes.level2snapshot);
   }
 
   close(emitClosed = true) {
@@ -164,7 +165,7 @@ class BiboxClient extends EventEmitter {
     if (!client) return;
 
     // perform the unsubscribe operation
-    switch (MarketObjectTypes) {
+    switch (marketObjectType) {
       case MarketObjectTypes.ticker:
         client.unsubscribeTicker(market);
         break;

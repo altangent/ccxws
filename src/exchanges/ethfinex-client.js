@@ -156,6 +156,8 @@ class EthfinexClient extends BasicClient {
     let [chanId, bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msg;
     let remote_id = this._channels[chanId].pair;
     let market = this._tickerSubs.get(remote_id);
+    if (!market) return;
+
     let open = last + change;
     let ticker = new Ticker({
       exchange: "Ethfinex",
@@ -181,6 +183,8 @@ class EthfinexClient extends BasicClient {
     let [chanId, , , id, unix, price, amount] = msg;
     let remote_id = this._channels[chanId].pair;
     let market = this._tradeSubs.get(remote_id);
+    if (!market) return;
+
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
     amount = Math.abs(amount).toFixed(8);
@@ -188,7 +192,7 @@ class EthfinexClient extends BasicClient {
       exchange: "Ethfinex",
       base: market.base,
       quote: market.quote,
-      tradeId: id,
+      tradeId: id.toFixed(),
       unix: unix * 1000,
       side,
       price,
@@ -200,6 +204,8 @@ class EthfinexClient extends BasicClient {
   _onLevel2Snapshot(msg) {
     let remote_id = this._channels[msg[0]].pair;
     let market = this._level2UpdateSubs.get(remote_id); // this message will be coming from an l2update
+    if (!market) return;
+
     let bids = [];
     let asks = [];
     for (let [price, count, size] of msg[1]) {
@@ -222,7 +228,8 @@ class EthfinexClient extends BasicClient {
     let [channel, price, count, size] = msg;
     let remote_id = this._channels[channel].pair;
     let market = this._level2UpdateSubs.get(remote_id);
-    if (!price.toFixed) console.log(msg);
+    if (!market) return;
+
     let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
     let asks = [];
     let bids = [];
@@ -247,10 +254,12 @@ class EthfinexClient extends BasicClient {
   _onLevel3Snapshot(msg, channel) {
     let remote_id = channel.pair;
     let market = this._level3UpdateSubs.get(remote_id); // this message will be coming from an l2update
+    if (!market) return;
+
     let bids = [];
     let asks = [];
     msg[1].forEach(p => {
-      let point = new Level3Point(p[0], p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
+      let point = new Level3Point(p[0].toFixed(), p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
       if (p[2] > 0) bids.push(point);
       else asks.push(point);
     });
@@ -267,10 +276,12 @@ class EthfinexClient extends BasicClient {
   _onLevel3Update(msg, channel) {
     let remote_id = channel.pair;
     let market = this._level3UpdateSubs.get(remote_id);
+    if (!market) return;
+
     let bids = [];
     let asks = [];
 
-    let point = new Level3Point(msg[1], msg[2].toFixed(8), Math.abs(msg[3]).toFixed(8));
+    let point = new Level3Point(msg[1].toFixed(), msg[2].toFixed(8), Math.abs(msg[3]).toFixed(8));
     if (msg[3] > 0) bids.push(point);
     else asks.push(point);
 

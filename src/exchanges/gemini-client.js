@@ -13,6 +13,7 @@ class GeminiClient extends EventEmitter {
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
 
+    this.hasTickers = false;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
@@ -132,10 +133,7 @@ class GeminiClient extends EventEmitter {
       subscription.wss = undefined;
       this._stopReconnectWatcher(subscription);
     } else {
-      this._subscriptions.forEach(sub => {
-        this._stopReconnectWatcher(sub);
-        sub.wss.close();
-      });
+      this._subscriptions.forEach(sub => this._close(sub));
       this.emit("closed");
       this._subscriptions = new Map();
     }
@@ -232,7 +230,7 @@ class GeminiClient extends EventEmitter {
       exchange: "Gemini",
       base: market.base,
       quote: market.quote,
-      tradeId: event.tid,
+      tradeId: event.tid.toFixed(),
       side,
       unix: timestamp,
       price,

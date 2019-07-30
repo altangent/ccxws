@@ -15,26 +15,29 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32",
-    "test:ci": "jest --testEnvironment=node --testRunner=jest-circus/runner --coverage --testPathPattern=src/.+\\.spec\\.js --maxWorkers=32 && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "test": "mocha-parallel-tests --exit --recursive \"__tests__/**/*.spec.js\"",
+    "coverage": "nyc --reporter=lcov --reporter=text npm run test",
+    "test:ci": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
   },
   "repository": "altangent/ccxws",
   "dependencies": {
     "cloudscraper": "^1.5.1",
-    "decimal.js": "^10.1.1",
-    "jsonic": "^0.3.1",
+    "decimal.js": "^10.2.0",
     "moment": "^2.24.0",
     "pusher-js": "^4.4.0",
     "semaphore": "^1.1.0",
     "signalr-client": "0.0.17",
     "winston": "^2.4.4",
-    "ws": "^5.1.1"
+    "ws": "^7.1.1"
   },
   "devDependencies": {
-    "coveralls": "^3.0.3",
-    "eslint": "^5.15.3",
-    "jest": "^24.5.0",
-    "jest-circus": "^24.5.0",
-    "prettier": "^1.16.4"
+    "chai": "^4.2.0",
+    "coveralls": "^3.0.5",
+    "eslint": "^5.16.0",
+    "mocha": "^6.2.0",
+    "mocha-parallel-tests": "^2.2.1",
+    "nyc": "^14.1.1",
+    "prettier": "^1.18.2",
+    "sinon": "^7.3.2"
   }
 }
