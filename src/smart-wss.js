@@ -33,6 +33,7 @@ class SmartWss extends EventEmitter {
       this._wss.removeAllListeners();
       this._wss.on("close", () => this.emit("disconnected"));
       try {
+        this._wss.on("error", err => winston.error("Error on close - " + err.message));
         this._wss.close();
       } catch (ex) {
         if (ex.essage === "WebSocket was closed before the connection was established") throw ex;
