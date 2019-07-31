@@ -11,9 +11,19 @@ testClient({
   exchangeName: "CEX",
   markets: [
     {
-      id: "BTC-USD",
+      id: "BTC/USD",
       base: "BTC",
       quote: "USD",
+    },
+    {
+      id: "BTC/EUR",
+      base: "BTC",
+      quote: "USD",
+    },
+    {
+      id: "BTT/EUR",
+      base: "BTT",
+      quote: "EUR",
     },
   ],
 

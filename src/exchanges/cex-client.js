@@ -22,6 +22,27 @@ function createAuthToken(apiKey, apiSecret) {
   };
 }
 
+const multiplier = {
+  BCH: 1e8,
+  BTC: 1e8,
+  BTG: 1e8,
+  BTT: 1e6,
+  DASH: 1e8,
+  ETH: 1e6,
+  GUSD: 1e2,
+  LTC: 1e8,
+  MHC: 1e6,
+  OMG: 1e6,
+  TRX: 1e6,
+  XLM: 1e7,
+  XRP: 1e6,
+  ZEC: 1e8,
+};
+
+function formatAmount(amount, symbol) {
+  return (parseInt(amount) / multiplier[symbol]).toFixed(8);
+}
+
 class CexClient extends BasicMultiClient {
   /**
    * Creates a new CEX.io client using the supplied credentials
@@ -52,6 +73,7 @@ class SingleCexClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
+    this.authorized = false;
   }
 
   /**
@@ -71,6 +93,7 @@ class SingleCexClient extends BasicClient {
    * This code triggers the usual _onConnected code afterwards.
    */
   _onAuthorized() {
+    this.authorized = true;
     this.emit("authorized");
     super._onConnected();
   }
@@ -91,6 +114,7 @@ class SingleCexClient extends BasicClient {
   }
 
   _sendSubTicker() {
+    if (!this.authorized) return;
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
@@ -102,10 +126,11 @@ class SingleCexClient extends BasicClient {
   _sendUnsubTicker() {}
 
   _sendSubTrades(remote_id) {
+    if (!this.authorized) return;
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
-        rooms: [`pair-${remote_id}`],
+        rooms: [`pair-${remote_id.replace("/", "-")}`],
       })
     );
   }
@@ -113,66 +138,16 @@ class SingleCexClient extends BasicClient {
   _sendUnsubTrades() {}
 
   _sendSubLevel2Snapshots(remote_id) {
+    if (!this.authorized) return;
     this._wss.send(
       JSON.stringify({
         e: "subscribe",
-        rooms: [`pair-${remote_id}`],
+        rooms: [`pair-${remote_id.replace("/", "-")}`],
       })
     );
   }
 
   _sendUnsubLevel2Snapshots() {}
-
-  _constructTicker(data, market) {
-    // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-    let { open24, price, volume } = data;
-    let change = parseFloat(price) - parseFloat(open24);
-    let changePercent =
-      open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
-
-    return new Ticker({
-      exchange: "CEX",
-      base: market.base,
-      quote: market.quote,
-      timestamp: Date.now(),
-      last: price,
-      open: open24,
-      volume: volume,
-      change: change.toFixed(8),
-      changePercent: changePercent.toFixed(8),
-    });
-  }
-
-  _constructevel2Snapshot(msg, market) {
-    let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
-    let bids = msg.buy.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
-
-    return new Level2Snapshot({
-      exchange: "CEX",
-      base: market.base,
-      quote: market.quote,
-      sequenceId: msg.id,
-      asks,
-      bids,
-    });
-  }
-
-  _constructTrade(data, market) {
-    //["buy","1543967891439","4110282","3928.1","9437977"]
-    //format: sell/buy, timestamp_ms, amount, price, transaction_id
-    let [side, timestamp_ms, amount, price, tradeId] = data;
-
-    return new Trade({
-      exchange: "CEX",
-      base: market.base,
-      quote: market.quote,
-      tradeId: tradeId,
-      unix: parseInt(timestamp_ms),
-      side: side,
-      price: price,
-      amount: amount,
-    });
-  }
 
   _onMessage(raw) {
     let message = JSON.parse(raw);
@@ -185,7 +160,7 @@ class SingleCexClient extends BasicClient {
 
     if (e === "subscribe") {
       if (message.error) {
-        throw new Error(`CEX error: ${message.error}`);
+        throw new Error(`CEX error: ${JSON.stringify(message)}`);
       }
     }
 
@@ -200,7 +175,7 @@ class SingleCexClient extends BasicClient {
 
     if (e === "tick") {
       // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-      let marketId = `${data.symbol1}-${data.symbol2}`;
+      let marketId = `${data.symbol1}/${data.symbol2}`;
       let market = this._tickerSubs.get(marketId);
       if (!market) return;
 
@@ -210,7 +185,7 @@ class SingleCexClient extends BasicClient {
     }
 
     if (e === "md") {
-      let marketId = data.pair.replace(":", "-");
+      let marketId = data.pair.replace(":", "/");
       let market = this._level2SnapshotSubs.get(marketId);
       if (!market) return;
 
@@ -239,11 +214,63 @@ class SingleCexClient extends BasicClient {
       if (this._tradeSubs.has(marketId)) {
         for (let rawTrade of data) {
           let trade = this._constructTrade(rawTrade, market);
-          this.emit("trade", trade);
+          this.emit("trade", trade, market);
         }
         return;
       }
     }
+  }
+
+  _constructTicker(data, market) {
+    // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
+    let { open24, price, volume } = data;
+    let change = parseFloat(price) - parseFloat(open24);
+    let changePercent =
+      open24 !== 0 ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100 : 0;
+
+    return new Ticker({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      timestamp: Date.now(),
+      last: price,
+      open: open24,
+      volume: volume,
+      change: change.toFixed(8),
+      changePercent: changePercent.toFixed(8),
+    });
+  }
+
+  _constructevel2Snapshot(msg, market) {
+    let asks = msg.sell.map(p => new Level2Point(p[0].toFixed(8), formatAmount(p[1], market.base)));
+    let bids = msg.buy.map(p => new Level2Point(p[0].toFixed(8), formatAmount(p[1], market.base)));
+
+    return new Level2Snapshot({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      sequenceId: msg.id,
+      asks,
+      bids,
+    });
+  }
+
+  _constructTrade(data, market) {
+    //["buy","1543967891439","4110282","3928.1","9437977"]
+    //format: sell/buy, timestamp_ms, amount, price, transaction_id
+    let [side, timestamp_ms, amount, price, tradeId] = data;
+
+    return new Trade({
+      exchange: "CEX",
+      base: market.base,
+      quote: market.quote,
+      tradeId: tradeId,
+      unix: parseInt(timestamp_ms),
+      side: side,
+      price: price,
+      amount: formatAmount(amount, market.base),
+      rawAmount: amount,
+    });
   }
 }
 
