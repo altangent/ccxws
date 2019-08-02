@@ -5,7 +5,6 @@ const BasicClient = require("../src/basic-client");
 
 function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test", mockSmartWss);
-  instance._watcher.intervalMs = 100;
   instance.hasTickers = true;
   instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
@@ -22,8 +21,8 @@ function buildInstance() {
   instance._sendSubLevel3Updates = sinon.stub();
   instance._sendUnsubLevel3Updates = sinon.stub();
 
-  sinon.spy(instance._watcher, "start");
-  sinon.spy(instance._watcher, "stop");
+  sinon.stub(instance._watcher, "start");
+  sinon.stub(instance._watcher, "stop");
   return instance;
 }
 
@@ -41,10 +40,6 @@ function mockSmartWss() {
     },
     isConnected: false,
   };
-}
-
-function wait(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 describe("BasicClient", () => {
@@ -142,7 +137,7 @@ describe("BasicClient", () => {
       instance.on("closed", closedEvent);
       instance.on("reconnected", reconnectedEvent);
       instance.emit("trade"); // triggers the connection watcher
-      await wait(300);
+      instance._watcher._reconnect();
     });
 
     it("should close the connection", () => {
