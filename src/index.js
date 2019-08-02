@@ -1,5 +1,6 @@
 const bibox = require("./exchanges/bibox-client");
 const binance = require("./exchanges/binance-client");
+const binanceje = require("./exchanges/binanceje-client");
 const bitfinex = require("./exchanges/bitfinex-client");
 const bitflyer = require("./exchanges/bitflyer-client");
 const bitmex = require("./exchanges/bitmex-client");
@@ -23,6 +24,7 @@ module.exports = {
   // export all exchanges
   bibox,
   binance,
+  binanceje,
   bitfinex,
   bitflyer,
   bitmex,

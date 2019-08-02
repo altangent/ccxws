@@ -50,10 +50,17 @@ class Watcher {
    */
   _onCheck() {
     if (!this._lastMessage || this._lastMessage < Date.now() - this.intervalMs) {
-      winston.info("watcher initiating reconnection");
-      this.client.reconnect();
-      this.stop();
+      this._reconnect();
     }
+  }
+
+  /**
+   * Logic to perform a reconnection event of the client
+   */
+  _reconnect() {
+    winston.info("watcher initiating reconnection");
+    this.client.reconnect();
+    this.stop();
   }
 }
 
