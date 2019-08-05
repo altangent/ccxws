@@ -14,6 +14,7 @@ class Watcher {
     this._lastMessage = undefined;
 
     this._markAlive = this._markAlive.bind(this);
+    client.on("ticker", this._markAlive);
     client.on("trade", this._markAlive);
     client.on("l2snapshot", this._markAlive);
     client.on("l2update", this._markAlive);

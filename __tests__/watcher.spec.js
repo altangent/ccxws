@@ -61,6 +61,10 @@ describe("Watcher", () => {
       client.emit("other");
       expect(sut._lastMessage).to.be.undefined;
     });
+    it("ticker should mark", () => {
+      client.emit("ticker");
+      expect(sut._lastMessage).to.not.be.undefined;
+    });
     it("trade should mark", () => {
       client.emit("trade");
       expect(sut._lastMessage).to.not.be.undefined;
