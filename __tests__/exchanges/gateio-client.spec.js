@@ -7,12 +7,12 @@ testClient({
   exchangeName: "Gateio",
   markets: [
     {
-      id: "BTC_USDT",
+      id: "btc_usdt",
       base: "BTC",
       quote: "USDT",
     },
     {
-      id: "ETH_BTC",
+      id: "eth_btc",
       base: "ETH",
       quote: "BTC",
     },

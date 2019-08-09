@@ -1,4 +1,5 @@
 const moment = require("moment");
+const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
@@ -16,6 +17,8 @@ class GateioClient extends BasicMultiClient {
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
+    this.throttleMs = 250;
+    this.sem = semaphore(1);
   }
 
   _createBasicClient() {
@@ -58,7 +61,7 @@ class GateioSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "ticker.subscribe",
-        params: [remote_id],
+        params: [remote_id.toUpperCase()],
         id: 1,
       })
     );
@@ -76,7 +79,7 @@ class GateioSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "trades.subscribe",
-        params: [remote_id],
+        params: [remote_id.toUpperCase()],
         id: 1,
       })
     );
@@ -94,7 +97,7 @@ class GateioSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "depth.subscribe",
-        params: [remote_id, 30, "0"], // 100 is the maximum number of items Gateio will let you request
+        params: [remote_id.toUpperCase(), 30, "0"], // 100 is the maximum number of items Gateio will let you request
         id: 1,
       })
     );
@@ -116,7 +119,7 @@ class GateioSingleClient extends BasicClient {
     if (!params) return;
 
     if (method === "ticker.update") {
-      let marketId = params[0];
+      let marketId = params[0].toLowerCase();
       let market = this._tickerSubs.get(marketId);
       if (!market) return;
 
@@ -126,11 +129,11 @@ class GateioSingleClient extends BasicClient {
     }
 
     if (method === "trades.update") {
-      let marketId = params[0];
+      let marketId = params[0].toLowerCase();
       let market = this._tradeSubs.get(marketId);
       if (!market) return;
 
-      params[1].forEach(t => {
+      params[1].reverse().forEach(t => {
         let trade = this._constructTrade(t, market);
         this.emit("trade", trade, market);
       });
@@ -138,7 +141,7 @@ class GateioSingleClient extends BasicClient {
     }
 
     if (method === "depth.update") {
-      let marketId = params[2];
+      let marketId = params[2].toLowerCase();
       let market = this._level2UpdateSubs.get(marketId);
       if (!market) return;
 

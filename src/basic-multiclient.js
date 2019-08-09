@@ -105,7 +105,8 @@ class BasicMultiClient extends EventEmitter {
         let client = this._createBasicClient(clientArgs);
         client._connect(); // manually perform a connection instead of waiting for a subscribe call
         // construct a function so we can remove it...
-        let clearSem = () => {
+        let clearSem = async () => {
+          await wait(this.throttleMs);
           this.sem.leave();
           client.removeListener("connected", clearSem);
           resolve(client);
