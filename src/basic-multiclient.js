@@ -108,10 +108,9 @@ class BasicMultiClient extends EventEmitter {
         let clearSem = async () => {
           await wait(this.throttleMs);
           this.sem.leave();
-          client.removeListener("connected", clearSem);
           resolve(client);
         };
-        client.on("connected", clearSem);
+        client.once("connected", clearSem);
       });
     });
   }
