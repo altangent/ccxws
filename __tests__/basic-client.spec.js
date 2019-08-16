@@ -27,7 +27,7 @@ function buildInstance() {
 }
 
 function mockSmartWss() {
-  return {
+  let mock = {
     _events: {},
     connect: sinon.stub(),
     close: sinon.stub(),
@@ -35,11 +35,16 @@ function mockSmartWss() {
       this._events[event] = handler;
     },
     mockEmit: function(event, payload) {
-      if (event === "open") this.isConnected = true;
+      if (event === "connected") this.isConnected = true;
       this._events[event](payload);
     },
     isConnected: false,
   };
+  mock.close.callsFake(() => {
+    mock.mockEmit("closing");
+    mock.mockEmit("closed");
+  });
+  return mock;
 }
 
 describe("BasicClient", () => {
@@ -67,7 +72,7 @@ describe("BasicClient", () => {
       expect(instance._wss.connect.callCount).to.equal(1);
     });
     it("should send subscribe to the socket", () => {
-      instance._wss.mockEmit("open");
+      instance._wss.mockEmit("connected");
       expect(instance._sendSubTrades.callCount).to.equal(1);
       expect(instance._sendSubTrades.args[0][0]).to.equal("BTCUSD");
     });
@@ -105,7 +110,7 @@ describe("BasicClient", () => {
 
   describe("on reconnect", () => {
     it("should resubscribe to markets", () => {
-      instance._wss.mockEmit("open");
+      instance._wss.mockEmit("connected");
       expect(instance._sendSubTrades.callCount).to.equal(4);
       expect(instance._sendSubTrades.args[2][0]).to.equal("BTCUSD");
       expect(instance._sendSubTrades.args[3][0]).to.equal("LTCBTC");
@@ -129,13 +134,15 @@ describe("BasicClient", () => {
 
   describe("when no messages received", () => {
     let originalWss;
+    let closingEvent = sinon.stub();
     let closedEvent = sinon.stub();
-    let reconnectedEvent = sinon.stub();
+    let reconnectingEvent = sinon.stub();
 
     before(async () => {
       originalWss = instance._wss;
+      instance.on("closing", closingEvent);
       instance.on("closed", closedEvent);
-      instance.on("reconnected", reconnectedEvent);
+      instance.on("reconnecting", reconnectingEvent);
       instance.emit("trade"); // triggers the connection watcher
       instance._watcher._reconnect();
     });
@@ -144,8 +151,12 @@ describe("BasicClient", () => {
       expect(originalWss.close.callCount).to.equal(1);
     });
 
-    it("should not emit a closed event", () => {
-      expect(closedEvent.callCount).to.equal(0);
+    it("should emit a closing event", () => {
+      expect(closingEvent.callCount).to.equal(1);
+    });
+
+    it("should emit a closed event", () => {
+      expect(closedEvent.callCount).to.equal(1);
     });
 
     it("should reopen the connection", () => {
@@ -154,7 +165,7 @@ describe("BasicClient", () => {
     });
 
     it("should emit a reconnected event", () => {
-      expect(reconnectedEvent.callCount).to.equal(1);
+      expect(reconnectingEvent.callCount).to.equal(1);
     });
   });
 
@@ -170,26 +181,32 @@ describe("BasicClient", () => {
     });
   });
 
-  describe("when connected, stop", () => {
-    it("close should emit closed event", done => {
+  describe("when connected, .close", () => {
+    it("close should emit 'closing' and 'closed' events", done => {
       instance._watcher.stop.resetHistory();
+      let closing = false;
+      instance.on("closing", () => {
+        closing = true;
+      });
       instance.on("closed", () => {
-        instance.removeAllListeners("closed");
-        done();
+        instance.removeAllListeners();
+        if (closing) done();
       });
       instance.close();
     });
 
     it("close should stop the reconnection checker", () => {
-      expect(instance._watcher.stop.callCount).to.equal(1);
+      expect(instance._watcher.stop.callCount).to.equal(2);
     });
   });
 
   describe("when already closed", () => {
-    it("should still emit closed event", done => {
+    it("should not 'closing' and 'closed' events", () => {
+      instance.on("closing", () => {
+        throw new Error("should not reach here");
+      });
       instance.on("closed", () => {
-        instance.removeAllListeners("closed");
-        done();
+        throw new Error("should not reach here");
       });
       instance.close();
     });
@@ -210,7 +227,7 @@ describe("BasicClient", () => {
         expect(instance._wss.connect.callCount).to.equal(1);
       });
       it("should send subscribe to the socket", () => {
-        instance._wss.mockEmit("open");
+        instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel2Snapshots.callCount).to.equal(1);
         expect(instance._sendSubLevel2Snapshots.args[0][0]).to.equal("BTCUSD");
       });
@@ -254,7 +271,7 @@ describe("BasicClient", () => {
         expect(instance._wss.connect.callCount).to.equal(1);
       });
       it("should send subscribe to the socket", () => {
-        instance._wss.mockEmit("open");
+        instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel2Updates.callCount).to.equal(1);
         expect(instance._sendSubLevel2Updates.args[0][0]).to.equal("BTCUSD");
       });
@@ -298,7 +315,7 @@ describe("BasicClient", () => {
         expect(instance._wss.connect.callCount).to.equal(1);
       });
       it("should send subscribe to the socket", () => {
-        instance._wss.mockEmit("open");
+        instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel3Updates.callCount).to.equal(1);
         expect(instance._sendSubLevel3Updates.args[0][0]).to.equal("BTCUSD");
       });
@@ -342,7 +359,7 @@ describe("BasicClient", () => {
         expect(instance._wss.connect.callCount).to.equal(1);
       });
       it("should send subscribe to the socket", () => {
-        instance._wss.mockEmit("open");
+        instance._wss.mockEmit("connected");
         expect(instance._sendSubTicker.callCount).to.equal(1);
         expect(instance._sendSubTicker.args[0][0]).to.equal("BTCUSD");
       });
@@ -383,7 +400,7 @@ describe("BasicClient", () => {
       instance.hasLevel2Updates = false;
       instance.hasLevel3Updates = false;
       instance._connect();
-      instance._wss.mockEmit("open");
+      instance._wss.mockEmit("connected");
     });
 
     it("should not send ticker sub", () => {
