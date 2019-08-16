@@ -44,8 +44,10 @@ class BasicTradeClient extends EventEmitter {
 
   reconnect() {
     this.emit("reconnecting");
+    if (this._wss) {
+      this._wss.once("closed", () => this._connect());
+    }
     this.close();
-    this._connect();
   }
 
   subscribeTicker(market) {

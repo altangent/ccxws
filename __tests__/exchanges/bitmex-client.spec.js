@@ -14,6 +14,11 @@ testClient({
     },
   ],
 
+  testConnectEvents: true,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
+
   hasTickers: false,
   hasTrades: true,
   hasLevel2Snapshots: false,

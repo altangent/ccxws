@@ -23,6 +23,11 @@ testClient({
     },
   ],
 
+  testConnectEvents: false,
+  testDisconnectEvents: false,
+  testReconnectionEvents: false,
+  testCloseEvents: false,
+
   hasTickers: false,
   hasTrades: true,
   hasLevel2Snapshots: false,

@@ -79,6 +79,93 @@ function testClient(spec) {
       });
     });
   });
+
+  describe(spec.clientName + " events", () => {
+    let client;
+    let actual = [];
+    before(() => {
+      client = spec.clientFactory();
+    });
+
+    beforeEach(() => {
+      actual = [];
+    });
+
+    afterEach(() => {
+      client.removeAllListeners();
+    });
+
+    function pushEvent(name) {
+      return () => {
+        actual.push(name);
+      };
+    }
+
+    function assertEvents(expected, done) {
+      return () => {
+        try {
+          expect(actual).to.deep.equal(expected);
+          done();
+        } catch (ex) {
+          done(ex);
+        }
+      };
+    }
+
+    if (spec.testConnectEvents) {
+      it("subscribe triggers `connecting` > `connected`", done => {
+        client.on("connecting", pushEvent("connecting"));
+        client.on("connected", pushEvent("connected"));
+        client.on("connected", assertEvents(["connecting", "connected"], done));
+        client.subscribeTrades(spec.markets[0]);
+      }).timeout(5000);
+    }
+
+    if (spec.testDisconnectEvents) {
+      it("disconnection triggers `disconnected` > `connecting` > `connected`", done => {
+        client.on("disconnected", pushEvent("disconnected"));
+        client.on("connecting", pushEvent("connecting"));
+        client.on("connected", pushEvent("connected"));
+        client.on("connected", assertEvents(["disconnected", "connecting", "connected"], done));
+
+        let p = client._wss
+          ? Promise.resolve(client._wss)
+          : client._clients.get(spec.markets[0].id).then(c => c._wss);
+
+        p.then(smartws => {
+          smartws._retryTimeoutMs = 1000;
+          smartws._wss.close(); // simulate a failure by directly closing the underlying socket
+        });
+      }).timeout(5000);
+    }
+
+    if (spec.testReconnectionEvents) {
+      it("reconnects triggers `reconnecting` > `closing` > `closed` > `connecting` > `connected`", done => {
+        client.on("reconnecting", pushEvent("reconnecting"));
+        client.on("closing", pushEvent("closing"));
+        client.on("closed", pushEvent("closed"));
+        client.on("connecting", pushEvent("connecting"));
+        client.on("connected", pushEvent("connected"));
+        client.on(
+          "connected",
+          assertEvents(["reconnecting", "closing", "closed", "connecting", "connected"], done)
+        );
+        client.reconnect();
+      }).timeout(5000);
+    }
+
+    if (spec.testCloseEvents) {
+      it("close triggers `closing` > `closed`", done => {
+        client.on("reconnecting", () => {
+          throw new Error("should not emit reconnecting");
+        });
+        client.on("closing", pushEvent("closing"));
+        client.on("closed", pushEvent("closed"));
+        client.on("closed", assertEvents(["closing", "closed"], done));
+        client.close();
+      }).timeout(5000);
+    }
+  });
 }
 
 function testTickers(spec, state) {
