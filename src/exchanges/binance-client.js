@@ -1,5 +1,4 @@
 const { EventEmitter } = require("events");
-const winston = require("winston");
 const semaphore = require("semaphore");
 const { wait } = require("../util");
 const https = require("../https");
@@ -48,41 +47,39 @@ class BinanceClient extends EventEmitter {
   //////////////////////////////////////////////
 
   subscribeTicker(market) {
-    this._subscribe(market, "subscribing to ticker", this._tickerSubs);
+    this._subscribe(market, this._tickerSubs);
   }
 
   unsubscribeTicker(market) {
-    this._unsubscribe(market, "unsubscribing from ticker", this._tickerSubs);
+    this._unsubscribe(market, this._tickerSubs);
   }
 
   subscribeTrades(market) {
-    this._subscribe(market, "subscribing to trades", this._tradeSubs);
+    this._subscribe(market, this._tradeSubs);
   }
 
   unsubscribeTrades(market) {
-    this._unsubscribe(market, "unsubscribing to trades", this._tradeSubs);
+    this._unsubscribe(market, this._tradeSubs);
   }
 
   subscribeLevel2Snapshots(market) {
-    this._subscribe(market, "subscribing to l2 snapshots", this._level2SnapshotSubs);
+    this._subscribe(market, this._level2SnapshotSubs);
   }
 
   unsubscribeLevel2Snapshots(market) {
-    this._unsubscribe(market, "unsubscribing from l2 snapshots", this._level2SnapshotSubs);
+    this._unsubscribe(market, this._level2SnapshotSubs);
   }
 
   subscribeLevel2Updates(market) {
-    this._subscribe(market, "subscribing to l2 upates", this._level2UpdateSubs);
+    this._subscribe(market, this._level2UpdateSubs);
   }
 
   unsubscribeLevel2Updates(market) {
-    this._unsubscribe(market, "unsubscribing from l2 updates", this._level2UpdateSubs);
+    this._unsubscribe(market, this._level2UpdateSubs);
   }
 
   reconnect() {
-    winston.info("reconnecting");
     this._reconnect();
-    this.emit("reconnected");
   }
 
   close() {
@@ -92,19 +89,17 @@ class BinanceClient extends EventEmitter {
   ////////////////////////////////////////////
   // PROTECTED
 
-  _subscribe(market, msg, map) {
+  _subscribe(market, map) {
     let remote_id = market.id.toLowerCase();
     if (!map.has(remote_id)) {
-      winston.info(msg, this._name, remote_id);
       map.set(remote_id, market);
       this._reconnect();
     }
   }
 
-  _unsubscribe(market, msg, map) {
+  _unsubscribe(market, map) {
     let remote_id = market.id.toLowerCase();
     if (map.has(remote_id)) {
-      winston.info(msg, this._name, remote_id);
       map.delete(remote_id);
       this._reconnect();
     }
@@ -118,8 +113,13 @@ class BinanceClient extends EventEmitter {
     clearTimeout(this._reconnectDebounce);
     if (this.subCount === 0) return;
     this._reconnectDebounce = setTimeout(() => {
-      this._close();
-      this._connect();
+      this.emit("reconnecting");
+      if (this._wss) {
+        this._wss.once("closed", () => this._connect());
+        this._close();
+      } else {
+        this._connect();
+      }
     }, 100);
   }
 
@@ -127,12 +127,11 @@ class BinanceClient extends EventEmitter {
    * Close the underlying connction, which provides a way to reset the things
    */
   _close() {
+    this._watcher.stop();
     if (this._wss) {
       this._wss.close();
       this._wss = undefined;
-      this.emit("closed");
     }
-    this._watcher.stop();
   }
 
   /** Connect to the websocket stream by constructing a path from
@@ -154,15 +153,28 @@ class BinanceClient extends EventEmitter {
       let wssPath = "wss://stream.binance.com:9443/stream?streams=" + streams.join("/");
 
       this._wss = new SmartWss(wssPath);
+      this._wss.on("error", this._onError.bind(this));
       this._wss.on("message", this._onMessage.bind(this));
-      this._wss.on("open", this._onConnected.bind(this));
+      this._wss.on("connecting", this._onConnecting.bind(this));
+      this._wss.on("connected", this._onConnected.bind(this));
       this._wss.on("disconnected", this._onDisconnected.bind(this));
+      this._wss.on("closing", this._onClosing.bind(this));
+      this._wss.on("closed", this._onClosed.bind(this));
       this._wss.connect();
     }
   }
 
   ////////////////////////////////////////////
   // ABSTRACT
+
+  _onError(err) {
+    if (err.message === "Invalid WebSocket frame: invalid status code 1005") return;
+    this.emit("error", err);
+  }
+
+  _onConnecting() {
+    this.emit("connecting");
+  }
 
   _onConnected() {
     this._watcher.start();
@@ -173,6 +185,15 @@ class BinanceClient extends EventEmitter {
   _onDisconnected() {
     this._watcher.stop();
     this.emit("disconnected");
+  }
+
+  _onClosing() {
+    this._watcher.stop();
+    this.emit("closing");
+  }
+
+  _onClosed() {
+    this.emit("closed");
   }
 
   _onMessage(raw) {
@@ -340,7 +361,6 @@ class BinanceClient extends EventEmitter {
     this._restSem.take(async () => {
       let failed = false;
       try {
-        winston.info(`requesting snapshot for ${market.id}`);
         let remote_id = market.id;
         let uri = `https://api.binance.com/api/v1/depth?limit=1000&symbol=${remote_id}`;
         let raw = await https.get(uri);
@@ -357,7 +377,7 @@ class BinanceClient extends EventEmitter {
         });
         this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
-        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this.emit("error", ex);
         failed = true;
       } finally {
         await wait(this.REST_REQUEST_DELAY_MS);
