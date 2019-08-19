@@ -58,6 +58,8 @@ testClient({
     },
   ],
 
+  skip: true,
+
   testConnectEvents: true,
   testDisconnectEvents: true,
   testReconnectionEvents: true,

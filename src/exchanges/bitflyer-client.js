@@ -1,5 +1,4 @@
 const BasicClient = require("../basic-client");
-const winston = require("winston");
 const semaphore = require("semaphore");
 const { wait } = require("../util");
 const https = require("../https");
@@ -197,7 +196,6 @@ class BitFlyerClient extends BasicClient {
   async _requestLevel2Snapshot(market) {
     this._restSem.take(async () => {
       try {
-        winston.info(`requesting snapshot for ${market.id}`);
         let remote_id = market.id;
         let uri = `https://api.bitflyer.com/v1/board?product_code=${remote_id}`;
         let raw = await https.get(uri);
@@ -212,7 +210,7 @@ class BitFlyerClient extends BasicClient {
         });
         this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
-        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this._onError(ex);
         this._requestLevel2Snapshot(market);
       } finally {
         await wait(this.REST_REQUEST_DELAY_MS);

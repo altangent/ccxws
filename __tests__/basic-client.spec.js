@@ -1,6 +1,6 @@
+const { EventEmitter } = require("events");
 const { expect } = require("chai");
 const sinon = require("sinon");
-const winston = require("winston");
 const BasicClient = require("../src/basic-client");
 
 function buildInstance() {
@@ -27,38 +27,23 @@ function buildInstance() {
 }
 
 function mockSmartWss() {
-  let mock = {
-    _events: {},
-    connect: sinon.stub(),
-    close: sinon.stub(),
-    on: function(event, handler) {
-      this._events[event] = handler;
-    },
-    mockEmit: function(event, payload) {
-      if (event === "connected") this.isConnected = true;
-      this._events[event](payload);
-    },
-    isConnected: false,
+  let wss = new EventEmitter();
+  wss.connect = sinon.stub();
+  wss.close = sinon.stub();
+  wss.mockEmit = function(event, payload) {
+    if (event === "connected") this.isConnected = true;
+    this.emit(event, payload);
   };
-  mock.close.callsFake(() => {
-    mock.mockEmit("closing");
-    mock.mockEmit("closed");
+  wss.isConnected = false;
+  wss.close.callsFake(() => {
+    wss.mockEmit("closing");
+    setTimeout(() => wss.mockEmit("closed"), 0);
   });
-  return mock;
+  return wss;
 }
 
 describe("BasicClient", () => {
-  let sandbox;
   let instance;
-
-  before(() => {
-    sandbox = sinon.createSandbox();
-    sandbox.stub(winston);
-  });
-
-  after(() => {
-    sandbox.restore();
-  });
 
   before(() => {
     instance = buildInstance();

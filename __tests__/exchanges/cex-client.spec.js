@@ -27,6 +27,10 @@ testClient({
     },
   ],
 
+  getEventingSocket(client, market) {
+    return client._clients.get(market.id).then(c => c._wss);
+  },
+
   testConnectEvents: true,
   testDisconnectEvents: true,
   testReconnectionEvents: true,

@@ -1,5 +1,4 @@
 const moment = require("moment");
-const winston = require("winston");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
@@ -73,8 +72,6 @@ class CoinexSingleClient extends BasicClient {
     // unsubscribe from the appropriate event
     let { type, remote_id } = sub;
 
-    winston.error(`failed to subscribe to ${remote_id}, please retry subscription`);
-
     // unsubscribe from the appropriate thiing
     switch (type) {
       case MarketObjectTypes.ticker:
@@ -137,7 +134,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "depth.subscribe",
-        params: [remote_id, 100, "0"], // 100 is the maximum number of items Coinex will let you request
+        params: [remote_id, 50, "0"],
         id,
       })
     );
@@ -158,6 +155,7 @@ class CoinexSingleClient extends BasicClient {
 
     // unsubscribe on failures
     if (error) {
+      this.emit("error", msg);
       this._failSubscription(id);
       return;
     }

@@ -1,5 +1,4 @@
 const { EventEmitter } = require("events");
-const winston = require("winston");
 const zlib = require("zlib");
 const Watcher = require("../watcher");
 const BasicClient = require("../basic-client");
@@ -319,7 +318,7 @@ class BiboxBasicClient extends BasicClient {
 
     // watch for error messages
     if (msg.error) {
-      winston.error(msg);
+      this.emit("error", msg.error);
       return;
     }
 

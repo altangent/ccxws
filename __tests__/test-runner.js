@@ -1,5 +1,3 @@
-const winston = require("winston");
-const sinon = require("sinon");
 const { expect } = require("chai");
 
 module.exports = {
@@ -7,24 +5,16 @@ module.exports = {
 };
 
 function testClient(spec) {
-  xdescribe(spec.clientName, () => {
+  if (spec.skip) return;
+
+  describe(spec.clientName, () => {
     let state = {};
-    let sandbox;
 
     before(() => {
       state.client = spec.clientFactory();
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
-    });
-
-    beforeEach(() => {
-      sandbox = sinon.createSandbox();
-      sandbox.stub(winston);
-    });
-
-    afterEach(() => {
-      sandbox.restore();
     });
 
     describe("capabilities", () => {

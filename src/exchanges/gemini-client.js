@@ -149,7 +149,12 @@ class GeminiClient extends EventEmitter {
    */
   _close(subscription) {
     if (subscription && subscription.wss) {
-      subscription.wss.close();
+      try {
+        subscription.wss.close();
+      } catch (ex) {
+        if (ex.message === "WebSocket was closed before the connection was established") return;
+        this.emit("error", ex);
+      }
       subscription.wss = undefined;
       this._stopReconnectWatcher(subscription);
     } else {
