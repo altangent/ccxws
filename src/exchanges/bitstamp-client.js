@@ -1,5 +1,4 @@
 const semaphore = require("semaphore");
-const winston = require("winston");
 const { wait } = require("../util");
 const https = require("../https");
 const BasicClient = require("../basic-client");
@@ -102,7 +101,7 @@ class BitstampClient extends BasicClient {
     try {
       msg = JSON.parse(raw);
     } catch (ex) {
-      winston.warn(ex.stack);
+      this.emit("error", ex);
       return;
     }
 
@@ -283,7 +282,6 @@ class BitstampClient extends BasicClient {
   async _requestLevel2Snapshot(market) {
     this._restSem.take(async () => {
       try {
-        winston.info(`requesting snapshot for ${market.id}`);
         let remote_id = market.id;
         let uri = `https://www.bitstamp.net/api/v2/order_book/${remote_id}?group=1`;
         let raw = await https.get(uri);
@@ -300,7 +298,7 @@ class BitstampClient extends BasicClient {
         });
         this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
-        winston.warn(`failed to fetch snapshot for ${market.id} - ${ex}`);
+        this.emit("error", ex);
         this._requestLevel2Snapshot(market);
       } finally {
         await wait(this.REST_REQUEST_DELAY_MS);

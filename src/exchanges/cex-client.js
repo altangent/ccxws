@@ -84,7 +84,6 @@ class SingleCexClient extends BasicClient {
    * completed in the _onAuthorized method.
    */
   _onConnected() {
-    this.emit("connected");
     this._sendAuthorizeRequest();
   }
 

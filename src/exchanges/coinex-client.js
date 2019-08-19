@@ -1,5 +1,4 @@
 const moment = require("moment");
-const winston = require("winston");
 const BasicClient = require("../basic-client");
 const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
@@ -27,8 +26,6 @@ class CoinexClient extends BasicMultiClient {
 class CoinexSingleClient extends BasicClient {
   constructor() {
     super("wss://socket.coinex.com/", "Coinex");
-    this.on("connected", this._startPing.bind(this));
-    this.on("disconnected", this._stopPing.bind(this));
     this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
@@ -40,7 +37,14 @@ class CoinexSingleClient extends BasicClient {
     this._idSubMap = new Map();
   }
 
+  _beforeConnect() {
+    this._wss.on("connected", this._startPing.bind(this));
+    this._wss.on("disconnected", this._stopPing.bind(this));
+    this._wss.on("closed", this._stopPing.bind(this));
+  }
+
   _startPing() {
+    clearInterval(this._pingInterval);
     this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
   }
 
@@ -67,8 +71,6 @@ class CoinexSingleClient extends BasicClient {
 
     // unsubscribe from the appropriate event
     let { type, remote_id } = sub;
-
-    winston.error(`failed to subscribe to ${remote_id}, please retry subscription`);
 
     // unsubscribe from the appropriate thiing
     switch (type) {
@@ -132,7 +134,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "depth.subscribe",
-        params: [remote_id, 100, "0"], // 100 is the maximum number of items Coinex will let you request
+        params: [remote_id, 50, "0"],
         id,
       })
     );
@@ -153,6 +155,7 @@ class CoinexSingleClient extends BasicClient {
 
     // unsubscribe on failures
     if (error) {
+      this.emit("error", msg);
       this._failSubscription(id);
       return;
     }

@@ -1,5 +1,4 @@
 const moment = require("moment");
-const winston = require("winston");
 const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
@@ -116,7 +115,6 @@ class HitBTCClient extends BasicClient {
     // so we can ignore messages that do not can an id value:
     // { jsonrpc: '2.0', result: true, id: null }
     if (msg.result !== undefined && msg.id) {
-      if (!msg.result) winston.warn(msg);
       return;
     }
 

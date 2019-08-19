@@ -1,6 +1,5 @@
 const { EventEmitter } = require("events");
 const crypto = require("crypto");
-const winston = require("winston");
 const moment = require("moment");
 const cloudscraper = require("cloudscraper");
 const signalr = require("signalr-client");
@@ -60,7 +59,6 @@ class BittrexClient extends EventEmitter {
     if (this._tickerSubs.has(remote_id)) return;
 
     this._connect();
-    winston.info("subscribing to ticker", "Bittrex", remote_id);
     this._tickerSubs.set(remote_id, market);
     if (this._wss) {
       this._sendSubTickers(remote_id);
@@ -70,7 +68,6 @@ class BittrexClient extends EventEmitter {
   unsubscribeTicker(market) {
     let remote_id = market.id;
     if (!this._tickerSubs.has(remote_id)) return;
-    winston.info("subscribing to ticker", "Bittrex", remote_id);
     this._tickerSubs.delete(remote_id);
     if (this._wss) {
       this._sendUnsubTicker(remote_id);
@@ -78,19 +75,19 @@ class BittrexClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
-    this._subscribe(market, this._tradeSubs, "subscribing to trades");
+    this._subscribe(market, this._tradeSubs);
   }
 
   subscribeLevel2Updates(market) {
-    this._subscribe(market, this._level2UpdateSubs, "subscribing to level2 updates");
+    this._subscribe(market, this._level2UpdateSubs);
   }
 
   unsubscribeTrades(market) {
-    this._unsubscribe(market, this._tradeSubs, "unsubscribing from trades");
+    this._unsubscribe(market, this._tradeSubs);
   }
 
   unsubscribeLevel2Updates(market) {
-    this._unsubscribe(market, this._level2UpdateSubs, "unsubscribing from level2 updates");
+    this._unsubscribe(market, this._level2UpdateSubs);
   }
 
   ////////////////////////////////////
@@ -100,12 +97,11 @@ class BittrexClient extends EventEmitter {
     this._subCount = {};
   }
 
-  _subscribe(market, map, msg) {
+  _subscribe(market, map) {
     this._connect();
     let remote_id = market.id;
 
     if (!map.has(remote_id)) {
-      winston.info(msg, "Bittrex", remote_id);
       map.set(remote_id, market);
 
       if (this._wss) {
@@ -114,10 +110,9 @@ class BittrexClient extends EventEmitter {
     }
   }
 
-  _unsubscribe(market, map, msg) {
+  _unsubscribe(market, map) {
     let remote_id = market.id;
     if (map.has(remote_id)) {
-      winston.info(msg, "Bittrex", remote_id);
       map.delete(remote_id);
 
       if (this._wss) {
@@ -136,8 +131,8 @@ class BittrexClient extends EventEmitter {
     // initiate snapshot request
     if (this._level2UpdateSubs.has(remote_id)) {
       this._wss.call("CoreHub", "QueryExchangeState", remote_id).done((err, result) => {
-        if (err) return winston.error("snapshot failed", remote_id, err);
-        if (!result) return winston.warn("snapshot empty", remote_id);
+        if (err) return this.emit("error", err);
+        if (!result) return;
         let market = this._level2UpdateSubs.get(remote_id);
         let snapshot = this._constructLevel2Snapshot(result, market);
         this.emit("l2snapshot", snapshot, market);
@@ -146,40 +141,29 @@ class BittrexClient extends EventEmitter {
 
     // initiate the subscription
     this._wss.call("CoreHub", "SubscribeToExchangeDeltas", remote_id).done(err => {
-      if (err) return winston.error("subscribe failed", remote_id, err);
+      if (err) return this.emit("error", err);
     });
   }
 
   _sendUnsub(remote_id) {
     // decrement market count
     this._subCount[remote_id] -= 1;
-
-    // if we still have subs, then leave channel open
-    if (this._subCount[remote_id]) return;
-
-    // otherwise initiate the unsubscription
-    this._wss.call("CoreHub", "UnsubscribeToExchangeDeltas", remote_id).done(err => {
-      if (err) winston.error("ussubscribe failed", remote_id);
-    });
   }
 
   _sendSubTickers() {
     if (this._tickerConnected) return;
     this._wss.call("CoreHub", "SubscribeToSummaryDeltas").done(err => {
-      if (err) winston.error("ticker subscribe failed");
+      if (err) return this.emit("error", err);
       else this._tickerConnected = true;
     });
   }
 
-  _sendUnsubTicker(remote_id) {
-    this._wss.call("CoreHub", "UnsubscribeToSummaryDeltas", remote_id).done(err => {
-      if (err) winston.error("ticker unsubscribe failed", remote_id);
-    });
+  _sendUnsubTicker() {
+    // no-op
   }
 
   async _connectCloudflare() {
     return new Promise((resolve, reject) => {
-      winston.info("cloudflare connection to https://bittrex.com/");
       cloudscraper.get("https://bittrex.com/", (err, res) => {
         if (err) return reject(err);
         else
@@ -219,15 +203,14 @@ class BittrexClient extends EventEmitter {
       connected: this._onConnected.bind(this),
       disconnected: this._onDisconnected.bind(this),
       messageReceived: this._onMessage.bind(this),
-      onerror: err => winston.error("error", err),
-      connectionlost: err => winston.error("connectionlost", err),
-      connectfailed: err => winston.error("connectfailed", err),
+      onerror: err => this.emit("error", err),
+      connectionlost: () => this.emit("closed"),
+      connectfailed: () => this.emit("closed"),
       reconnecting: () => true, // disables reconnection
     };
   }
 
   _onConnected() {
-    winston.info("connected to wss://socket.bittrex.com/signalr");
     clearTimeout(this._reconnectHandle);
     this.emit("connected");
     this._subCount = {};

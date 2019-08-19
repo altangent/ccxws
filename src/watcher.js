@@ -1,5 +1,3 @@
-const winston = require("winston");
-
 /**
  * Watcher subscribes to a client's messages and
  * will trigger a restart of the client if no
@@ -59,7 +57,6 @@ class Watcher {
    * Logic to perform a reconnection event of the client
    */
   _reconnect() {
-    winston.info("watcher initiating reconnection");
     this.client.reconnect();
     this.stop();
   }

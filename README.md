@@ -122,9 +122,16 @@ Once an event handler is attached you can start the stream using the `subscribe<
 All events emit the market used to subscribe to the event as a second property of the event handler.
 
 ```javascript
+binance.on("error", err => console.error(err));
 binance.on("trades", (trade, market) => console.log(trade, market));
 binance.on("l2snapshot", (snapshot, market) => console.log(snapshot, market));
 ```
+
+##### `error` emits `Error`
+
+You must subscribe to the `error` event to prevent the process exiting. More information in the [Node.js Events Documentation](https://nodejs.org/dist/latest-v10.x/docs/api/events.html#events_error_events)
+
+> If an EventEmitter does not have at least one listener registered for the 'error' event, and an 'error' event is emitted, the error is thrown, a stack trace is printed, and the Node.js process exits.
 
 ##### `ticker` emits `Ticker`, `Market`
 
@@ -158,21 +165,77 @@ Fired when a level 3 update is recieved. Returns an instance of `Level3Update` a
 
 #### Connection Events
 
+Clients emit events as their state changes.
+
+```
+   +-------+
+   |       |
+   | start |
+   |       |
+   +---+---+
+       |
+       |
+       |
+       | subscribe
+       |
+       |
+       |
++------v-------+       initiate
+|              |       reconnect
+|  connecting  <------------------------+
+|              |                        |
++------+-------+                        |
+       |                                |
+       |                        +-------+-------+
+       |                        |               |
+       | socket                 | disconnected  |
+       | open                   |               |
+       |                        +-------^-------+
+       |                                |
++------v-------+                        |
+|              |                        |
+|  connected   +------------------------+
+|              |        socket
++------+-------+        closed
+       |
+       |
+       |
+       | close
+       | requested
+       |
+       |
+       |
++------v-------+                  +--------------+
+|              |                  |              |
+|   closing    +------------------>    closed    |
+|              |     socket       |              |
++--------------+     closed       +--------------+
+```
+
+##### `connecting`
+
+Fires prior to a socket initiating the connection. This event also fires when a reconnection starts.
+
 ##### `connected`
 
-Fires when a socket has connected. This event will fire when for reconnections.
-
-##### `closed`
-
-Fires when the client has closed its connection(s). This event is not fired during disconnections, it is fired when the `close` method is called and the connection(s) are successfully closed.
+Fires when a socket has connected. This event will also fire for reconnection completed.
 
 ##### `disconnected`
 
-Fires when a socket has been disconnected. Automatic reconnection should will be performed and the next event will be `reconnected` followed by a `connected` event when the reconnection is successful.
+Fires when a socket prematurely disconnects. Automatic reconnection will be triggered. The expected
+flow is `disconnected -> connecting -> connected`.
 
-##### `reconnected`
+##### `closing`
 
-Fires when a socket has initiated the reconnection process. This is fired at the start of thee reconnection process and is more aptly named `reconnecting`.
+Fires when the client is preparing to close its connection(s). This event is not fired during reconnections.
+
+##### `closed`
+
+Fires when the client has closed its connection(s). This event is not fired during reconnections, it is fired when the `close` method is called and the connection(s) are successfully closed.
+
+##### `reconnecting`
+
+Fires when a socket has initiated the reconnection process due to inactivity. This is fired at the start of the reconnection process `reconnecting -> closing -> closed -> connecting -> connected`
 
 #### Methods
 

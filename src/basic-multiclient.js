@@ -1,7 +1,6 @@
 const { EventEmitter } = require("events");
 const semaphore = require("semaphore");
 const MarketObjectTypes = require("./enums");
-const winston = require("winston");
 const { wait } = require("./util");
 
 class BasicMultiClient extends EventEmitter {
@@ -26,12 +25,10 @@ class BasicMultiClient extends EventEmitter {
     }
   }
 
-  async close(emitClosed = true) {
+  async close() {
     for (let client of this._clients.values()) {
       (await client).close();
     }
-
-    if (emitClosed) this.emit("closed");
   }
 
   ////// ABSTRACT
@@ -43,7 +40,7 @@ class BasicMultiClient extends EventEmitter {
 
   subscribeTicker(market) {
     if (!this.hasTickers) return;
-    this._subscribe(market, this._clients, MarketObjectTypes.ticker, "subscribing to ticker");
+    this._subscribe(market, this._clients, MarketObjectTypes.ticker);
   }
 
   async unsubscribeTicker(market) {
@@ -55,7 +52,7 @@ class BasicMultiClient extends EventEmitter {
 
   subscribeTrades(market) {
     if (!this.hasTrades) return;
-    this._subscribe(market, this._clients, MarketObjectTypes.trade, "subscribing to trades");
+    this._subscribe(market, this._clients, MarketObjectTypes.trade);
   }
 
   async unsubscribeTrades(market) {
@@ -67,12 +64,7 @@ class BasicMultiClient extends EventEmitter {
 
   subscribeLevel2Updates(market) {
     if (!this.hasLevel2Updates) return;
-    this._subscribe(
-      market,
-      this._clients,
-      MarketObjectTypes.level2update,
-      "subscribing to level 2 updates"
-    );
+    this._subscribe(market, this._clients, MarketObjectTypes.level2update);
   }
 
   async unsubscribeLevel2Updates(market) {
@@ -84,12 +76,7 @@ class BasicMultiClient extends EventEmitter {
 
   subscribeLevel2Snapshots(market) {
     if (!this.hasLevel2Snapshots) return;
-    this._subscribe(
-      market,
-      this._clients,
-      MarketObjectTypes.level2snapshot,
-      "subscribing to level 2 snapshots"
-    );
+    this._subscribe(market, this._clients, MarketObjectTypes.level2snapshot);
   }
 
   async unsubscribeLevel2Snapshots(market) {
@@ -103,15 +90,20 @@ class BasicMultiClient extends EventEmitter {
     return new Promise(resolve => {
       this.sem.take(() => {
         let client = this._createBasicClient(clientArgs);
-        client._connect(); // manually perform a connection instead of waiting for a subscribe call
-        // construct a function so we can remove it...
+        client.on("connecting", () => this.emit("connecting", clientArgs.market));
+        client.on("connected", () => this.emit("connected", clientArgs.market));
+        client.on("disconnected", () => this.emit("disconnected", clientArgs.market));
+        client.on("reconnecting", () => this.emit("reconnecting", clientArgs.market));
+        client.on("closing", () => this.emit("closing", clientArgs.market));
+        client.on("closed", () => this.emit("closed", clientArgs.market));
+        client.on("error", err => this.emit("error", err, clientArgs.market));
         let clearSem = async () => {
           await wait(this.throttleMs);
           this.sem.leave();
-          client.removeListener("connected", clearSem);
           resolve(client);
         };
-        client.on("connected", clearSem);
+        client.once("connected", clearSem);
+        client._connect();
       });
     });
   }
@@ -171,7 +163,7 @@ class BasicMultiClient extends EventEmitter {
         }
       }
     } catch (ex) {
-      winston.error("subscribe failed " + ex.message);
+      this.emit("error", ex, market);
     }
   }
 }

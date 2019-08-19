@@ -27,7 +27,6 @@
     "pusher-js": "^4.4.0",
     "semaphore": "^1.1.0",
     "signalr-client": "0.0.17",
-    "winston": "^2.4.4",
     "ws": "^7.1.1"
   },
   "devDependencies": {

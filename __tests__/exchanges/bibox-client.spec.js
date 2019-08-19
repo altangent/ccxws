@@ -18,6 +18,15 @@ testClient({
     },
   ],
 
+  getEventingSocket(client) {
+    return client._clients[0]._wss;
+  },
+
+  testConnectEvents: true,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
+
   hasTickers: true,
   hasTrades: true,
   hasLevel2Snapshots: true,
