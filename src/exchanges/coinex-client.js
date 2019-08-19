@@ -27,8 +27,6 @@ class CoinexClient extends BasicMultiClient {
 class CoinexSingleClient extends BasicClient {
   constructor() {
     super("wss://socket.coinex.com/", "Coinex");
-    this.on("connected", this._startPing.bind(this));
-    this.on("disconnected", this._stopPing.bind(this));
     this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
@@ -40,7 +38,14 @@ class CoinexSingleClient extends BasicClient {
     this._idSubMap = new Map();
   }
 
+  _beforeConnect() {
+    this._wss.on("connected", this._startPing.bind(this));
+    this._wss.on("disconnected", this._stopPing.bind(this));
+    this._wss.on("closed", this._stopPing.bind(this));
+  }
+
   _startPing() {
+    clearInterval(this._pingInterval);
     this._pingInterval = setInterval(this._sendPing.bind(this), 30000);
   }
 

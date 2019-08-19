@@ -18,10 +18,10 @@ testClient({
     },
   ],
 
-  testConnectEvents: false,
-  testDisconnectEvents: false,
-  testReconnectionEvents: false,
-  testCloseEvents: false,
+  testConnectEvents: true,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
 
   hasTickers: true,
   hasTrades: true,

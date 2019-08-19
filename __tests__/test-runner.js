@@ -7,78 +7,78 @@ module.exports = {
 };
 
 function testClient(spec) {
-  describe(spec.clientName, () => {
-    let state = {};
-    let sandbox;
+  // describe(spec.clientName, () => {
+  //   let state = {};
+  //   let sandbox;
 
-    before(() => {
-      state.client = spec.clientFactory();
-      spec.marketIdList = spec.markets.map(p => p.id);
-      spec.marketBaseList = spec.markets.map(p => p.base);
-      spec.marketQuoteList = spec.markets.map(p => p.quote);
-    });
+  //   before(() => {
+  //     state.client = spec.clientFactory();
+  //     spec.marketIdList = spec.markets.map(p => p.id);
+  //     spec.marketBaseList = spec.markets.map(p => p.base);
+  //     spec.marketQuoteList = spec.markets.map(p => p.quote);
+  //   });
 
-    beforeEach(() => {
-      sandbox = sinon.createSandbox();
-      sandbox.stub(winston);
-    });
+  //   beforeEach(() => {
+  //     sandbox = sinon.createSandbox();
+  //     sandbox.stub(winston);
+  //   });
 
-    afterEach(() => {
-      sandbox.restore();
-    });
+  //   afterEach(() => {
+  //     sandbox.restore();
+  //   });
 
-    describe("capabilities", () => {
-      it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
-        expect(state.client.hasTickers).to.equal(spec.hasTickers);
-      });
+  //   describe("capabilities", () => {
+  //     it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
+  //       expect(state.client.hasTickers).to.equal(spec.hasTickers);
+  //     });
 
-      it(`should ${spec.hasTrades ? "support" : "not support"} trades`, () => {
-        expect(state.client.hasTrades).to.equal(spec.hasTrades);
-      });
+  //     it(`should ${spec.hasTrades ? "support" : "not support"} trades`, () => {
+  //       expect(state.client.hasTrades).to.equal(spec.hasTrades);
+  //     });
 
-      it(`should ${spec.hasLevel2Snapshots ? "support" : "not support"} level2 snapshots`, () => {
-        expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
-      });
+  //     it(`should ${spec.hasLevel2Snapshots ? "support" : "not support"} level2 snapshots`, () => {
+  //       expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
+  //     });
 
-      it(`should ${spec.hasLevel2Updates ? "support" : "not support"} level2 updates`, () => {
-        expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
-      });
+  //     it(`should ${spec.hasLevel2Updates ? "support" : "not support"} level2 updates`, () => {
+  //       expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
+  //     });
 
-      it(`should ${spec.hasLevel3Snapshots ? "support" : "not support"} level3 snapshots`, () => {
-        expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
-      });
+  //     it(`should ${spec.hasLevel3Snapshots ? "support" : "not support"} level3 snapshots`, () => {
+  //       expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
+  //     });
 
-      it(`should ${spec.hasLevel3Updates ? "support" : "not support"} level3 updates`, () => {
-        expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
-      });
-    });
+  //     it(`should ${spec.hasLevel3Updates ? "support" : "not support"} level3 updates`, () => {
+  //       expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
+  //     });
+  //   });
 
-    if (spec.hasTickers && spec.ticker) {
-      testTickers(spec, state);
-    }
+  //   if (spec.hasTickers && spec.ticker) {
+  //     testTickers(spec, state);
+  //   }
 
-    if (spec.hasTrades && spec.trade) {
-      testTrades(spec, state);
-    }
+  //   if (spec.hasTrades && spec.trade) {
+  //     testTrades(spec, state);
+  //   }
 
-    if (spec.hasLevel2Snapshots && spec.l2snapshot) {
-      testLevel2Snapshots(spec, state);
-    }
+  //   if (spec.hasLevel2Snapshots && spec.l2snapshot) {
+  //     testLevel2Snapshots(spec, state);
+  //   }
 
-    if (spec.hasLevel2Updates && spec.l2update) {
-      testLevel2Updates(spec, state);
-    }
+  //   if (spec.hasLevel2Updates && spec.l2update) {
+  //     testLevel2Updates(spec, state);
+  //   }
 
-    if (spec.hasLevel3Updates && spec.l3update) {
-      testLevel3Updates(spec, state);
-    }
+  //   if (spec.hasLevel3Updates && spec.l3update) {
+  //     testLevel3Updates(spec, state);
+  //   }
 
-    describe("close", () => {
-      it("should close client", () => {
-        state.client.close();
-      });
-    });
-  });
+  //   describe("close", () => {
+  //     it("should close client", () => {
+  //       state.client.close();
+  //     });
+  //   });
+  // });
 
   describe(spec.clientName + " events", () => {
     let client;
