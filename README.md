@@ -311,7 +311,6 @@ The ticker class is the result of a `ticker` event.
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -335,7 +334,6 @@ The trade class is the result of a `trade` event emitted from a client.
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -363,7 +361,6 @@ The level 2 snapshot class is the result of a `l2snapshot` or `l2update` event e
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -378,7 +375,6 @@ The level 2 update class is a result of a `l2update` event emitted from the clie
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -404,7 +400,6 @@ The level 3 snapshot class is the result of a `l3snapshot` or `l3update` event e
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -421,7 +416,6 @@ Additional metadata is often provided in the `meta` property that has more detai
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market

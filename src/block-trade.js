@@ -13,6 +13,9 @@ class BlockTrade {
     return `${this.base}/${this.quote}`;
   }
 
+  /**
+   * @deprecated use Market object (second argument to each event) to determine exchange and trade pair
+   */
   get fullId() {
     return `${this.exchange}:${this.base}/${this.quote}`;
   }
