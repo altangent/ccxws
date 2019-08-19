@@ -23,10 +23,14 @@ testClient({
     },
   ],
 
-  testConnectEvents: false,
-  testDisconnectEvents: false,
-  testReconnectionEvents: false,
-  testCloseEvents: false,
+  getEventingSocket(client, market) {
+    return client._subscriptions.get(market.id).wss;
+  },
+
+  testConnectEvents: true,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
 
   hasTickers: false,
   hasTrades: true,

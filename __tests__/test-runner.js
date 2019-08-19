@@ -130,7 +130,7 @@ function testClient(spec) {
 
         let p = client._wss
           ? Promise.resolve(client._wss)
-          : client._clients.get(spec.markets[0].id).then(c => c._wss);
+          : Promise.resolve(spec.getEventingSocket(client, spec.markets[0]));
 
         p.then(smartws => {
           smartws._retryTimeoutMs = 1000;
