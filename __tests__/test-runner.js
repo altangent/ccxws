@@ -7,7 +7,7 @@ module.exports = {
 };
 
 function testClient(spec) {
-  describe(spec.clientName, () => {
+  xdescribe(spec.clientName, () => {
     let state = {};
     let sandbox;
 
