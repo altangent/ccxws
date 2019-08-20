@@ -92,14 +92,28 @@ class GeminiClient extends EventEmitter {
   _connect(remote_id) {
     let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
     let wss = new SmartWss(wssPath);
+    wss.on("error", err => this._onError(remote_id, err));
     wss.on("connecting", () => this._onConnecting(remote_id));
     wss.on("connected", () => this._onConnected(remote_id));
-    wss.on("message", raw => this._onMessage(remote_id, raw));
     wss.on("disconnected", () => this._onDisconnected(remote_id));
     wss.on("closing", () => this._onClosing(remote_id));
     wss.on("closed", () => this._onClosed(remote_id));
+    wss.on("message", raw => {
+      try {
+        this._onMessage(remote_id, raw);
+      } catch (err) {
+        this._onError(remote_id, err);
+      }
+    });
     wss.connect();
     return wss;
+  }
+
+  /**
+   * Handles an error
+   */
+  _onError(remote_id, err) {
+    this.emit("error", err, remote_id);
   }
 
   /**

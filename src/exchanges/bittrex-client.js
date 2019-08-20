@@ -237,40 +237,44 @@ class BittrexClient extends EventEmitter {
   }
 
   _onMessage(raw) {
-    // message format
-    // { type: 'utf8', utf8Data: '{"C":"d-5ED873F4-C,0|Ejin,0|Ejio,2|I:,67FC","M":[{"H":"CoreHub","M":"updateExchangeState","A":[{"MarketName":"BTC-ETH","Nounce":26620,"Buys":[{"Type":0,"Rate":0.07117610,"Quantity":7.22300000},{"Type":1,"Rate":0.07117608,"Quantity":0.0},{"Type":0,"Rate":0.07114400,"Quantity":0.08000000},{"Type":0,"Rate":0.07095001,"Quantity":0.46981436},{"Type":1,"Rate":0.05470000,"Quantity":0.0},{"Type":1,"Rate":0.05458200,"Quantity":0.0}],"Sells":[{"Type":2,"Rate":0.07164500,"Quantity":21.55180000},{"Type":1,"Rate":0.07179460,"Quantity":0.0},{"Type":0,"Rate":0.07180300,"Quantity":6.96349769},{"Type":0,"Rate":0.07190173,"Quantity":0.27815742},{"Type":1,"Rate":0.07221246,"Quantity":0.0},{"Type":0,"Rate":0.07223299,"Quantity":58.39672846},{"Type":1,"Rate":0.07676211,"Quantity":0.0}],"Fills":[]}]}]}' }
+    try {
+      // message format
+      // { type: 'utf8', utf8Data: '{"C":"d-5ED873F4-C,0|Ejin,0|Ejio,2|I:,67FC","M":[{"H":"CoreHub","M":"updateExchangeState","A":[{"MarketName":"BTC-ETH","Nounce":26620,"Buys":[{"Type":0,"Rate":0.07117610,"Quantity":7.22300000},{"Type":1,"Rate":0.07117608,"Quantity":0.0},{"Type":0,"Rate":0.07114400,"Quantity":0.08000000},{"Type":0,"Rate":0.07095001,"Quantity":0.46981436},{"Type":1,"Rate":0.05470000,"Quantity":0.0},{"Type":1,"Rate":0.05458200,"Quantity":0.0}],"Sells":[{"Type":2,"Rate":0.07164500,"Quantity":21.55180000},{"Type":1,"Rate":0.07179460,"Quantity":0.0},{"Type":0,"Rate":0.07180300,"Quantity":6.96349769},{"Type":0,"Rate":0.07190173,"Quantity":0.27815742},{"Type":1,"Rate":0.07221246,"Quantity":0.0},{"Type":0,"Rate":0.07223299,"Quantity":58.39672846},{"Type":1,"Rate":0.07676211,"Quantity":0.0}],"Fills":[]}]}]}' }
 
-    if (!raw.utf8Data) return;
-    raw = JSON.parse(raw.utf8Data);
+      if (!raw.utf8Data) return;
+      raw = JSON.parse(raw.utf8Data);
 
-    if (!raw.M) return;
+      if (!raw.M) return;
 
-    for (let msg of raw.M) {
-      if (msg.M === "updateExchangeState") {
-        msg.A.forEach(data => {
-          if (this._tradeSubs.has(data.MarketName)) {
-            let market = this._tradeSubs.get(data.MarketName);
-            data.Fills.forEach(fill => {
-              let trade = this._constructTradeFromMessage(fill, market);
-              this.emit("trade", trade, market);
-            });
-          }
-          if (this._level2UpdateSubs.has(data.MarketName)) {
-            let market = this._level2UpdateSubs.get(data.MarketName);
-            let l2update = this._constructLevel2Update(data, market);
-            this.emit("l2update", l2update, market);
-          }
-        });
-      }
-      if (msg.M === "updateSummaryState") {
-        for (let raw of msg.A[0].Deltas) {
-          if (this._tickerSubs.has(raw.MarketName)) {
-            let market = this._tickerSubs.get(raw.MarketName);
-            let ticker = this._constructTicker(raw, market);
-            this.emit("ticker", ticker, market);
+      for (let msg of raw.M) {
+        if (msg.M === "updateExchangeState") {
+          msg.A.forEach(data => {
+            if (this._tradeSubs.has(data.MarketName)) {
+              let market = this._tradeSubs.get(data.MarketName);
+              data.Fills.forEach(fill => {
+                let trade = this._constructTradeFromMessage(fill, market);
+                this.emit("trade", trade, market);
+              });
+            }
+            if (this._level2UpdateSubs.has(data.MarketName)) {
+              let market = this._level2UpdateSubs.get(data.MarketName);
+              let l2update = this._constructLevel2Update(data, market);
+              this.emit("l2update", l2update, market);
+            }
+          });
+        }
+        if (msg.M === "updateSummaryState") {
+          for (let raw of msg.A[0].Deltas) {
+            if (this._tickerSubs.has(raw.MarketName)) {
+              let market = this._tickerSubs.get(raw.MarketName);
+              let ticker = this._constructTicker(raw, market);
+              this.emit("ticker", ticker, market);
+            }
           }
         }
       }
+    } catch (ex) {
+      this.emit("error", ex);
     }
   }
 

@@ -171,7 +171,13 @@ class BasicTradeClient extends EventEmitter {
       this._wss.on("disconnected", this._onDisconnected.bind(this));
       this._wss.on("closing", this._onClosing.bind(this));
       this._wss.on("closed", this._onClosed.bind(this));
-      this._wss.on("message", this._onMessage.bind(this));
+      this._wss.on("message", msg => {
+        try {
+          this._onMessage(msg);
+        } catch (ex) {
+          this._onError(ex);
+        }
+      });
       if (this._beforeConnect) this._beforeConnect();
       this._wss.connect();
     }

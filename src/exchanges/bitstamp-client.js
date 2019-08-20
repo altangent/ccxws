@@ -97,13 +97,7 @@ class BitstampClient extends BasicClient {
   /////////////////////////////////////////////
 
   _onMessage(raw) {
-    let msg;
-    try {
-      msg = JSON.parse(raw);
-    } catch (ex) {
-      this.emit("error", ex);
-      return;
-    }
+    let msg = JSON.parse(raw);
 
     if (msg.event === "trade" && msg.channel.startsWith("live_trades")) {
       this._onTrade(msg);

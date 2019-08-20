@@ -151,7 +151,7 @@ class OKExClient extends BasicClient {
   _onMessage(compressed) {
     zlib.inflateRaw(compressed, (err, raw) => {
       if (err) {
-        console.error("failed to deflate", err);
+        this.emit("error", err);
         return;
       }
 
@@ -165,7 +165,7 @@ class OKExClient extends BasicClient {
         let msg = JSON.parse(raw);
         this._processsMessage(msg);
       } catch (ex) {
-        console.error(ex, raw.toString("utf8"));
+        this.emit("error", ex);
       }
     });
   }
