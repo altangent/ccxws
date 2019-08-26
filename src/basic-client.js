@@ -128,7 +128,7 @@ class BasicTradeClient extends EventEmitter {
       // perform the subscription if we're connected
       // and if not, then we'll reply on the _onConnected event
       // to send the signal to our server!
-      if (this._wss.isConnected) {
+      if (this._wss && this._wss.isConnected) {
         sendFn(remote_id);
       }
       return true;

@@ -17,6 +17,7 @@ class KucoinClient extends BasicClient {
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
+    this._pingIntervalTime = 50000;
   }
 
   _beforeConnect() {
@@ -32,7 +33,7 @@ class KucoinClient extends BasicClient {
 
   _startPing() {
     clearInterval(this._pingInterval);
-    this._pingInterval = setInterval(this._sendPing.bind(this), 15000);
+    this._pingInterval = setInterval(this._sendPing.bind(this), this._pingIntervalTime);
   }
 
   _stopPing() {
@@ -52,10 +53,12 @@ class KucoinClient extends BasicClient {
     if (!this._wss) {
       try {
         let raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public");
+
         if (raw.data && raw.data.token) {
           const { token, instanceServers } = raw.data;
-          const { endpoint } = instanceServers[0];
+          const { endpoint, pingInterval } = instanceServers[0];
           this._connectId = UUID();
+          this._pingIntervalTime = pingInterval;
           this._wssPath = `${endpoint}?token=${token}&connectId=${this._connectId}`;
           this._wss = this._wssFactory(this._wssPath);
           this._wss.on("error", this._onError.bind(this));
@@ -168,8 +171,7 @@ class KucoinClient extends BasicClient {
         this._processMessage(msgs);
       }
     } catch (ex) {
-      console.log(ex);
-      console.warn(`failed to parse json ${replaced}`);
+      this._onError(ex);
     }
   }
 

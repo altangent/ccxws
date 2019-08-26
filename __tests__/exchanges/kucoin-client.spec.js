@@ -13,7 +13,7 @@ testClient({
     },
   ],
 
-  testConnectEvents: false,
+  testConnectEvents: true,
   testDisconnectEvents: false,
   testReconnectionEvents: false,
   testCloseEvents: false,
