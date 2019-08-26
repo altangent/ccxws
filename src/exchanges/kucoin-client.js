@@ -147,7 +147,6 @@ class KucoinClient extends BasicClient {
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-
     this._wss.send(
       JSON.stringify({
         "id": new Date().getTime(),
