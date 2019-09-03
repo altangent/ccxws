@@ -13,9 +13,68 @@ class BitmexClient extends BasicClient {
   constructor() {
     super("wss://www.bitmex.com/realtime", "BitMEX");
     this.hasTrades = true;
+    this.hasTickers = true;
     this.hasLevel2Updates = true;
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
+
+    this._storeLimitedTickerDataAndEmitTicker = this._storeLimitedTickerDataAndEmitTicker.bind(this);
+    this._deleteLimitedTickerDataCache = this._deleteLimitedTickerDataCache.bind(this);
+
+    // key-value pairs in format <remote_id>: {last: <Number>, ask: <Number>, askVolume: <Number>,  bid: <Number>, bidVolume: <Number>, }
+    this.limitedTickerData = { };
+  }
+
+  _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
+    if (!this._tickerSubs.has(remote_id)) return;
+    this.limitedTickerData[remote_id] = this.limitedTickerData[remote_id] || {
+      ask: undefined,
+      last: undefined,
+      bid: undefined
+    };
+    last && (this.limitedTickerData[remote_id].last = last);
+    ask && (this.limitedTickerData[remote_id].ask = ask);
+    askVolume && (this.limitedTickerData[remote_id].askVolume = askVolume);
+    bid && (this.limitedTickerData[remote_id].bid = bid);
+    bidVolume && (this.limitedTickerData[remote_id].bidVolume = bidVolume);
+
+    this.emit("ticker", this.limitedTickerData[remote_id], remote_id);
+  }
+
+  _deleteLimitedTickerDataCache(remote_id) {
+    delete this.limitedTickerData[remote_id];
+  }
+
+  _sendSubTicker(remote_id) {
+    this._sendSubQuote(remote_id);
+    this._sendSubTrades(remote_id);
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._sendUnsubQuote(remote_id);
+    // if we're still subscribed to trades for this symbol, don't unsub
+    if (!this._tradeSubs.has(remote_id)) {
+      this._sendUnsubTrades(remote_id);
+    }
+    this._deleteLimitedTickerDataCache(remote_id);
+  }
+
+  _sendSubQuote(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "subscribe",
+        args: [`quote:${remote_id}`],
+      })
+    );
+  }
+
+  _sendUnsubQuote(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "unsubscribe",
+        args: [`quote:${remote_id}`],
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -58,8 +117,39 @@ class BitmexClient extends BasicClient {
     let message = JSON.parse(msgs);
     let { table, action } = message;
 
+    if (table === "quote") {
+      // group quotes by symbol, then for each symbol we're subscribed to tickers for 
+      // we store the ask/askSize/bid/bidSize for ticker data
+      // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
+      const quotesGroupedBySymbol = {};
+      message.data.forEach(thisQuote => {
+        quotesGroupedBySymbol[thisQuote.symbol] = quotesGroupedBySymbol[thisQuote.symbol] || [];
+        quotesGroupedBySymbol[thisQuote.symbol].push(thisQuote);
+      });
+      Object.keys(quotesGroupedBySymbol).forEach(thisSymbol => {
+        const thisSymbolQuotes = quotesGroupedBySymbol[thisSymbol];
+        if (this._tickerSubs.has(thisSymbol)) {
+          const latestQuote = thisSymbolQuotes.sort((a, b) => {
+            return new Date(b) - new Date(a)
+          })[0];
+          const ask = latestQuote.askPrice;
+          const askVolume = latestQuote.askSize;
+          const bid = latestQuote.bidPrice;
+          const bidVolume = latestQuote.bidSize;
+          this._storeLimitedTickerDataAndEmitTicker(thisSymbol, {
+            ask,
+            askVolume,
+            bid,
+            bidVolume
+          });
+        }
+      });
+
+    }
+
     if (table === "trade") {
       if (action !== "insert") return;
+      // handle trade event
       for (let datum of message.data) {
         let remote_id = datum.symbol;
         let market = this._tradeSubs.get(remote_id);
@@ -68,6 +158,29 @@ class BitmexClient extends BasicClient {
         let trade = this._constructTrades(datum, market);
         this.emit("trade", trade, market);
       }
+
+      // handle ticker data
+      // group trades by symbol, then for each symbol we're subscribed to tickers for 
+      // we find the latest trade and use its price as the ticker "last" price
+      // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
+      const tradesGroupedBySymbol = {};
+      message.data.forEach(thisTrade => {
+        tradesGroupedBySymbol[thisTrade.symbol] = tradesGroupedBySymbol[thisTrade.symbol] || [];
+        tradesGroupedBySymbol[thisTrade.symbol].push(thisTrade);
+      });
+      Object.keys(tradesGroupedBySymbol).forEach(thisSymbol => {
+        const thisSymbolTrades = tradesGroupedBySymbol[thisSymbol];
+        // get latest trade to use as "last" for ticker
+        if (this._tickerSubs.has(thisSymbol)) {
+          const latestTrade = thisSymbolTrades.sort((a, b) => {
+            return new Date(b) - new Date(a)
+          })[0];
+          const lastPrice = latestTrade.price;
+          this._storeLimitedTickerDataAndEmitTicker(thisSymbol, {
+            last: lastPrice
+          });
+        }
+      });
       return;
     }
 
