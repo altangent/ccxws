@@ -25,12 +25,17 @@ class BitmexClient extends BasicClient {
     this.limitedTickerData = { };
   }
 
+  /**
+   * Stores updated ticker data and emits ticker event.
+   */
   _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
     if (!this._tickerSubs.has(remote_id)) return;
     this.limitedTickerData[remote_id] = this.limitedTickerData[remote_id] || {
-      ask: undefined,
       last: undefined,
-      bid: undefined
+      ask: undefined,
+      askVolume: undefined,
+      bid: undefined,
+      bidVolume: undefined
     };
     last && (this.limitedTickerData[remote_id].last = last);
     ask && (this.limitedTickerData[remote_id].ask = ask);
@@ -41,6 +46,9 @@ class BitmexClient extends BasicClient {
     this.emit("ticker", this.limitedTickerData[remote_id], remote_id);
   }
 
+  /**
+   * Deletes cached ticker data after unsubbing from ticker.
+   */
   _deleteLimitedTickerDataCache(remote_id) {
     delete this.limitedTickerData[remote_id];
   }
