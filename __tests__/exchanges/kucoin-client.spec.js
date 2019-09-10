@@ -14,9 +14,9 @@ testClient({
   ],
 
   testConnectEvents: true,
-  testDisconnectEvents: false,
-  testReconnectionEvents: false,
-  testCloseEvents: false,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
 
   hasTickers: true,
   hasTrades: true,
