@@ -42,10 +42,12 @@ class KucoinClient extends BasicClient {
 
   _sendPing() {
     if (this._wss) {
-      this._wss.send(JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "ping"
-      }));
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "ping",
+        })
+      );
     }
   }
 
@@ -76,7 +78,6 @@ class KucoinClient extends BasicClient {
           });
           if (this._beforeConnect) this._beforeConnect();
           this._wss.connect();
-
         }
       } catch (ex) {
         this._onError(ex);
@@ -87,11 +88,11 @@ class KucoinClient extends BasicClient {
   _sendSubTicker(remote_id) {
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "subscribe",
-        "topic": "/market/snapshot:" + remote_id,
-        "privateChannel": false,
-        "response": true
+        id: new Date().getTime(),
+        type: "subscribe",
+        topic: "/market/snapshot:" + remote_id,
+        privateChannel: false,
+        response: true,
       })
     );
   }
@@ -99,11 +100,11 @@ class KucoinClient extends BasicClient {
   _sendUnsubTicker(remote_id) {
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "unsubscribe",
-        "topic": "/market/snapshot:" + remote_id,
-        "privateChannel": false,
-        "response": true
+        id: new Date().getTime(),
+        type: "unsubscribe",
+        topic: "/market/snapshot:" + remote_id,
+        privateChannel: false,
+        response: true,
       })
     );
   }
@@ -111,11 +112,11 @@ class KucoinClient extends BasicClient {
   _sendSubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "subscribe",
-        "topic": "/market/match:" + remote_id,
-        "privateChannel": false,
-        "response": true
+        id: new Date().getTime(),
+        type: "subscribe",
+        topic: "/market/match:" + remote_id,
+        privateChannel: false,
+        response: true,
       })
     );
   }
@@ -123,11 +124,11 @@ class KucoinClient extends BasicClient {
   _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "unsubscribe",
-        "topic": "/market/match:" + remote_id,
-        "privateChannel": false,
-        "response": true
+        id: new Date().getTime(),
+        type: "unsubscribe",
+        topic: "/market/match:" + remote_id,
+        privateChannel: false,
+        response: true,
       })
     );
   }
@@ -138,10 +139,10 @@ class KucoinClient extends BasicClient {
 
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "subscribe",
-        "topic": "/market/level2:" + remote_id,
-        "response": true
+        id: new Date().getTime(),
+        type: "subscribe",
+        topic: "/market/level2:" + remote_id,
+        response: true,
       })
     );
   }
@@ -149,16 +150,16 @@ class KucoinClient extends BasicClient {
   _sendUnsubLevel2Updates(remote_id) {
     this._wss.send(
       JSON.stringify({
-        "id": new Date().getTime(),
-        "type": "unsubscribe",
-        "topic": "/market/level2:" + remote_id,
-        "response": true
+        id: new Date().getTime(),
+        type: "unsubscribe",
+        topic: "/market/level2:" + remote_id,
+        response: true,
       })
     );
   }
 
   _onMessage(raw) {
-    let replaced = raw.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ":\"$1\"$2");
+    let replaced = raw.replace(/:(\d+\.{0,1}\d+)(,|\})/g, ':"$1"$2');
     try {
       let msgs = JSON.parse(replaced);
 
@@ -216,28 +217,33 @@ class KucoinClient extends BasicClient {
       unix: parseInt(time),
       price: price,
       amount: size,
-      buyOrderId: (side === "buy") ? makerOrderId : takerOrderId,
-      sellOrderId: (side === "sell") ? makerOrderId : takerOrderId,
+      buyOrderId: side === "buy" ? makerOrderId : takerOrderId,
+      sellOrderId: side === "sell" ? makerOrderId : takerOrderId,
     });
 
     this.emit("trade", trade, market);
   }
 
   _processTicker(msg) {
-    let { symbol, high, low, datetime, vol, lastTradedPrice, changePrice, open, sell, buy } = msg.data.data;
+    console.log(msg);
+    let {
+      symbol,
+      high,
+      low,
+      datetime,
+      vol,
+      lastTradedPrice,
+      changePrice,
+      changeRate,
+      open,
+      sell,
+      buy,
+    } = msg.data.data;
     let market = this._tickerSubs.get(symbol);
-    let changePercent = undefined;
-    let _open = parseFloat(open);
 
     if (!market) {
       return;
     }
-
-    if (_open > 0) {
-      changePercent = ((parseFloat(lastTradedPrice) - _open) / _open) * 100;
-      changePercent = changePercent.toFixed(8);
-    }
-
 
     let ticker = new Ticker({
       exchange: "KuCoin",
@@ -249,8 +255,8 @@ class KucoinClient extends BasicClient {
       high: high,
       low: low,
       volume: vol,
-      change: changePrice,
-      changePercent: changePercent,
+      change: changePrice.toFixed(8),
+      changePercent: changeRate.toFixed(2),
       bid: buy,
       ask: sell,
       bidVolume: undefined,
@@ -307,7 +313,6 @@ class KucoinClient extends BasicClient {
       }
     });
   }
-
 }
 
 module.exports = KucoinClient;

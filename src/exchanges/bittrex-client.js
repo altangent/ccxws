@@ -19,7 +19,8 @@ class BittrexClient extends EventEmitter {
     this._tradeSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._watcher = new Watcher(this);
-    this._tickerConnected;
+    this._isConnected = false;
+    this._tickerConnected = false;
     this._finalClosing = false;
 
     this.hasTickers = true;
@@ -60,7 +61,7 @@ class BittrexClient extends EventEmitter {
 
     this._connect();
     this._tickerSubs.set(remote_id, market);
-    if (this._wss) {
+    if (this._isConnected) {
       this._sendSubTickers(remote_id);
     }
   }
@@ -69,7 +70,7 @@ class BittrexClient extends EventEmitter {
     let remote_id = market.id;
     if (!this._tickerSubs.has(remote_id)) return;
     this._tickerSubs.delete(remote_id);
-    if (this._wss) {
+    if (this._isConnected) {
       this._sendUnsubTicker(remote_id);
     }
   }
@@ -104,7 +105,7 @@ class BittrexClient extends EventEmitter {
     if (!map.has(remote_id)) {
       map.set(remote_id, market);
 
-      if (this._wss) {
+      if (this._isConnected) {
         this._sendSub(remote_id);
       }
     }
@@ -115,7 +116,7 @@ class BittrexClient extends EventEmitter {
     if (map.has(remote_id)) {
       map.delete(remote_id);
 
-      if (this._wss) {
+      if (this._isConnected) {
         this._sendUnsub(remote_id);
       }
     }
@@ -197,8 +198,6 @@ class BittrexClient extends EventEmitter {
 
     wss.headers["User-Agent"] = metadata.user_agent;
     wss.headers["cookie"] = metadata.cookie;
-
-    wss.start();
     wss.serviceHandlers = {
       connected: this._onConnected.bind(this),
       disconnected: this._onDisconnected.bind(this),
@@ -208,14 +207,15 @@ class BittrexClient extends EventEmitter {
       connectfailed: () => this.emit("closed"),
       reconnecting: () => true, // disables reconnection
     };
+    wss.start();
   }
 
   _onConnected() {
     clearTimeout(this._reconnectHandle);
-    this.emit("connected");
-    this._subCount = {};
+    this._resetSubCount();
     this._tickerConnected = false;
-    this._watcher.start();
+    this._isConnected = true;
+    this.emit("connected");
     for (let marketSymbol of this._tickerSubs.keys()) {
       this._sendSubTickers(marketSymbol);
     }
@@ -225,9 +225,11 @@ class BittrexClient extends EventEmitter {
     for (let marketSymbol of this._level2UpdateSubs.keys()) {
       this._sendSub(marketSymbol);
     }
+    this._watcher.start();
   }
 
   _onDisconnected() {
+    this._isConnected = false;
     if (!this._finalClosing) {
       clearTimeout(this._reconnectHandle);
       this._watcher.stop();
