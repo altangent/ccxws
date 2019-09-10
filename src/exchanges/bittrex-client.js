@@ -19,7 +19,7 @@ class BittrexClient extends EventEmitter {
     this._tradeSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._watcher = new Watcher(this);
-    this._tickerConnected;
+    this._tickerConnected = false;
     this._finalClosing = false;
 
     this.hasTickers = true;
@@ -212,10 +212,9 @@ class BittrexClient extends EventEmitter {
 
   _onConnected() {
     clearTimeout(this._reconnectHandle);
-    this.emit("connected");
-    this._subCount = {};
+    this._resetSubCount();
     this._tickerConnected = false;
-    this._watcher.start();
+    this.emit("connected");
     for (let marketSymbol of this._tickerSubs.keys()) {
       this._sendSubTickers(marketSymbol);
     }
@@ -225,6 +224,7 @@ class BittrexClient extends EventEmitter {
     for (let marketSymbol of this._level2UpdateSubs.keys()) {
       this._sendSub(marketSymbol);
     }
+    this._watcher.start();
   }
 
   _onDisconnected() {
