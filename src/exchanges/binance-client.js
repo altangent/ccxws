@@ -365,7 +365,6 @@ class BinanceClient extends EventEmitter {
 
   async _requestLevel2Snapshot(market) {
     this._restSem.take(async () => {
-      let failed = false;
       try {
         let remote_id = market.id;
         let uri = `https://api.binance.com/api/v1/depth?limit=1000&symbol=${remote_id}`;
@@ -384,11 +383,8 @@ class BinanceClient extends EventEmitter {
         this.emit("l2snapshot", snapshot, market);
       } catch (ex) {
         this.emit("error", ex);
-        failed = true;
       } finally {
-        await wait(this.REST_REQUEST_DELAY_MS);
         this._restSem.leave();
-        if (failed) this._requestLevel2Snapshot(market);
       }
     });
   }

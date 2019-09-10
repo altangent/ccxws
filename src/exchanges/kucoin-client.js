@@ -301,9 +301,8 @@ class KucoinClient extends BasicClient {
         });
         this.emit("l2snapshot", snapshot);
       } catch (ex) {
-        this._requestLevel2Snapshot(market);
+        this.emit("error", ex);
       } finally {
-        await wait(this.REST_REQUEST_DELAY_MS);
         this._sem.leave();
       }
     });
