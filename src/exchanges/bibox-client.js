@@ -134,6 +134,7 @@ class BiboxClient extends EventEmitter {
       client.on("ticker", (ticker, market) => this.emit("ticker", ticker, market));
       client.on("trade", (trade, market) => this.emit("trade", trade, market));
       client.on("l2snapshot", (l2snapshot, market) => this.emit("l2snapshot", l2snapshot, market));
+      client.on("error", err => this.emit("error", err));
 
       // push it into the list of clients
       this._clients.push(client);
@@ -318,7 +319,9 @@ class BiboxBasicClient extends BasicClient {
 
     // watch for error messages
     if (msg.error) {
-      this.emit("error", msg.error);
+      let err = new Error(msg.error);
+      err.message = msg;
+      this.emit("error", err);
       return;
     }
 
