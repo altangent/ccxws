@@ -154,7 +154,7 @@ class BinanceUsClient extends EventEmitter {
         streams.push("!ticker@arr");
       }
 
-      let wssPath = "wss://stream.binance.je:9443/stream?streams=" + streams.join("/");
+      let wssPath = "wss://stream.binance.us:9443/stream?streams=" + streams.join("/");
 
       this._wss = new SmartWss(wssPath);
       this._wss.on("error", this._onError.bind(this));
