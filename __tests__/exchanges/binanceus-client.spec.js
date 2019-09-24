@@ -1,10 +1,10 @@
 const { testClient } = require("../test-runner");
-const BinanceUsClient = require("../../src/exchanges/binanceus-client");
+const BinanceUSClient = require("../../src/exchanges/binanceus-client");
 
 testClient({
-  clientFactory: () => new BinanceUsClient(),
-  clientName: "BinanceUsClient",
-  exchangeName: "BinanceUs",
+  clientFactory: () => new BinanceUSClient(),
+  clientName: "BinanceUSClient",
+  exchangeName: "BinanceUS",
   markets: [
     {
       id: "BTCUSD",
@@ -33,7 +33,7 @@ testClient({
     },
   ],
 
-  skip: true,
+  skip: false,
 
   testConnectEvents: true,
   testDisconnectEvents: true,
