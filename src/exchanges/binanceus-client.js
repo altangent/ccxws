@@ -10,14 +10,14 @@ const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
 
-class BinanceUsClient extends EventEmitter {
+class BinanceUSClient extends EventEmitter {
   constructor({
     useAggTrades = true,
     requestSnapshot = true,
     reconnectIntervalMs = 10 * 60000,
   } = {}) {
     super();
-    this._name = "BinanceUs";
+    this._name = "BinanceUS";
     this._tickerSubs = new Map();
     this._tradeSubs = new Map();
     this._level2SnapshotSubs = new Map();
@@ -274,7 +274,7 @@ class BinanceUsClient extends EventEmitter {
     } = msg;
     let open = parseFloat(last) + parseFloat(change);
     return new Ticker({
-      exchange: "BinanceUs",
+      exchange: "BinanceUS",
       base: market.base,
       quote: market.quote,
       timestamp: timestamp,
@@ -299,7 +299,7 @@ class BinanceUsClient extends EventEmitter {
     let amount = size;
     let side = buyer ? "buy" : "sell";
     return new Trade({
-      exchange: "BinanceUs",
+      exchange: "BinanceUS",
       base: market.base,
       quote: market.quote,
       tradeId: trade_id.toFixed(),
@@ -316,7 +316,7 @@ class BinanceUsClient extends EventEmitter {
     let amount = size;
     let side = buyer ? "buy" : "sell";
     return new Trade({
-      exchange: "BinanceUs",
+      exchange: "BinanceUS",
       base: market.base,
       quote: market.quote,
       tradeId: trade_id,
@@ -334,7 +334,7 @@ class BinanceUsClient extends EventEmitter {
     let asks = msg.data.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.bids.map(p => new Level2Point(p[0], p[1]));
     return new Level2Snapshot({
-      exchange: "BinanceUs",
+      exchange: "BinanceUS",
       base: market.base,
       quote: market.quote,
       sequenceId,
@@ -349,7 +349,7 @@ class BinanceUsClient extends EventEmitter {
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
     let bids = msg.data.b.map(p => new Level2Point(p[0], p[1]));
     return new Level2Update({
-      exchange: "BinanceUs",
+      exchange: "BinanceUS",
       base: market.base,
       quote: market.quote,
       sequenceId,
@@ -378,7 +378,7 @@ class BinanceUsClient extends EventEmitter {
         let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
         let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
         let snapshot = new Level2Snapshot({
-          exchange: "BinanceUs",
+          exchange: "BinanceUS",
           base: market.base,
           quote: market.quote,
           sequenceId,
@@ -398,4 +398,4 @@ class BinanceUsClient extends EventEmitter {
   }
 }
 
-module.exports = BinanceUsClient;
+module.exports = BinanceUSClient;
