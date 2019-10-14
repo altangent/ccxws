@@ -25,6 +25,7 @@ class BittrexClient extends EventEmitter {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;

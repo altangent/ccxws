@@ -9,8 +9,8 @@ class BasicMultiClient extends EventEmitter {
     this._clients = new Map();
 
     this.hasTickers = false;
-    this.hasCandles = false;
     this.hasTrades = false;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;
@@ -51,12 +51,12 @@ class BasicMultiClient extends EventEmitter {
     }
   }
 
-  subscribeCandle(market) {
+  subscribeCandles(market) {
     if (!this.hasCandles) return;
-    this._subscribe(market, this._clients, MarketObjectTypes.candle, "subscribing to candle");
+    this._subscribe(market, this._clients, MarketObjectTypes.candle);
   }
 
-  async unsubscribeCandle(market) {
+  async unsubscribeCandles(market) {
     if (!this.hasCandles) return;
     if (this._clients.has(market.id)) {
       (await this._clients.get(market.id)).unsubscribeCandle(market);
@@ -147,7 +147,7 @@ class BasicMultiClient extends EventEmitter {
       }
 
       if (marketObjectType === MarketObjectTypes.candle) {
-        let subscribed = client.subscribeCandle(market);
+        let subscribed = client.subscribeCandles(market);
         if (subscribed) {
           client.on("candle", (candle, market) => {
             this.emit("candle", candle, market);

@@ -14,6 +14,7 @@ class GeminiClient extends EventEmitter {
 
     this.hasTickers = false;
     this.hasTrades = true;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;

@@ -37,6 +37,7 @@ class BiboxClient extends EventEmitter {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;

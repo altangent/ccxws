@@ -30,6 +30,7 @@ testClient({
 
   hasTickers: true,
   hasTrades: true,
+  hasCandles: false,
   hasLevel2Snapshots: false,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,

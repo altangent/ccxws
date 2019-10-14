@@ -25,8 +25,8 @@ class BasicTradeClient extends EventEmitter {
     this._watcher = new Watcher(this);
 
     this.hasTickers = false;
-    this.hasCandles = false;
     this.hasTrades = true;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;
@@ -64,24 +64,14 @@ class BasicTradeClient extends EventEmitter {
     this._unsubscribe(market, this._tickerSubs, this._sendUnsubTicker.bind(this));
   }
 
-  subscribeCandle(market) {
+  subscribeCandles(market) {
     if (!this.hasCandles) return;
-    return this._subscribe(
-      market,
-      this._candleSubs,
-      "subscribe to candles",
-      this._sendSubCandle.bind(this)
-    );
+    return this._subscribe(market, this._candleSubs, this._sendSubCandles.bind(this));
   }
 
-  unsubscribeCandle(market) {
+  unsubscribeCandles(market) {
     if (!this.hasCandles) return;
-    this._unsubscribe(
-      market,
-      this._candleSubs,
-      "unsubscribing from candles",
-      this._sendUnsubCandle.bind(this)
-    );
+    this._unsubscribe(market, this._candleSubs, this._sendUnsubCandles.bind(this));
   }
 
   subscribeTrades(market) {
@@ -233,7 +223,7 @@ class BasicTradeClient extends EventEmitter {
       this._sendSubTicker(marketSymbol);
     }
     for (let marketSymbol of this._candleSubs.keys()) {
-      this._sendSubCandle(marketSymbol);
+      this._sendSubCandles(marketSymbol);
     }
     for (let marketSymbol of this._tradeSubs.keys()) {
       this._sendSubTrades(marketSymbol);
@@ -287,12 +277,12 @@ class BasicTradeClient extends EventEmitter {
   }
 
   /* istanbul ignore next */
-  _sendSubCandle() {
+  _sendSubCandles() {
     throw new Error("not implemented");
   }
 
   /* istanbul ignore next */
-  _sendUnsubCandle() {
+  _sendUnsubCandles() {
     throw new Error("not implemented");
   }
 
