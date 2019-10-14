@@ -1,6 +1,6 @@
 class Candle {
-  constructor(unix, open, high, low, close, volume) {
-    this.unix = unix;
+  constructor(timestampMs, open, high, low, close, volume) {
+    this.timestampMs = timestampMs;
     this.open = open;
     this.high = high;
     this.low = low;

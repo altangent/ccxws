@@ -26,6 +26,10 @@ function testClient(spec) {
         expect(state.client.hasTrades).to.equal(spec.hasTrades);
       });
 
+      it(`should ${spec.hasCandles ? "support" : "not support"} candles`, () => {
+        expect(state.client.hasCandles).to.equal(spec.hasCandles);
+      });
+
       it(`should ${spec.hasLevel2Snapshots ? "support" : "not support"} level2 snapshots`, () => {
         expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
       });
@@ -49,6 +53,10 @@ function testClient(spec) {
 
     if (spec.hasTrades && spec.trade) {
       testTrades(spec, state);
+    }
+
+    if (spec.hasCandles && spec.candle) {
+      testCandles(spec, state);
     }
 
     if (spec.hasLevel2Snapshots && spec.l2snapshot) {
@@ -318,6 +326,59 @@ function testTrades(spec, state) {
       }
     });
   });
+}
+
+function testCandles(spec, state) {
+  describe("subscribeCandles", () => {
+    let result = {};
+    let client;
+
+    before(() => {
+      client = state.client;
+    });
+
+    it("should subscribe and emit a candle", done => {
+      for (let market of spec.markets) {
+        client.subscribeCandles(market);
+      }
+      client.on("candle", (candle, market) => {
+        result.ready = true;
+        result.market = market;
+        result.candle = candle;
+        client.removeAllListeners("candle");
+        done();
+      });
+    })
+      .timeout(60000)
+      .retries(3);
+
+    it("should unsubscribe from candles", () => {
+      for (let market of spec.markets) {
+        client.unsubscribeCandles(market);
+      }
+    });
+
+    describe("results", () => {
+      before(function() {
+        if (!result.ready) return this.skip();
+      });
+
+      it("market should be the subscribing market", () => {
+        expect(result.market).to.be.oneOf(spec.markets);
+      });
+
+      testCandleResult(spec, result);
+    });
+  });
+}
+
+function testCandleResult(spec, result) {
+  testTimestampMs(result, `candle.timestampMs`);
+  testNumberString(result, `candle.open`);
+  testNumberString(result, `candle.high`);
+  testNumberString(result, `candle.low`);
+  testNumberString(result, `candle.close`);
+  testNumberString(result, `candle.volume`);
 }
 
 function testLevel2Snapshots(spec, state) {
