@@ -1,6 +1,6 @@
 const { EventEmitter } = require("events");
 const semaphore = require("semaphore");
-const MarketObjectTypes = require("./enums");
+const { MarketObjectTypes } = require("./enums");
 const { wait } = require("./util");
 
 class BasicMultiClient extends EventEmitter {

@@ -7,7 +7,7 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
-const MarketObjectTypes = require("../enums");
+const { MarketObjectTypes } = require("../enums");
 
 class CoinexClient extends BasicMultiClient {
   constructor() {
