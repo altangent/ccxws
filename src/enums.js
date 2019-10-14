@@ -24,6 +24,7 @@ const CandlePeriod = Object.freeze({
   _1d: "_1d",
   _3d: "_3d",
   _1w: "_1w",
+  _2w: "_2w",
   _1M: "_1M",
 });
 

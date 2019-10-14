@@ -2,10 +2,12 @@ const Decimal = require("decimal.js");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const https = require("../https");
+const { CandlePeriod } = require("../enums");
 
 class KrakenClient extends BasicClient {
   /**
@@ -31,8 +33,11 @@ class KrakenClient extends BasicClient {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Updates = true;
     this.hasLevel2Snapshots = false;
+
+    this.candlePeriod = CandlePeriod._1m;
 
     this.subscriptionLog = new Map();
     this.debouceTimeoutHandles = new Map();
@@ -179,6 +184,38 @@ class KrakenClient extends BasicClient {
   }
 
   /**
+   * Constructs a request that looks like:
+    {
+      "event": "unsubscribe",
+      "pair": ["XBT/USD","BCH/USD"]
+      "subscription": {
+        "name": "ohlc"
+        "interval": 1
+      }
+    }
+   */
+  _sendSubCandles() {
+    let interval = getCandlePeriod(this.candlePeriod);
+    this._debounceSend("sub-candles", this._candleSubs, true, { name: "ohlc", interval });
+  }
+
+  /**
+   * Constructs a request that looks like:
+    {
+      "event": "unsubscribe",
+      "pair": ["XBT/USD","BCH/USD"]
+      "subscription": {
+        "name": "ohlc"
+        "interval": 1
+      }
+    }
+   */
+  _sendUnsubCandles() {
+    let interval = getCandlePeriod(this.candlePeriod);
+    this._debounceSend("unsub-candles", this._candleSubs, false, { name: "ohlc", interval });
+  }
+
+  /**
     Constructs a request that looks like:
     {
       "event": "subscribe",
@@ -292,6 +329,16 @@ class KrakenClient extends BasicClient {
       return;
     }
 
+    // candles
+    if (sl.subscription.name === "ohlc") {
+      let market = this._candleSubs.get(remote_id);
+      if (!market) return;
+
+      let candle = this._constructCandle(msg, market);
+      this.emit("candle", candle, market);
+      return;
+    }
+
     //l2 updates
     if (sl.subscription.name === "book") {
       let market = this._level2UpdateSubs.get(remote_id);
@@ -393,6 +440,32 @@ class KrakenClient extends BasicClient {
       amount: datum[1],
       rawUnix: datum[2],
     });
+  }
+
+  /**
+    Refer to https://www.kraken.com/en-us/features/websocket-api#message-ohlc
+   */
+  _constructCandle(msg) {
+    /**
+      [
+        6,
+        [ '1571080988.157759',
+          '1571081040.000000',
+          '8352.00000',
+          '8352.00000',
+          '8352.00000',
+          '8352.00000',
+          '8352.00000',
+          '0.01322211',
+          1
+        ],
+        'ohlc-1',
+        'XBT/USD'
+      ]
+      */
+    let datum = msg[1];
+    let ms = parseInt(datum[1]) * 1000;
+    return new Candle(ms, datum[2], datum[3], datum[4], datum[5], datum[7]);
   }
 
   /**
@@ -507,3 +580,31 @@ class KrakenClient extends BasicClient {
 }
 
 module.exports = KrakenClient;
+
+/**
+ * Maps the candle period from CCXWS to those required by the subscription mechanism
+ * as defined in https://www.kraken.com/en-us/features/websocket-api#message-subscribe
+ * @param {int} p
+ */
+function getCandlePeriod(p) {
+  switch (p) {
+    case CandlePeriod._1m:
+      return 1;
+    case CandlePeriod._5m:
+      return 5;
+    case CandlePeriod._15m:
+      return 15;
+    case CandlePeriod._30m:
+      return 30;
+    case CandlePeriod._60m:
+      return 60;
+    case CandlePeriod._4h:
+      return 240;
+    case CandlePeriod._1d:
+      return 1440;
+    case CandlePeriod._1w:
+      return 10080;
+    case CandlePeriod._2w:
+      return 21600;
+  }
+}
