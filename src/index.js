@@ -74,6 +74,8 @@ module.exports = {
   Auction: require("./auction"),
   BasicClient: require("./basic-client"),
   BlockTrade: require("./block-trade"),
+  Candle: require("./candle"),
+  CandlePeriod: require("./enums").CandlePeriod,
   Level2Point: require("./level2-point"),
   Level2Snapshot: require("./level2-snapshot"),
   Level2Update: require("./level2-update"),
