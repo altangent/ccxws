@@ -44,7 +44,7 @@ class BiboxClient extends EventEmitter {
     this.hasLevel3Updates = false;
     this.subsPerClient = 20;
     this.throttleMs = 200;
-    this.candleType = this._throttle = semaphore(1);
+    this._throttle = semaphore(1);
   }
 
   subscribeTicker(market) {
