@@ -4,11 +4,14 @@ const { wait } = require("../util");
 const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
+const { CandlePeriod } = require("../enums");
+const { candlePeriod } = require("./binance-base");
 
 class BinanceClient extends EventEmitter {
   constructor({ useAggTrades = true, requestSnapshot = true, reconnectIntervalMs = 300000 } = {}) {
@@ -16,6 +19,7 @@ class BinanceClient extends EventEmitter {
     this._name = "Binance";
     this._tickerSubs = new Map();
     this._tradeSubs = new Map();
+    this._candleSubs = new Map();
     this._level2SnapshotSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._wss = undefined;
@@ -25,10 +29,13 @@ class BinanceClient extends EventEmitter {
     this.useAggTrades = useAggTrades;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
+
+    this.candlePeriod = CandlePeriod._1m;
 
     this._watcher = new Watcher(this, reconnectIntervalMs);
     this._restSem = semaphore(1);
@@ -39,6 +46,7 @@ class BinanceClient extends EventEmitter {
     return (
       this._tickerSubs.size +
       this._tradeSubs.size +
+      this._candleSubs.size +
       this._level2SnapshotSubs.size +
       this._level2UpdateSubs.size
     );
@@ -60,6 +68,14 @@ class BinanceClient extends EventEmitter {
 
   unsubscribeTrades(market) {
     this._unsubscribe(market, this._tradeSubs);
+  }
+
+  subscribeCandles(market) {
+    this._subscribe(market, this._candleSubs);
+  }
+
+  unsubscribeCandles(market) {
+    this._unsubscribe(market, this._candleSubs);
   }
 
   subscribeLevel2Snapshots(market) {
@@ -142,6 +158,9 @@ class BinanceClient extends EventEmitter {
       let streams = [].concat(
         Array.from(this._tradeSubs.keys()).map(
           p => p + (this.useAggTrades ? "@aggTrade" : "@trade")
+        ),
+        Array.from(this._candleSubs.keys()).map(
+          p => `${p}@kline_${candlePeriod(this.candlePeriod)}`
         ),
         Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
         Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
@@ -227,6 +246,17 @@ class BinanceClient extends EventEmitter {
         ? this._constructAggTrade(msg, market)
         : this._constructRawTrade(msg, market);
       this.emit("trade", trade, market);
+      return;
+    }
+
+    // candle
+    if (msg.data.e === "kline") {
+      let remote_id = msg.data.s.toLowerCase();
+      let market = this._candleSubs.get(remote_id);
+      if (!market) return;
+
+      let candle = this._constructCandle(msg, market);
+      this.emit("candle", candle, market);
       return;
     }
 
@@ -323,6 +353,37 @@ class BinanceClient extends EventEmitter {
       buyOrderId,
       sellOrderId,
     });
+  }
+
+  /**
+   * Kline data looks like:
+   { stream: 'btcusdt@kline_1m',
+    data:
+    { e: 'kline',
+      E: 1571068845689,
+      s: 'BTCUSDT',
+      k:
+        { t: 1571068800000,
+          T: 1571068859999,
+          s: 'BTCUSDT',
+          i: '1m',
+          f: 189927800,
+          L: 189928107,
+          o: '8254.05000000',
+          c: '8253.61000000',
+          h: '8256.58000000',
+          l: '8250.93000000',
+          v: '19.10571600',
+          n: 308,
+          x: false,
+          q: '157694.32610840',
+          V: '8.19456200',
+          Q: '67640.56793106',
+          B: '0' } } }
+   */
+  _constructCandle({ data }) {
+    let k = data.k;
+    return new Candle(k.t, k.o, k.h, k.l, k.c, k.v);
   }
 
   _constructLevel2Snapshot(msg, market) {

@@ -49,31 +49,31 @@ binance.subscribeLevel2Snapshots(market);
 
 ## Exchanges
 
-| Exchange       | API | Class       | Ticker   | Trades   | OB-L2<br/>Snapshot | OB-L2<br/>Updates | OB-L3<br/>Snapshot | OB-L3<br/>Updates |
-| -------------- | --- | ----------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
-| Bibox          | 1   | bibox       | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
-| Binance        | 1   | binance     | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Jersey | 1   | binanceje   | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance US     | 1   | binanceus   | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Bitfinex       | 1.1 | bitfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
-| bitFlyer       | 1   | bitflyer    | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  | -                 |
-| BitMEX         | 1   | bitmex      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Bitstamp       | 2   | bitstamp    | -        | &#10003; | &#10003;           | &#10003;\*\*      | -                  | &#10003;          |
-| Bittrex        | 1   | bittrex     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Cex.io         | 1   | cex         | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Coinbase Pro   | 1   | coinbasepro | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;          |
-| Coinex         | 1   | coinex      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Ethfinex       | 1   | ethfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
-| Gate.io        | 3   | gateio      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Gemini         | 1   | gemini      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| HitBTC         | 2   | hitbtc2     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Huobi          | 1   | huobipro    | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| KuCoin         | 2   | kucoin      | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  |                   |
-| Kraken         | 0   | kraken      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| OKEx           | 3   | okex3       | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
-| Poloniex       | 2   | poloniex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Upbit          | 1   | upbit       | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| ZB             | 1   | zb          | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| Exchange       | API | Class       | Ticker   | Trades   | Candles  | OB-L2<br/>Snapshot | OB-L2<br/>Updates | OB-L3<br/>Snapshot | OB-L3<br/>Updates |
+| -------------- | --- | ----------- | -------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
+| Bibox          | 1   | bibox       | &#10003; | &#10003; | WIP      | &#10003;           |                   | -                  | -                 |
+| Binance        | 1   | binance     | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance Jersey | 1   | binanceje   | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance US     | 1   | binanceus   | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Bitfinex       | 1.1 | bitfinex    | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| bitFlyer       | 1   | bitflyer    | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
+| BitMEX         | 1   | bitmex      | -        | &#10003; | WIP      | -                  | &#10003;\*        | -                  | -                 |
+| Bitstamp       | 2   | bitstamp    | -        | &#10003; | -        | &#10003;           | &#10003;\*\*      | -                  | &#10003;          |
+| Bittrex        | 1   | bittrex     | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
+| Cex.io         | 1   | cex         | &#10003; | &#10003; | WIP      | -                  | &#10003;\*        | -                  | -                 |
+| Coinbase Pro   | 1   | coinbasepro | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;          |
+| Coinex         | 1   | coinex      | &#10003; | &#10003; | WIP      | -                  | &#10003;\*        | -                  | -                 |
+| Ethfinex       | 1   | ethfinex    | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| Gate.io        | 3   | gateio      | &#10003; | &#10003; | WIP      | -                  | &#10003;\*        | -                  | -                 |
+| Gemini         | 1   | gemini      | -        | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
+| HitBTC         | 2   | hitbtc2     | &#10003; | &#10003; | WIP      | -                  | &#10003;\*        | -                  | -                 |
+| Huobi          | 1   | huobipro    | &#10003; | &#10003; | WIP      | &#10003;           | -                 | -                  | -                 |
+| KuCoin         | 2   | kucoin      | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  |                   |
+| Kraken         | 0   | kraken      | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| OKEx           | 3   | okex3       | &#10003; | &#10003; | WIP      | &#10003;           | &#10003;\*        | -                  | -                 |
+| Poloniex       | 2   | poloniex    | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
+| Upbit          | 1   | upbit       | &#10003; | &#10003; | -        | &#10003;           | -                 | -                  | -                 |
+| ZB             | 1   | zb          | &#10003; | &#10003; | WIP      | &#10003;           | -                 | -                  | -                 |
 
 Notes:
 
@@ -142,6 +142,10 @@ Fired when a ticker update is received. Returns an instance of `Ticker` and the 
 ##### `trade` emits `Trade`, `Market`
 
 Fired when a trade is received. Returns an instance of `Trade` and the `Market` used to subscribe to the event.
+
+##### `candle` emits `Candle`, `Market`
+
+Fired when a candle is received. Returns an instance of `Candle` and the `Market` used to subscribe to the event.
 
 ##### `l2snapshot` emits `Level2Snapshot`, `Market`
 
@@ -259,6 +263,17 @@ Unsubscribes from a trade feed for a market.
 
 \*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
 
+##### `subscribeCandles(market): void`
+
+Subscribes to a candle feed for a market. This method will cause the client to emit `candle` events that have a payload of the `Candle` object. Set the
+`candlePeriod` property of the client to control which candle is returned by the feed.
+
+##### `unsubscribeCandles(market): void`
+
+Unsubscribes from a candle feed for a market.
+
+\*For some exchanges, calling unsubscribe may cause a temporary disruption in all feeds.
+
 ##### `subscribeLevel2Snapshots(market): void`
 
 Subscribes to the orderbook level 2 snapshot feed for a market. This method will cause the client to emit `l2snapshot` events that have a payload of the `Level2Snaphot` object.
@@ -346,6 +361,19 @@ The trade class is the result of a `trade` event emitted from a client.
 - `amount: string` - the amount executed in the match
 - `buyOrderId: string` - the order id of the buy side
 - `sellOrderId: string` - the order id of the sell side
+
+### `Candle`
+
+The candle class is the result of a `candle` event emitted from a client.
+
+#### Properties
+
+- `timestampMs: int` - the unix timestamp in milliseconds for the candle
+- `open: string` - the open price for the period
+- `high: string` - the high price for the period
+- `low: string` - the low price for the period
+- `close: string` - the close price for the period
+- `volume: string` - the volume exchanged during the period
 
 ### `Level2Point`
 

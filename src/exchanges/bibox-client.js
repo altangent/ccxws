@@ -6,7 +6,7 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const MarketObjectTypes = require("../enums");
+const { MarketObjectTypes } = require("../enums");
 const semaphore = require("semaphore");
 const { wait } = require("../util");
 
@@ -37,6 +37,7 @@ class BiboxClient extends EventEmitter {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;

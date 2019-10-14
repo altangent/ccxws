@@ -1,6 +1,6 @@
 const { EventEmitter } = require("events");
 const semaphore = require("semaphore");
-const MarketObjectTypes = require("./enums");
+const { MarketObjectTypes } = require("./enums");
 const { wait } = require("./util");
 
 class BasicMultiClient extends EventEmitter {
@@ -10,6 +10,7 @@ class BasicMultiClient extends EventEmitter {
 
     this.hasTickers = false;
     this.hasTrades = false;
+    this.hasCandles = false;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;
@@ -47,6 +48,18 @@ class BasicMultiClient extends EventEmitter {
     if (!this.hasTickers) return;
     if (this._clients.has(market.id)) {
       (await this._clients.get(market.id)).unsubscribeTicker(market);
+    }
+  }
+
+  subscribeCandles(market) {
+    if (!this.hasCandles) return;
+    this._subscribe(market, this._clients, MarketObjectTypes.candle);
+  }
+
+  async unsubscribeCandles(market) {
+    if (!this.hasCandles) return;
+    if (this._clients.has(market.id)) {
+      (await this._clients.get(market.id)).unsubscribeCandle(market);
     }
   }
 
@@ -129,6 +142,15 @@ class BasicMultiClient extends EventEmitter {
         if (subscribed) {
           client.on("ticker", (ticker, market) => {
             this.emit("ticker", ticker, market);
+          });
+        }
+      }
+
+      if (marketObjectType === MarketObjectTypes.candle) {
+        let subscribed = client.subscribeCandles(market);
+        if (subscribed) {
+          client.on("candle", (candle, market) => {
+            this.emit("candle", candle, market);
           });
         }
       }

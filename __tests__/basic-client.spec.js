@@ -6,6 +6,8 @@ const BasicClient = require("../src/basic-client");
 function buildInstance() {
   let instance = new BasicClient("wss://localhost/test", "test", mockSmartWss);
   instance.hasTickers = true;
+  instance.hasTrades = true;
+  instance.hasCandles = true;
   instance.hasLevel2Snapshots = true;
   instance.hasLevel2Updates = true;
   instance.hasLevel3Updates = true;
@@ -14,6 +16,8 @@ function buildInstance() {
   instance._sendUnsubTicker = sinon.stub();
   instance._sendSubTrades = sinon.stub();
   instance._sendUnsubTrades = sinon.stub();
+  instance._sendSubCandles = sinon.stub();
+  instance._sendUnsubCandles = sinon.stub();
   instance._sendSubLevel2Snapshots = sinon.stub();
   instance._sendUnsubLevel2Snapshots = sinon.stub();
   instance._sendSubLevel2Updates = sinon.stub();
@@ -371,6 +375,50 @@ describe("BasicClient", () => {
     //     expect(instance._sendUnsubTicker.args[0][0]).to.equal("LTCBTC");
     //   });
     // });
+  });
+
+  describe("candle", () => {
+    let instance;
+
+    before(() => {
+      instance = buildInstance();
+      instance._connect();
+    });
+
+    describe("on first subscribe", () => {
+      it("should open a connection", () => {
+        instance.subscribeCandles({ id: "BTCUSD" });
+        expect(instance._wss).to.not.be.undefined;
+        expect(instance._wss.connect.callCount).to.equal(1);
+      });
+      it("should send subscribe to the socket", () => {
+        instance._wss.mockEmit("connected");
+        expect(instance._sendSubCandles.callCount).to.equal(1);
+        expect(instance._sendSubCandles.args[0][0]).to.equal("BTCUSD");
+      });
+      it("should start the reconnectChecker", () => {
+        expect(instance._watcher.start.callCount).to.equal(1);
+      });
+    });
+
+    describe("on subsequent subscribes", () => {
+      it("should not connect again", () => {
+        instance.subscribeCandles({ id: "LTCBTC" });
+        expect(instance._wss.connect.callCount).to.equal(1);
+      });
+      it("should send subscribe to the socket", () => {
+        expect(instance._sendSubCandles.callCount).to.equal(2);
+        expect(instance._sendSubCandles.args[1][0]).to.equal("LTCBTC");
+      });
+    });
+
+    describe("on unsubscribe", () => {
+      it("should send unsubscribe to socket", () => {
+        instance.unsubscribeCandles({ id: "LTCBTC" });
+        expect(instance._sendUnsubCandles.callCount).to.equal(1);
+        expect(instance._sendUnsubCandles.args[0][0]).to.equal("LTCBTC");
+      });
+    });
   });
 
   describe("neutered should no-op", () => {

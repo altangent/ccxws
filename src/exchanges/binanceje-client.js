@@ -4,11 +4,14 @@ const { wait } = require("../util");
 const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
+const { CandlePeriod } = require("../enums");
+const { candlePeriod } = require("./binance-base");
 
 class BinanceJeClient extends EventEmitter {
   constructor({
@@ -20,6 +23,7 @@ class BinanceJeClient extends EventEmitter {
     this._name = "BinanceJe";
     this._tickerSubs = new Map();
     this._tradeSubs = new Map();
+    this._candleSubs = new Map();
     this._level2SnapshotSubs = new Map();
     this._level2UpdateSubs = new Map();
     this._wss = undefined;
@@ -29,10 +33,13 @@ class BinanceJeClient extends EventEmitter {
     this.useAggTrades = useAggTrades;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
+
+    this.candlePeriod = CandlePeriod._1m;
 
     this._watcher = new Watcher(this, reconnectIntervalMs);
     this._restSem = semaphore(1);
@@ -43,6 +50,7 @@ class BinanceJeClient extends EventEmitter {
     return (
       this._tickerSubs.size +
       this._tradeSubs.size +
+      this._candleSubs.size +
       this._level2SnapshotSubs.size +
       this._level2UpdateSubs.size
     );
@@ -64,6 +72,14 @@ class BinanceJeClient extends EventEmitter {
 
   unsubscribeTrades(market) {
     this._unsubscribe(market, this._tradeSubs);
+  }
+
+  subscribeCandles(market) {
+    this._subscribe(market, this._candleSubs);
+  }
+
+  unsubscribeCandles(market) {
+    this._unsubscribe(market, this._candleSubs);
   }
 
   subscribeLevel2Snapshots(market) {
@@ -146,6 +162,9 @@ class BinanceJeClient extends EventEmitter {
       let streams = [].concat(
         Array.from(this._tradeSubs.keys()).map(
           p => p + (this.useAggTrades ? "@aggTrade" : "@trade")
+        ),
+        Array.from(this._candleSubs.keys()).map(
+          p => `${p}@kline_${candlePeriod(this.candlePeriod)}`
         ),
         Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
         Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
@@ -231,6 +250,17 @@ class BinanceJeClient extends EventEmitter {
         ? this._constructAggTrade(msg, market)
         : this._constructRawTrade(msg, market);
       this.emit("trade", trade, market);
+      return;
+    }
+
+    // candle
+    if (msg.data.e === "kline") {
+      let remote_id = msg.data.s.toLowerCase();
+      let market = this._candleSubs.get(remote_id);
+      if (!market) return;
+
+      let candle = this._constructCandle(msg, market);
+      this.emit("candle", candle, market);
       return;
     }
 
@@ -327,6 +357,11 @@ class BinanceJeClient extends EventEmitter {
       buyOrderId,
       sellOrderId,
     });
+  }
+
+  _constructCandle({ data }) {
+    let k = data.k;
+    return new Candle(k.t, k.o, k.h, k.l, k.c, k.v);
   }
 
   _constructLevel2Snapshot(msg, market) {
