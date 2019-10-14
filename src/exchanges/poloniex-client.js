@@ -144,6 +144,7 @@ class PoloniexClient extends BasicClient {
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
+    this._subbedToTickers = false;
     this.on("connected", this._resetSubCount.bind(this));
   }
 
@@ -152,7 +153,8 @@ class PoloniexClient extends BasicClient {
   }
 
   _sendSubTicker() {
-    if (this._tickerSubs.size > 1) return; // send for first request
+    if (this._subbedToTickers) return; // send for first request
+    this._subbedToTickers = true;
     this._wss.send(
       JSON.stringify({
         command: "subscribe",
@@ -163,6 +165,7 @@ class PoloniexClient extends BasicClient {
 
   _sendUnsubTicker() {
     if (this._tickerSubs.size) return; // send when no more
+    this._subbedToTickers = false;
     this._wss.send(
       JSON.stringify({
         command: "unsubscribe",
@@ -333,7 +336,7 @@ class PoloniexClient extends BasicClient {
       exchange: "Poloniex",
       base: market.base,
       quote: market.quote,
-      tradeId: trade_id,
+      tradeId: trade_id.toFixed(),
       side,
       unix,
       price,

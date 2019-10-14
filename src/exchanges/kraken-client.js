@@ -1,4 +1,3 @@
-const winston = require("winston");
 const Decimal = require("decimal.js");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
@@ -43,7 +42,7 @@ class KrakenClient extends BasicClient {
     this.fromWsMap = new Map();
 
     if (autoloadSymbolMaps) {
-      this.loadSymbolMaps().catch(winston.error);
+      this.loadSymbolMaps().catch(err => this.emit("error", err));
     }
   }
 
@@ -67,7 +66,6 @@ class KrakenClient extends BasicClient {
         this.fromWsMap.set(wsName, restName);
       }
     }
-    winston.info(`symbol maps loaded for ${this.fromRestMap.size} markets`);
   }
 
   /**
@@ -113,6 +111,7 @@ class KrakenClient extends BasicClient {
   _debounceSend(debounceKey, subMap, subscribe, subscription) {
     this._debounce(debounceKey, () => {
       let wsSymbols = this._wsSymbolsFromSubMap(subMap);
+      if (!this._wss) return;
       this._wss.send(
         JSON.stringify({
           event: subscribe ? "subscribe" : "unsubscribe",

@@ -30,8 +30,8 @@ const binance = new ccxws.binance();
 // market could be from CCXT or genearted by the user
 const market = {
   id: "BTCUSDT", // remote_id used by the exchange
-  base: "BTC", // standardized base symbol for Cardano
-  quote: "USDT", // standardized quote symbol for Bitcoin
+  base: "BTC", // standardized base symbol for Bitcoin
+  quote: "USDT", // standardized quote symbol for Tether
 };
 
 // handle trade events
@@ -49,33 +49,36 @@ binance.subscribeLevel2Snapshots(market);
 
 ## Exchanges
 
-| Exchange     | Class       | Ticker  | Trades  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
-| ------------ | ----------- | ------- | ------- | -------------- | ------------- | -------------- | ------------- |
-| Bibox        | bibox       | Support | Support | Support        |               | -              | -             |
-| Binance      | binance     | Support | Support | Support        | Support\*\*   | -              | -             |
-| Bitfinex     | bitfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| bitFlyer     | bitflyer    | Support | Support | -              | Support\*\*   | -              | -             |
-| BitMEX       | bitmex      |         | Support | -              | Support\*     | -              | -             |
-| Bitstamp     | bitstamp    | -       | Support | Support        | Support\*\*   | -              | Support       |
-| Bittrex      | bittrex     | Support | Support | -              | Support\*     | -              | -             |
-| Cex.io       | cex         | Support | Support | -              | Support\*     | -              | -             |
-| Coinex       | coinex      | Support | Support | -              | Support\*     | -              | -             |
-| Coinbase Pro | coinbasepro | Support | Support | -              | Support\*     | -              | Support       |
-| Ethfinex     | ethfinex    | Support | Support | -              | Support\*     | -              | Support\*     |
-| Gate.io      | gateio      | Support | Support | -              | Support\*     | -              | -             |
-| Gemini       | gemini      | -       | Support | -              | Support\*     | -              | -             |
-| HitBTC       | hitbtc      | Support | Support | -              | Support\*     | -              | -             |
-| Huobi        | huobi       | Support | Support | Support        | -             | -              | -             |
-| Kraken       | kraken      | Support | Support | -              | Support\*     | -              | -             |
-| OKEx         | okex        | Support | Support | Support        | Support\*     | -              | -             |
-| Poloniex     | poloniex    | Support | Support | -              | Support\*     | -              | -             |
-| Upbit        | upbit       | Support | Support | Support        | -             | -              | -             |
-| ZB           | zb          | Support | Support | Support        | -             | -              | -             |
+| Exchange       | API | Class       | Ticker   | Trades   | OB-L2<br/>Snapshot | OB-L2<br/>Updates | OB-L3<br/>Snapshot | OB-L3<br/>Updates |
+| -------------- | --- | ----------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
+| Bibox          | 1   | bibox       | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
+| Binance        | 1   | binance     | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance Jersey | 1   | binanceje   | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance US     | 1   | binanceus   | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Bitfinex       | 1.1 | bitfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| bitFlyer       | 1   | bitflyer    | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  | -                 |
+| BitMEX         | 1   | bitmex      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Bitstamp       | 2   | bitstamp    | -        | &#10003; | &#10003;           | &#10003;\*\*      | -                  | &#10003;          |
+| Bittrex        | 1   | bittrex     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Cex.io         | 1   | cex         | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Coinbase Pro   | 1   | coinbasepro | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;          |
+| Coinex         | 1   | coinex      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Ethfinex       | 1   | ethfinex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| Gate.io        | 3   | gateio      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Gemini         | 1   | gemini      | -        | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| HitBTC         | 2   | hitbtc2     | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Huobi          | 1   | huobipro    | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| KuCoin         | 2   | kucoin      | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  |                   |
+| Kraken         | 0   | kraken      | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| OKEx           | 3   | okex3       | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
+| Poloniex       | 2   | poloniex    | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
+| Upbit          | 1   | upbit       | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| ZB             | 1   | zb          | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 
 Notes:
 
-- Support\*: Broadcasts a snapshot event at startup
-- Support\*\*: Broadcasts a snapshot by using the REST API
+- &#10003;\* broadcasts a snapshot event at startup
+- &#10003;\*\* broadcasts a snapshot by using the REST API
 
 ## Definitions
 
@@ -121,9 +124,16 @@ Once an event handler is attached you can start the stream using the `subscribe<
 All events emit the market used to subscribe to the event as a second property of the event handler.
 
 ```javascript
+binance.on("error", err => console.error(err));
 binance.on("trades", (trade, market) => console.log(trade, market));
 binance.on("l2snapshot", (snapshot, market) => console.log(snapshot, market));
 ```
+
+##### `error` emits `Error`
+
+You must subscribe to the `error` event to prevent the process exiting. More information in the [Node.js Events Documentation](https://nodejs.org/dist/latest-v10.x/docs/api/events.html#events_error_events)
+
+> If an EventEmitter does not have at least one listener registered for the 'error' event, and an 'error' event is emitted, the error is thrown, a stack trace is printed, and the Node.js process exits.
 
 ##### `ticker` emits `Ticker`, `Market`
 
@@ -157,21 +167,77 @@ Fired when a level 3 update is recieved. Returns an instance of `Level3Update` a
 
 #### Connection Events
 
+Clients emit events as their state changes.
+
+```
+   +-------+
+   |       |
+   | start |
+   |       |
+   +---+---+
+       |
+       |
+       |
+       | subscribe
+       |
+       |
+       |
++------v-------+       initiate
+|              |       reconnect
+|  connecting  <------------------------+
+|              |                        |
++------+-------+                        |
+       |                                |
+       |                        +-------+-------+
+       |                        |               |
+       | socket                 | disconnected  |
+       | open                   |               |
+       |                        +-------^-------+
+       |                                |
++------v-------+                        |
+|              |                        |
+|  connected   +------------------------+
+|              |        socket
++------+-------+        closed
+       |
+       |
+       |
+       | close
+       | requested
+       |
+       |
+       |
++------v-------+                  +--------------+
+|              |                  |              |
+|   closing    +------------------>    closed    |
+|              |     socket       |              |
++--------------+     closed       +--------------+
+```
+
+##### `connecting`
+
+Fires prior to a socket initiating the connection. This event also fires when a reconnection starts.
+
 ##### `connected`
 
-Fires when a socket has connected. This event will fire when for reconnections.
-
-##### `closed`
-
-Fires when the client has closed its connection(s). This event is not fired during disconnections, it is fired when the `close` method is called and the connection(s) are successfully closed.
+Fires when a socket has connected. This event will also fire for reconnection completed.
 
 ##### `disconnected`
 
-Fires when a socket has been disconnected. Automatic reconnection should will be performed and the next event will be `reconnected` followed by a `connected` event when the reconnection is successful.
+Fires when a socket prematurely disconnects. Automatic reconnection will be triggered. The expected
+flow is `disconnected -> connecting -> connected`.
 
-##### `reconnected`
+##### `closing`
 
-Fires when a socket has initiated the reconnection process. This is fired at the start of thee reconnection process and is more aptly named `reconnecting`.
+Fires when the client is preparing to close its connection(s). This event is not fired during reconnections.
+
+##### `closed`
+
+Fires when the client has closed its connection(s). This event is not fired during reconnections, it is fired when the `close` method is called and the connection(s) are successfully closed.
+
+##### `reconnecting`
+
+Fires when a socket has initiated the reconnection process due to inactivity. This is fired at the start of the reconnection process `reconnecting -> closing -> closed -> connecting -> connected`
 
 #### Methods
 
@@ -247,7 +313,6 @@ The ticker class is the result of a `ticker` event.
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -271,7 +336,6 @@ The trade class is the result of a `trade` event emitted from a client.
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -299,7 +363,6 @@ The level 2 snapshot class is the result of a `l2snapshot` or `l2update` event e
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -314,7 +377,6 @@ The level 2 update class is a result of a `l2update` event emitted from the clie
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -340,7 +402,6 @@ The level 3 snapshot class is the result of a `l3snapshot` or `l3update` event e
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
@@ -357,7 +418,6 @@ Additional metadata is often provided in the `meta` property that has more detai
 
 #### Properties
 
-- `fullId: string` - the normalized market id prefixed with the exchange, ie: `Binance:LTC/BTC`
 - `exchange: string` - the name of the exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market

@@ -1,6 +1,5 @@
 const BasicClient = require("../basic-client");
 const zlib = require("zlib");
-const winston = require("winston");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
@@ -76,7 +75,7 @@ class HuobiClient extends BasicClient {
   _onMessage(raw) {
     zlib.unzip(raw, (err, resp) => {
       if (err) {
-        winston.error(err);
+        this.emit("error", err);
         return;
       }
 
@@ -152,7 +151,6 @@ class HuobiClient extends BasicClient {
   _constructTradesFromMessage(datum, market) {
     let { amount, direction, ts, price, id } = datum;
     let unix = Math.trunc(parseInt(ts));
-
     return new Trade({
       exchange: "Huobi",
       base: market.base,
@@ -161,7 +159,7 @@ class HuobiClient extends BasicClient {
       side: direction,
       unix,
       price,
-      amount,
+      amount: typeof amount === "number" ? amount.toFixed(8) : amount,
     });
   }
 
