@@ -8,6 +8,7 @@ const Level3Point = require("../level3-point");
 const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 
+/* istanbul ignore next */
 class EthfinexClient extends BasicClient {
   constructor() {
     super("wss://api.ethfinex.com/ws/", "Ethfinex");
