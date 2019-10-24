@@ -225,7 +225,6 @@ class KucoinClient extends BasicClient {
   }
 
   _processTicker(msg) {
-    console.log(msg);
     let {
       symbol,
       high,
