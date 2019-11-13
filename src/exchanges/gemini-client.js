@@ -12,7 +12,7 @@ class GeminiClient extends EventEmitter {
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
 
-    this.hasTickers = false;
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = false;
     this.hasLevel2Snapshots = false;
@@ -43,6 +43,10 @@ class GeminiClient extends EventEmitter {
     this._unsubscribe(market, "level2updates");
   }
 
+  subscribeTicker(market) {
+    this._subscribeTopOfBook(market, "tickers");
+  }
+
   close() {
     this._close();
   }
@@ -65,6 +69,7 @@ class GeminiClient extends EventEmitter {
         remoteId: remote_id,
         trades: false,
         level2Updates: false,
+        tickers: false
       };
 
       this._startReconnectWatcher(subscription);
@@ -87,11 +92,41 @@ class GeminiClient extends EventEmitter {
     }
   }
 
+  _subscribeTopOfBook(market, mode) {
+    let remote_id = market.id.toLowerCase();
+    const subscriptionId = remote_id + '-topOfBook';
+    let subscription = this._subscriptions.get(subscriptionId);
+
+    if (subscription && subscription[mode]) return;
+
+    if (!subscription) {
+      subscription = {
+        market,
+        wss: this._connect(remote_id, true),
+        lastMessage: undefined,
+        reconnectIntervalHandle: undefined,
+        remoteId: remote_id,
+        trades: false,
+        level2Updates: false,
+        tickers: false
+      };
+
+      this._startReconnectWatcher(subscription);
+      this._subscriptions.set(subscriptionId, subscription);
+    }
+
+    subscription[mode] = true;
+  }
+
   /** Connect to the websocket stream by constructing a path from
    * the subscribed markets.
    */
-  _connect(remote_id) {
+  _connect(remote_id, top_of_book = false) {
     let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
+    if (top_of_book) {
+      wssPath += '&top_of_book=true';
+    }
+    console.log('wssPath=', wssPath);
     let wss = new SmartWss(wssPath);
     wss.on("error", err => this._onError(remote_id, err));
     wss.on("connecting", () => this._onConnecting(remote_id));

@@ -1,21 +1,25 @@
 console.log('--a')
-const BitmexClient = require("../src/exchanges/bitmex-client");
+const GeminiClient = require("../src/exchanges/gemini-client");
 console.log('--b')
 
-client = new BitmexClient();
+client = new GeminiClient();
 const market = {
-  id: 'XBT-USD',
-  base: 'XBT',
+  id: 'BTC-USD',
+  base: 'BTC',
   quote: 'USD'
 };
 
 // console.log('--clietn')
-client.subscribeTicker(market);
+client.subscribeLevel2Updates(market);
 client.on('l2update', (ticker, thisMarket) => {
-  console.log('got l2 update event', JSON.stringify({
+  console.log('got ticker update', JSON.stringify({
     market,
     ticker
   }, null, 2));
+  // console.log('got l2 update event', JSON.stringify({
+  //   market,
+  //   ticker
+  // }, null, 2));
 });
 setTimeout(() => {
   // console.log('=======timeout hit, unsubbing');
