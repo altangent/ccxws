@@ -5,12 +5,39 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
 
+class TickerCache {
+  constructor({ ask, bid, last } = {}) {
+    this.ask = ask;
+    this.bid = bid;
+    this.last = last;
+  }
+  setAsk(aks) {
+    this.ask = aks;
+    return this;
+  }
+  setBid(bid) {
+    this.bid = bid;
+    return this;
+  }
+  setLast(last) {
+    this.last = last;
+    return this;
+  }
+  getTicker() {
+    return {
+      ask: this.ask,
+      bid: this.bid,
+      last: this.last
+    };
+  }
+}
 class GeminiClient extends EventEmitter {
   constructor() {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
+    this.tickersCache = {}; // key-value pairs of <market_id>: TickerCache
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -264,6 +291,12 @@ class GeminiClient extends EventEmitter {
   _onMessage(remote_id, raw) {
     let msg = JSON.parse(raw);
     let subscription = this._subscriptions.get(remote_id);
+    if (!subscription) {
+      // if regular subscription isn't available, try the topOfBook special subscription
+      // which is used for ticker support
+      const subscriptionId = remote_id + '-topOfBook';
+      subscription = this._subscriptions.get(subscriptionId);
+    }
     let market = subscription.market;
     subscription.lastMessage = Date.now();
 
@@ -294,6 +327,11 @@ class GeminiClient extends EventEmitter {
         }
         return;
       }
+      if (subscription.tickers) {
+        console.log(msg);
+      }
+      
+      // process tickers
     }
   }
 

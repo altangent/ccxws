@@ -5,13 +5,13 @@ console.log('--b')
 client = new GeminiClient();
 const market = {
   id: 'btcusd',
-  base: 'ZEC',
+  base: 'BTC',
   quote: 'USD'
 };
 
 // console.log('--clietn')
-client.subscribeTicker(market);
-client.on('ticker', (ticker, thisMarket) => {
+client.subscribeLevel2Updates(market);
+client.on('l2update', (ticker, thisMarket) => {
   console.log('got ticker update', JSON.stringify({
     market,
     ticker
