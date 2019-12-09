@@ -6,10 +6,12 @@ const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
 
 class TickerCache {
-  constructor({ ask, bid, last } = {}) {
+  constructor({ ask, bid, last, timestamp, market } = {}) {
     this.ask = ask;
     this.bid = bid;
     this.last = last;
+    this.timestamp = timestamp;
+    this.market = market;
   }
   setAsk(aks) {
     this.ask = aks;
@@ -23,11 +25,18 @@ class TickerCache {
     this.last = last;
     return this;
   }
+  setTimestamp(timestamp) {
+    this.timestamp = timestamp;
+    return this;
+  }
   getTicker() {
     return {
       ask: this.ask,
       bid: this.bid,
-      last: this.last
+      last: this.last,
+      timestamp: this.timestamp,
+      base: this.market.base,
+      quote: this.market.quote
     };
   }
 }
@@ -38,6 +47,7 @@ class GeminiClient extends EventEmitter {
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
     this.tickersCache = {}; // key-value pairs of <market_id>: TickerCache
+    this.topOfBookIndicator = '-top_of_book';
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -71,7 +81,11 @@ class GeminiClient extends EventEmitter {
   }
 
   subscribeTicker(market) {
-    this._subscribeTopOfBook(market, "tickers");
+    this._subscribe(market, "tickers", true);
+  }
+
+  unsubscribeTicker(market) {
+    this._unsubscribe(market, "tickers", true);
   }
 
   close() {
@@ -81,8 +95,14 @@ class GeminiClient extends EventEmitter {
   ////////////////////////////////////////////
   // PROTECTED
 
-  _subscribe(market, mode) {
+  _subscribe(market, mode, top_of_book = false) {
     let remote_id = market.id.toLowerCase();
+    if (top_of_book) {
+      remote_id += this.topOfBookIndicator;
+      // since we want to allow both top_of_book and regular (non top_of_book) subscriptions, we 
+      // will add a special indicator to the remote id of subscriptions that have top_of_book
+      // set to true. we can remove the special indicator when constructing URLs/paths
+    }
     let subscription = this._subscriptions.get(remote_id);
 
     if (subscription && subscription[mode]) return;
@@ -96,7 +116,8 @@ class GeminiClient extends EventEmitter {
         remoteId: remote_id,
         trades: false,
         level2Updates: false,
-        tickers: false
+        tickers: false,
+        topOfBook: top_of_book
       };
 
       this._startReconnectWatcher(subscription);
@@ -106,8 +127,11 @@ class GeminiClient extends EventEmitter {
     subscription[mode] = true;
   }
 
-  _unsubscribe(market, mode) {
+  _unsubscribe(market, mode, top_of_book = false) {
     let remote_id = market.id.toLowerCase();
+    if (top_of_book) {
+      remote_id += this.topOfBookIndicator;
+    }
     let subscription = this._subscriptions.get(remote_id);
 
     if (!subscription) return;
@@ -117,43 +141,20 @@ class GeminiClient extends EventEmitter {
       this._close(this._subscriptions.get(remote_id));
       this._subscriptions.delete(remote_id);
     }
-  }
-
-  _subscribeTopOfBook(market, mode) {
-    let remote_id = market.id.toLowerCase();
-    const subscriptionId = remote_id + '-topOfBook';
-    let subscription = this._subscriptions.get(subscriptionId);
-
-    if (subscription && subscription[mode]) return;
-
-    if (!subscription) {
-      subscription = {
-        market,
-        wss: this._connect(remote_id, true),
-        lastMessage: undefined,
-        reconnectIntervalHandle: undefined,
-        remoteId: remote_id,
-        trades: false,
-        level2Updates: false,
-        tickers: false
-      };
-
-      this._startReconnectWatcher(subscription);
-      this._subscriptions.set(subscriptionId, subscription);
+    if (mode === 'tickers') {
+      delete this.tickersCache[market.id];
     }
-
-    subscription[mode] = true;
   }
 
   /** Connect to the websocket stream by constructing a path from
    * the subscribed markets.
    */
-  _connect(remote_id, top_of_book = false) {
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
-    if (top_of_book) {
+  _connect(remote_id) {
+    const istopOfBook = remote_id.indexOf('top_of_book') !== -1;
+    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id.replace(this.topOfBookIndicator, '') + "?heartbeat=true";
+    if (istopOfBook) {
       wssPath += '&top_of_book=true';
     }
-    console.log('wssPath=', wssPath);
     let wss = new SmartWss(wssPath);
     wss.on("error", err => this._onError(remote_id, err));
     wss.on("connecting", () => this._onConnecting(remote_id));
@@ -292,9 +293,9 @@ class GeminiClient extends EventEmitter {
     let msg = JSON.parse(raw);
     let subscription = this._subscriptions.get(remote_id);
     if (!subscription) {
-      // if regular subscription isn't available, try the topOfBook special subscription
+      // if regular subscription isn't available, try the top_of_book special subscription
       // which is used for ticker support
-      const subscriptionId = remote_id + '-topOfBook';
+      const subscriptionId = remote_id + this.topOfBookIndicator;
       subscription = this._subscriptions.get(subscriptionId);
     }
     let market = subscription.market;
@@ -328,10 +329,23 @@ class GeminiClient extends EventEmitter {
         return;
       }
       if (subscription.tickers) {
-        console.log(msg);
-      }
-      
-      // process tickers
+        const marketId = subscription.market.id;
+        this.tickersCache[marketId] = this.tickersCache[marketId] || new TickerCache({ market: subscription.market });
+        const newAsk = msg.events.find(thisEvt => thisEvt.type === 'change' && thisEvt.side === 'ask');
+        const newBid = msg.events.find(thisEvt => thisEvt.type === 'change' && thisEvt.side === 'bid');
+        const newTrade = msg.events.find(thisEvt => thisEvt.type === 'trade');
+        if (newAsk) {
+          this.tickersCache[marketId].setAsk(newAsk.price);
+        }
+        if (newBid) {
+          this.tickersCache[marketId].setBid(newBid.price);
+        }
+        if (newTrade) {
+          this.tickersCache[marketId].setLast(newTrade.price);
+        }
+        this.tickersCache[marketId].setTimestamp(msg.timestamp)
+        this.emit("ticker", this.tickersCache[marketId].getTicker(), market);
+      } 
     }
   }
 
