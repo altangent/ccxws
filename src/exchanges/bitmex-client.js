@@ -16,8 +16,6 @@ class BitmexClient extends BasicClient {
     this.hasLevel2Updates = true;
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
-
-    this.hasSubbedToInstrument = false;
   }
 
   _sendSubTrades(remote_id) {
