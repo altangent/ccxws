@@ -13,28 +13,11 @@ class BitmexClient extends BasicClient {
   constructor() {
     super("wss://www.bitmex.com/realtime", "BitMEX");
     this.hasTrades = true;
-    this.hasTickers = true
     this.hasLevel2Updates = true;
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
 
     this.hasSubbedToInstrument = false;
-  }
-
-  _sendSubTicker(remote_id) {
-    if (this.hasSubbedToInstrument) {
-      return;
-    }
-    if (!this.hasSubbedToInstrument) {
-      this.hasSubbedToInstrument = true;
-    }
-    console.log('--subbing ticker');
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        args: ["instrument"]
-      })
-    )
   }
 
   _sendSubTrades(remote_id) {
@@ -117,19 +100,6 @@ class BitmexClient extends BasicClient {
         this.emit("l2update", update, market);
       }
       return;
-    }
-    if (table === "instrument") {
-      // console.log('-----got instrument update')
-      const symbol = message.data && message.data[0] && message.data[0].symbol;
-      if (symbol && symbol[0] === '.') {
-        console.log('ignoring ', symbol);
-        return;
-      }
-      if (symbol === 'XBTUSD') {
-        console.log(message)
-      }
-      // console.log('using ' + symbol);
-      // console.log(message);
     }
   }
 
