@@ -284,27 +284,29 @@ class GeminiClient extends EventEmitter {
           this.tickersCache.set(
             marketId,
             new Ticker({
+              exchange: "Gemini",
               base: subscription.market.base,
               quote: subscription.market.quote,
             })
           );
         }
         const thisCachedTicker = this.tickersCache.get(marketId);
-        msg.events.forEach(thisEvt => {
-          if (thisEvt.type === "change" && thisEvt.side === "ask") {
-            thisCachedTicker.ask = thisEvt.price;
-            thisCachedTicker.timestamp = thisEvt.timestamp;
+        for (let i = 0; i < msg.events.length; i++) {
+          let event = msg.events[i];
+          if (event.type === "change" && event.side === "ask") {
+            thisCachedTicker.ask = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
           }
-          if (thisEvt.type === "change" && thisEvt.side === "bid") {
-            thisCachedTicker.bid = thisEvt.price;
-            thisCachedTicker.timestamp = thisEvt.timestamp;
+          if (event.type === "change" && event.side === "bid") {
+            thisCachedTicker.bid = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
           }
-          if (thisEvt.type === "trade") {
-            thisCachedTicker.last = thisEvt.price;
-            thisCachedTicker.timestamp = thisEvt.timestamp;
+          if (event.type === "trade") {
+            thisCachedTicker.last = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
+            this.emit("ticker", this.tickersCache.get(marketId), market);
           }
-        });
-        this.emit("ticker", this.tickersCache.get(marketId), market);
+        }
       }
     }
   }
