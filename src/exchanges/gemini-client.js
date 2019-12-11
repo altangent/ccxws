@@ -61,6 +61,8 @@ class GeminiClient extends EventEmitter {
 
   _subscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
+    if (mode === "tickers") remote_id += "-tickers";
+
     let subscription = this._subscriptions.get(remote_id);
 
     if (subscription && subscription[mode]) return;
@@ -68,14 +70,13 @@ class GeminiClient extends EventEmitter {
     if (!subscription) {
       subscription = {
         market,
-        wss: this._connect(remote_id, mode),
+        wss: this._connect(remote_id),
         lastMessage: undefined,
         reconnectIntervalHandle: undefined,
         remoteId: remote_id,
         trades: false,
         level2Updates: false,
         tickers: false,
-        mode
       };
 
       this._startReconnectWatcher(subscription);
@@ -87,6 +88,7 @@ class GeminiClient extends EventEmitter {
 
   _unsubscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
+    if (mode === "tickers") remote_id += "-tickers";
     let subscription = this._subscriptions.get(remote_id);
 
     if (!subscription) return;
@@ -95,7 +97,7 @@ class GeminiClient extends EventEmitter {
       this._close(this._subscriptions.get(remote_id));
       this._subscriptions.delete(remote_id);
     }
-    if (mode === 'tickers') {
+    if (mode === "tickers") {
       this.tickersCache.delete(market.id);
     }
   }
@@ -103,11 +105,12 @@ class GeminiClient extends EventEmitter {
   /** Connect to the websocket stream by constructing a path from
    * the subscribed markets.
    */
-  _connect(remote_id, mode) {
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
-    if (mode === "tickers") {
-      wssPath += '&top_of_book=true';
-    }
+  _connect(remote_id) {
+    let forTickers = remote_id.endsWith("-tickers");
+    let wssPath = forTickers
+      ? `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true&top_of_book=true`
+      : `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true`;
+
     let wss = new SmartWss(wssPath);
     wss.on("error", err => this._onError(remote_id, err));
     wss.on("connecting", () => this._onConnecting(remote_id));
@@ -200,7 +203,7 @@ class GeminiClient extends EventEmitter {
   _reconnect(subscription) {
     this.emit("reconnecting", subscription.remoteId);
     subscription.wss.once("closed", () => {
-      subscription.wss = this._connect(subscription.remoteId, subscription.mode);
+      subscription.wss = this._connect(subscription.remoteId);
     });
     this._close(subscription);
   }
@@ -278,28 +281,31 @@ class GeminiClient extends EventEmitter {
       if (subscription.tickers) {
         const marketId = subscription.market.id;
         if (!this.tickersCache.has(marketId)) {
-          this.tickersCache.set(marketId, new Ticker({ 
-            base: subscription.market.base,
-            quote: subscription.market.quote
-          }));
+          this.tickersCache.set(
+            marketId,
+            new Ticker({
+              base: subscription.market.base,
+              quote: subscription.market.quote,
+            })
+          );
         }
         const thisCachedTicker = this.tickersCache.get(marketId);
         msg.events.forEach(thisEvt => {
-          if (thisEvt.type === 'change' && thisEvt.side === 'ask') {
+          if (thisEvt.type === "change" && thisEvt.side === "ask") {
             thisCachedTicker.ask = thisEvt.price;
             thisCachedTicker.timestamp = thisEvt.timestamp;
           }
-          if (thisEvt.type === 'change' && thisEvt.side === 'bid') {
+          if (thisEvt.type === "change" && thisEvt.side === "bid") {
             thisCachedTicker.bid = thisEvt.price;
             thisCachedTicker.timestamp = thisEvt.timestamp;
           }
-          if (thisEvt.type === 'trade') {
+          if (thisEvt.type === "trade") {
             thisCachedTicker.last = thisEvt.price;
             thisCachedTicker.timestamp = thisEvt.timestamp;
           }
         });
         this.emit("ticker", this.tickersCache.get(marketId), market);
-      } 
+      }
     }
   }
 
