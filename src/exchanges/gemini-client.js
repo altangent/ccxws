@@ -4,49 +4,14 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
-
-class TickerCache {
-  constructor({ ask, bid, last, timestamp, market } = {}) {
-    this.ask = ask;
-    this.bid = bid;
-    this.last = last;
-    this.timestamp = timestamp;
-    this.market = market;
-  }
-  setAsk(aks) {
-    this.ask = aks;
-    return this;
-  }
-  setBid(bid) {
-    this.bid = bid;
-    return this;
-  }
-  setLast(last) {
-    this.last = last;
-    return this;
-  }
-  setTimestamp(timestamp) {
-    this.timestamp = timestamp;
-    return this;
-  }
-  getTicker() {
-    return {
-      ask: this.ask,
-      bid: this.bid,
-      last: this.last,
-      timestamp: this.timestamp,
-      base: this.market.base,
-      quote: this.market.quote
-    };
-  }
-}
+const Ticker = require("../ticker");
 class GeminiClient extends EventEmitter {
   constructor() {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
-    this.tickersCache = {}; // key-value pairs of <market_id>: TickerCache
+    this.tickersCache = new Map(); // key-value pairs of <market_id>: Ticker
     this.topOfBookIndicator = '-top_of_book';
 
     this.hasTickers = true;
@@ -142,7 +107,7 @@ class GeminiClient extends EventEmitter {
       this._subscriptions.delete(remote_id);
     }
     if (mode === 'tickers') {
-      delete this.tickersCache[market.id];
+      this.tickersCache.delete(market.id);
     }
   }
 
@@ -330,21 +295,30 @@ class GeminiClient extends EventEmitter {
       }
       if (subscription.tickers) {
         const marketId = subscription.market.id;
-        this.tickersCache[marketId] = this.tickersCache[marketId] || new TickerCache({ market: subscription.market });
-        const newAsk = msg.events.find(thisEvt => thisEvt.type === 'change' && thisEvt.side === 'ask');
-        const newBid = msg.events.find(thisEvt => thisEvt.type === 'change' && thisEvt.side === 'bid');
-        const newTrade = msg.events.find(thisEvt => thisEvt.type === 'trade');
-        if (newAsk) {
-          this.tickersCache[marketId].setAsk(newAsk.price);
+        if (!this.tickersCache.has(marketId)) {
+          this.tickersCache.set(marketId, new Ticker({ 
+            base: subscription.market.base,
+            quote: subscription.market.quote
+          }));
         }
-        if (newBid) {
-          this.tickersCache[marketId].setBid(newBid.price);
-        }
-        if (newTrade) {
-          this.tickersCache[marketId].setLast(newTrade.price);
-        }
-        this.tickersCache[marketId].setTimestamp(msg.timestamp)
-        this.emit("ticker", this.tickersCache[marketId].getTicker(), market);
+        const thisCachedTicker = this.tickersCache.get(marketId);
+        // this.tickersCache[marketId] = 
+        let updated = false;
+        msg.events.forEach(thisEvt => {
+          if (thisEvt.type === 'change' && thisEvt.side === 'ask') {
+            thisCachedTicker.ask = thisEvt.price;
+            thisCachedTicker.timestamp = thisEvt.timestamp;
+          }
+          if (thisEvt.type === 'change' && thisEvt.side === 'bid') {
+            thisCachedTicker.bid = thisEvt.price;
+            thisCachedTicker.timestamp = thisEvt.timestamp;
+          }
+          if (thisEvt.type === 'trade') {
+            thisCachedTicker.last = thisEvt.price;
+            thisCachedTicker.timestamp = thisEvt.timestamp;
+          }
+        });
+        this.emit("ticker", this.tickersCache.get(marketId), market);
       } 
     }
   }
