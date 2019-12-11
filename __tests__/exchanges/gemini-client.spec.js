@@ -32,7 +32,7 @@ testClient({
   testReconnectionEvents: true,
   testCloseEvents: true,
 
-  hasTickers: false,
+  hasTickers: true,
   hasTrades: true,
   hasCandles: false,
   hasLevel2Snapshots: false,
@@ -42,6 +42,22 @@ testClient({
 
   trade: {
     hasTradeId: true,
+  },
+
+  ticker: {
+    hasTimestamp: true,
+    hasLast: true,
+    hasOpen: false,
+    hasHigh: false,
+    hasLow: false,
+    hasVolume: false,
+    hasQuoteVolume: false,
+    hasChange: false,
+    hasChangePercent: false,
+    hasBid: true,
+    hasBidVolume: false,
+    hasAsk: true,
+    hasAskVolume: false,
   },
 
   l2snapshot: {
