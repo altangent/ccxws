@@ -12,7 +12,6 @@ class GeminiClient extends EventEmitter {
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
     this.tickersCache = new Map(); // key-value pairs of <market_id>: Ticker
-    this.topOfBookIndicator = '-top_of_book';
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -46,11 +45,11 @@ class GeminiClient extends EventEmitter {
   }
 
   subscribeTicker(market) {
-    this._subscribe(market, "tickers", true);
+    this._subscribe(market, "tickers");
   }
 
   unsubscribeTicker(market) {
-    this._unsubscribe(market, "tickers", true);
+    this._unsubscribe(market, "tickers");
   }
 
   close() {
@@ -60,14 +59,8 @@ class GeminiClient extends EventEmitter {
   ////////////////////////////////////////////
   // PROTECTED
 
-  _subscribe(market, mode, top_of_book = false) {
+  _subscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
-    if (top_of_book) {
-      remote_id += this.topOfBookIndicator;
-      // since we want to allow both top_of_book and regular (non top_of_book) subscriptions, we 
-      // will add a special indicator to the remote id of subscriptions that have top_of_book
-      // set to true. we can remove the special indicator when constructing URLs/paths
-    }
     let subscription = this._subscriptions.get(remote_id);
 
     if (subscription && subscription[mode]) return;
@@ -75,14 +68,14 @@ class GeminiClient extends EventEmitter {
     if (!subscription) {
       subscription = {
         market,
-        wss: this._connect(remote_id),
+        wss: this._connect(remote_id, mode),
         lastMessage: undefined,
         reconnectIntervalHandle: undefined,
         remoteId: remote_id,
         trades: false,
         level2Updates: false,
         tickers: false,
-        topOfBook: top_of_book
+        mode
       };
 
       this._startReconnectWatcher(subscription);
@@ -92,15 +85,11 @@ class GeminiClient extends EventEmitter {
     subscription[mode] = true;
   }
 
-  _unsubscribe(market, mode, top_of_book = false) {
+  _unsubscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
-    if (top_of_book) {
-      remote_id += this.topOfBookIndicator;
-    }
     let subscription = this._subscriptions.get(remote_id);
 
     if (!subscription) return;
-
     subscription[mode] = false;
     if (!subscription.trades && !subscription.level2updates) {
       this._close(this._subscriptions.get(remote_id));
@@ -114,10 +103,9 @@ class GeminiClient extends EventEmitter {
   /** Connect to the websocket stream by constructing a path from
    * the subscribed markets.
    */
-  _connect(remote_id) {
-    const istopOfBook = remote_id.indexOf('top_of_book') !== -1;
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id.replace(this.topOfBookIndicator, '') + "?heartbeat=true";
-    if (istopOfBook) {
+  _connect(remote_id, mode) {
+    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
+    if (mode === "tickers") {
       wssPath += '&top_of_book=true';
     }
     let wss = new SmartWss(wssPath);
@@ -212,7 +200,8 @@ class GeminiClient extends EventEmitter {
   _reconnect(subscription) {
     this.emit("reconnecting", subscription.remoteId);
     subscription.wss.once("closed", () => {
-      subscription.wss = this._connect(subscription.remoteId);
+      const remoteId = subscription.remoteId;
+      subscription.wss = this._connect(subscription.remoteId, subscription.mode);
     });
     this._close(subscription);
   }
@@ -257,12 +246,6 @@ class GeminiClient extends EventEmitter {
   _onMessage(remote_id, raw) {
     let msg = JSON.parse(raw);
     let subscription = this._subscriptions.get(remote_id);
-    if (!subscription) {
-      // if regular subscription isn't available, try the top_of_book special subscription
-      // which is used for ticker support
-      const subscriptionId = remote_id + this.topOfBookIndicator;
-      subscription = this._subscriptions.get(subscriptionId);
-    }
     let market = subscription.market;
     subscription.lastMessage = Date.now();
 
