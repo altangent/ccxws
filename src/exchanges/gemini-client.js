@@ -200,7 +200,6 @@ class GeminiClient extends EventEmitter {
   _reconnect(subscription) {
     this.emit("reconnecting", subscription.remoteId);
     subscription.wss.once("closed", () => {
-      const remoteId = subscription.remoteId;
       subscription.wss = this._connect(subscription.remoteId, subscription.mode);
     });
     this._close(subscription);
@@ -285,8 +284,6 @@ class GeminiClient extends EventEmitter {
           }));
         }
         const thisCachedTicker = this.tickersCache.get(marketId);
-        // this.tickersCache[marketId] = 
-        let updated = false;
         msg.events.forEach(thisEvt => {
           if (thisEvt.type === 'change' && thisEvt.side === 'ask') {
             thisCachedTicker.ask = thisEvt.price;
