@@ -18,6 +18,7 @@ class KucoinClient extends BasicClient {
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this._pingIntervalTime = 50000;
+    this._throttleMs = 100;
   }
 
   _beforeConnect() {
@@ -29,6 +30,7 @@ class KucoinClient extends BasicClient {
 
   _resetSemaphore() {
     this._sem = semaphore(1);
+    this._httpsem = semaphore(1);
   }
 
   _startPing() {
@@ -51,111 +53,127 @@ class KucoinClient extends BasicClient {
     }
   }
 
-  async _connect() {
+  _connect() {
     if (!this._wss) {
-      try {
-        let raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public");
+      this._wss = { status: "connecting" };
+      this._connectAsync();
+    }
+  }
 
-        if (raw.data && raw.data.token) {
-          const { token, instanceServers } = raw.data;
-          const { endpoint, pingInterval } = instanceServers[0];
-          this._connectId = UUID();
-          this._pingIntervalTime = pingInterval;
-          this._wssPath = `${endpoint}?token=${token}&connectId=${this._connectId}`;
-          this._wss = this._wssFactory(this._wssPath);
-          this._wss.on("error", this._onError.bind(this));
-          this._wss.on("connecting", this._onConnecting.bind(this));
-          this._wss.on("connected", this._onConnected.bind(this));
-          this._wss.on("disconnected", this._onDisconnected.bind(this));
-          this._wss.on("closing", this._onClosing.bind(this));
-          this._wss.on("closed", this._onClosed.bind(this));
-          this._wss.on("message", msg => {
-            try {
-              this._onMessage(msg);
-            } catch (ex) {
-              this._onError(ex);
-            }
-          });
-          if (this._beforeConnect) this._beforeConnect();
-          this._wss.connect();
-        }
-      } catch (ex) {
-        this._onError(ex);
+  async _connectAsync() {
+    try {
+      let raw = await https.post("https://openapi-v2.kucoin.com/api/v1/bullet-public");
+      if (raw.data && raw.data.token) {
+        const { token, instanceServers } = raw.data;
+        const { endpoint, pingInterval } = instanceServers[0];
+        this._connectId = UUID();
+        this._pingIntervalTime = pingInterval;
+        this._wssPath = `${endpoint}?token=${token}&connectId=${this._connectId}`;
+        this._wss = this._wssFactory(this._wssPath);
+        this._wss.on("error", this._onError.bind(this));
+        this._wss.on("connecting", this._onConnecting.bind(this));
+        this._wss.on("connected", this._onConnected.bind(this));
+        this._wss.on("disconnected", this._onDisconnected.bind(this));
+        this._wss.on("closing", this._onClosing.bind(this));
+        this._wss.on("closed", this._onClosed.bind(this));
+        this._wss.on("message", msg => {
+          try {
+            this._onMessage(msg);
+          } catch (ex) {
+            this._onError(ex);
+          }
+        });
+        if (this._beforeConnect) this._beforeConnect();
+        this._wss.connect();
       }
+    } catch (ex) {
+      this._onError(ex);
     }
   }
 
   _sendSubTicker(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "subscribe",
-        topic: "/market/snapshot:" + remote_id,
-        privateChannel: false,
-        response: true,
-      })
-    );
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: "/market/snapshot:" + remote_id,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
   }
 
   _sendUnsubTicker(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "unsubscribe",
-        topic: "/market/snapshot:" + remote_id,
-        privateChannel: false,
-        response: true,
-      })
-    );
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: "/market/snapshot:" + remote_id,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
   }
 
   _sendSubTrades(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "subscribe",
-        topic: "/market/match:" + remote_id,
-        privateChannel: false,
-        response: true,
-      })
-    );
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: "/market/match:" + remote_id,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
   }
 
   _sendUnsubTrades(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "unsubscribe",
-        topic: "/market/match:" + remote_id,
-        privateChannel: false,
-        response: true,
-      })
-    );
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: "/market/match:" + remote_id,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
   }
 
   _sendSubLevel2Updates(remote_id) {
-    let market = this._level2UpdateSubs.get(remote_id);
-    this._requestLevel2Snapshot(market);
+    this._sem.take(() => {
+      let market = this._level2UpdateSubs.get(remote_id);
+      this._requestLevel2Snapshot(market);
 
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "subscribe",
-        topic: "/market/level2:" + remote_id,
-        response: true,
-      })
-    );
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: "/market/level2:" + remote_id,
+          response: true,
+        })
+      );
+    });
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        id: new Date().getTime(),
-        type: "unsubscribe",
-        topic: "/market/level2:" + remote_id,
-        response: true,
-      })
-    );
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: "/market/level2:" + remote_id,
+          response: true,
+        })
+      );
+    });
   }
 
   _onMessage(raw) {
@@ -176,7 +194,16 @@ class KucoinClient extends BasicClient {
   }
 
   _processMessage(msg) {
-    if (!msg.topic || !msg.subject) return;
+    if (msg.type === "ack" || msg.type === "error") {
+      setTimeout(() => this._sem.leave(), this._throttleMs);
+    }
+
+    if (msg.type === "error") {
+      let err = new Error(msg.data);
+      err.msg = msg;
+      this._onError(err);
+      return;
+    }
 
     // trades
     if (msg.subject === "trade.l3match") {
@@ -288,7 +315,7 @@ class KucoinClient extends BasicClient {
   }
 
   async _requestLevel2Snapshot(market) {
-    this._sem.take(async () => {
+    this._httpsem.take(async () => {
       try {
         let remote_id = market.id;
         let uri = `https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=${remote_id}`;
@@ -308,7 +335,7 @@ class KucoinClient extends BasicClient {
         this._requestLevel2Snapshot(market);
       } finally {
         await wait(this.REST_REQUEST_DELAY_MS);
-        this._sem.leave();
+        this._httpsem.leave();
       }
     });
   }
