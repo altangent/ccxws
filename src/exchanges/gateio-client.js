@@ -17,7 +17,7 @@ class GateioClient extends BasicMultiClient {
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
-    this.throttleMs = 250;
+    this.throttleMs = 500;
     this.sem = semaphore(1);
   }
 
