@@ -1,7 +1,5 @@
 const moment = require("moment");
-const semaphore = require("semaphore");
 const BasicClient = require("../basic-client");
-const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -9,24 +7,12 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
-class GateioClient extends BasicMultiClient {
-  constructor() {
-    super();
-
-    this.hasTickers = true;
-    this.hasTrades = true;
-    this.hasLevel2Snapshots = false;
-    this.hasLevel2Updates = true;
-    this.throttleMs = 250;
-    this.sem = semaphore(1);
-  }
-
-  _createBasicClient() {
-    return new GateioSingleClient();
-  }
-}
-
-class GateioSingleClient extends BasicClient {
+class GateioClient extends BasicClient {
+  /**
+   * Gate.io now supports subscribing to multiple markets from a single socket connection.
+   * These requests will be debounced so that multiple subscriptions will trigger a
+   * single call to subscribe.
+   */
   constructor() {
     super("wss://ws.gate.io/v3", "Gateio");
     this._watcher = new Watcher(this, 15 * 60 * 1000);
@@ -35,6 +21,13 @@ class GateioSingleClient extends BasicClient {
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
+    this.debounceWait = 100;
+    this._debounceHandles = new Map();
+  }
+
+  _debounce(type, fn) {
+    clearTimeout(this._debounceHandles.get(type));
+    this._debounceHandles.set(type, setTimeout(fn, this.debounceWait));
   }
 
   _beforeConnect() {
@@ -62,14 +55,17 @@ class GateioSingleClient extends BasicClient {
     }
   }
 
-  _sendSubTicker(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        method: "ticker.subscribe",
-        params: [remote_id.toUpperCase()],
-        id: 1,
-      })
-    );
+  _sendSubTicker() {
+    this._debounce("sub-ticker", () => {
+      let markets = Array.from(this._tickerSubs.keys()).map(m => m.toUpperCase());
+      this._wss.send(
+        JSON.stringify({
+          method: "ticker.subscribe",
+          params: markets,
+          id: 1,
+        })
+      );
+    });
   }
 
   _sendUnsubTicker() {
@@ -80,14 +76,17 @@ class GateioSingleClient extends BasicClient {
     );
   }
 
-  _sendSubTrades(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        method: "trades.subscribe",
-        params: [remote_id.toUpperCase()],
-        id: 1,
-      })
-    );
+  _sendSubTrades() {
+    this._debounce("sub-trades", () => {
+      let markets = Array.from(this._tradeSubs.keys()).map(m => m.toUpperCase());
+      this._wss.send(
+        JSON.stringify({
+          method: "trades.subscribe",
+          params: markets,
+          id: 1,
+        })
+      );
+    });
   }
 
   _sendUnsubTrades() {
@@ -98,14 +97,17 @@ class GateioSingleClient extends BasicClient {
     );
   }
 
-  _sendSubLevel2Updates(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        method: "depth.subscribe",
-        params: [remote_id.toUpperCase(), 30, "0"], // 100 is the maximum number of items Gateio will let you request
-        id: 1,
-      })
-    );
+  _sendSubLevel2Updates() {
+    this._debounce("sub-l2updates", () => {
+      let markets = Array.from(this._level2UpdateSubs.keys()).map(m => m.toUpperCase());
+      this._wss.send(
+        JSON.stringify({
+          method: "depth.subscribe",
+          params: markets.map(m => [m, 30, "0"]),
+          id: 1,
+        })
+      );
+    });
   }
 
   _sendUnsubLevel2Updates() {
