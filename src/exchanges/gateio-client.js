@@ -12,6 +12,10 @@ class GateioClient extends BasicClient {
    * Gate.io now supports subscribing to multiple markets from a single socket connection.
    * These requests will be debounced so that multiple subscriptions will trigger a
    * single call to subscribe.
+   *
+   * Additionally, depending on the REST method used, the market_id's will be lower
+   * or uppercase. Websockets require market_id in uppercase, however the client
+   * can handle either.
    */
   constructor() {
     super("wss://ws.gate.io/v3", "Gateio");
@@ -57,7 +61,7 @@ class GateioClient extends BasicClient {
 
   _sendSubTicker() {
     this._debounce("sub-ticker", () => {
-      let markets = Array.from(this._tickerSubs.keys()).map(m => m.toUpperCase());
+      let markets = Array.from(this._tickerSubs.keys()).map(m => m.toUpperCase()); // must be uppercase
       this._wss.send(
         JSON.stringify({
           method: "ticker.subscribe",
@@ -78,7 +82,7 @@ class GateioClient extends BasicClient {
 
   _sendSubTrades() {
     this._debounce("sub-trades", () => {
-      let markets = Array.from(this._tradeSubs.keys()).map(m => m.toUpperCase());
+      let markets = Array.from(this._tradeSubs.keys()).map(m => m.toUpperCase()); // must be uppercase
       this._wss.send(
         JSON.stringify({
           method: "trades.subscribe",
@@ -99,7 +103,7 @@ class GateioClient extends BasicClient {
 
   _sendSubLevel2Updates() {
     this._debounce("sub-l2updates", () => {
-      let markets = Array.from(this._level2UpdateSubs.keys()).map(m => m.toUpperCase());
+      let markets = Array.from(this._level2UpdateSubs.keys()).map(m => m.toUpperCase()); // must be uppercase
       this._wss.send(
         JSON.stringify({
           method: "depth.subscribe",
@@ -126,8 +130,10 @@ class GateioClient extends BasicClient {
     if (!params) return;
 
     if (method === "ticker.update") {
-      let marketId = params[0].toLowerCase();
-      let market = this._tickerSubs.get(marketId);
+      let marketId = params[0];
+      let market =
+        this._tickerSubs.get(marketId.toUpperCase()) ||
+        this._tickerSubs.get(marketId.toLowerCase());
       if (!market) return;
 
       let ticker = this._constructTicker(params[1], market); //params[0][marketId] -> params[1]
@@ -136,8 +142,9 @@ class GateioClient extends BasicClient {
     }
 
     if (method === "trades.update") {
-      let marketId = params[0].toLowerCase();
-      let market = this._tradeSubs.get(marketId);
+      let marketId = params[0];
+      let market =
+        this._tradeSubs.get(marketId.toUpperCase()) || this._tradeSubs.get(marketId.toLowerCase());
       if (!market) return;
 
       params[1].reverse().forEach(t => {
@@ -148,8 +155,10 @@ class GateioClient extends BasicClient {
     }
 
     if (method === "depth.update") {
-      let marketId = params[2].toLowerCase();
-      let market = this._level2UpdateSubs.get(marketId);
+      let marketId = params[2];
+      let market =
+        this._level2UpdateSubs.get(marketId.toUpperCase()) ||
+        this._level2UpdateSubs.get(marketId.toLowerCase());
       if (!market) return;
 
       let isLevel2Snapshot = params[0];
