@@ -4,15 +4,16 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
-
+const Ticker = require("../ticker");
 class GeminiClient extends EventEmitter {
   constructor() {
     super();
     this._name = "Gemini";
     this._subscriptions = new Map();
     this.reconnectIntervalMs = 30 * 1000;
+    this.tickersCache = new Map(); // key-value pairs of <market_id>: Ticker
 
-    this.hasTickers = false;
+    this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = false;
     this.hasLevel2Snapshots = false;
@@ -43,6 +44,14 @@ class GeminiClient extends EventEmitter {
     this._unsubscribe(market, "level2updates");
   }
 
+  subscribeTicker(market) {
+    this._subscribe(market, "tickers");
+  }
+
+  unsubscribeTicker(market) {
+    this._unsubscribe(market, "tickers");
+  }
+
   close() {
     this._close();
   }
@@ -52,6 +61,8 @@ class GeminiClient extends EventEmitter {
 
   _subscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
+    if (mode === "tickers") remote_id += "-tickers";
+
     let subscription = this._subscriptions.get(remote_id);
 
     if (subscription && subscription[mode]) return;
@@ -65,6 +76,7 @@ class GeminiClient extends EventEmitter {
         remoteId: remote_id,
         trades: false,
         level2Updates: false,
+        tickers: false,
       };
 
       this._startReconnectWatcher(subscription);
@@ -76,14 +88,17 @@ class GeminiClient extends EventEmitter {
 
   _unsubscribe(market, mode) {
     let remote_id = market.id.toLowerCase();
+    if (mode === "tickers") remote_id += "-tickers";
     let subscription = this._subscriptions.get(remote_id);
 
     if (!subscription) return;
-
     subscription[mode] = false;
     if (!subscription.trades && !subscription.level2updates) {
       this._close(this._subscriptions.get(remote_id));
       this._subscriptions.delete(remote_id);
+    }
+    if (mode === "tickers") {
+      this.tickersCache.delete(market.id);
     }
   }
 
@@ -91,7 +106,11 @@ class GeminiClient extends EventEmitter {
    * the subscribed markets.
    */
   _connect(remote_id) {
-    let wssPath = "wss://api.gemini.com/v1/marketdata/" + remote_id + "?heartbeat=true";
+    let forTickers = remote_id.endsWith("-tickers");
+    let wssPath = forTickers
+      ? `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true&top_of_book=true`
+      : `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true`;
+
     let wss = new SmartWss(wssPath);
     wss.on("error", err => this._onError(remote_id, err));
     wss.on("connecting", () => this._onConnecting(remote_id));
@@ -258,6 +277,36 @@ class GeminiClient extends EventEmitter {
           this.emit("l2update", update, market);
         }
         return;
+      }
+      if (subscription.tickers) {
+        const marketId = subscription.market.id;
+        if (!this.tickersCache.has(marketId)) {
+          this.tickersCache.set(
+            marketId,
+            new Ticker({
+              exchange: "Gemini",
+              base: subscription.market.base,
+              quote: subscription.market.quote,
+            })
+          );
+        }
+        const thisCachedTicker = this.tickersCache.get(marketId);
+        for (let i = 0; i < msg.events.length; i++) {
+          let event = msg.events[i];
+          if (event.type === "change" && event.side === "ask") {
+            thisCachedTicker.ask = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
+          }
+          if (event.type === "change" && event.side === "bid") {
+            thisCachedTicker.bid = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
+          }
+          if (event.type === "trade") {
+            thisCachedTicker.last = event.price;
+            thisCachedTicker.timestamp = msg.timestampms;
+            this.emit("ticker", this.tickersCache.get(marketId), market);
+          }
+        }
       }
     }
   }
