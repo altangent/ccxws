@@ -10,6 +10,13 @@ const semaphore = require("semaphore");
 const { wait } = require("../util");
 
 class KucoinClient extends BasicClient {
+  /**
+   * Kucoin client has a hard limit of 100 subscriptions per socket connection.
+   * When more than 100 subscriptions are made on a single socket it will generate
+   * an error that says "509: exceed max subscription count limitation of 100 per session".
+   * To work around this will require creating multiple clients if you makem ore than 100
+   * subscriptions.
+   */
   constructor() {
     super(undefined, "KuCoin");
 
@@ -53,6 +60,12 @@ class KucoinClient extends BasicClient {
     }
   }
 
+  /**
+   * Kucoin requires a token that is obtained from a REST endpoint. We make the synchronous
+   * _connect method create a temporary _wss instance so that subsequent calls to _connect
+   * are idempotent and only a single socket connection is created. Then the _connectAsync
+   * call is performed that does the REST token fetching and the connection.
+   */
   _connect() {
     if (!this._wss) {
       this._wss = { status: "connecting" };
