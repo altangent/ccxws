@@ -32,7 +32,7 @@ class OKExClient extends BasicClient {
    * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
    */
   constructor() {
-    super("wss://real.okex.com:10442/ws/v3", "OKEx");
+    super("wss://real.okex.com:8443/ws/v3", "OKEx");
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
