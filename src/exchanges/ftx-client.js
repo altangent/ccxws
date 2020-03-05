@@ -211,7 +211,7 @@ class FtxClient extends BasicClient {
     };
   };
 
-  _timeToTimestampMs = time => {
+  _timeToTimestampMs(time) {
     return new Decimal(time)
       .mul(1000)
       .toDecimalPlaces(0)
