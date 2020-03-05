@@ -17,7 +17,7 @@ class FtxClient extends BasicClient {
     this.hasLevel2Updates = true;
   }
 
-  _sendSubTicker = market => {
+  _sendSubTicker(market) {
     this._wss.send(
       JSON.stringify({
         op: "subscribe",
@@ -27,7 +27,7 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendUnsubTicker = market => {
+  _sendUnsubTicker(market) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
@@ -37,7 +37,7 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendSubTrades = market => {
+  _sendSubTrades(market) {
     this._wss.send(
       JSON.stringify({
         op: "subscribe",
@@ -47,7 +47,7 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendUnsubTrades = market => {
+  _sendUnsubTrades(market) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
@@ -57,7 +57,7 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendSubLevel2Snapshots = market => {
+  _sendSubLevel2Snapshots(market) {
     this._wss.send(
       JSON.stringify({
         op: "subscribe",
@@ -67,7 +67,7 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendUnsubLevel2Snapshots = market => {
+  _sendUnsubLevel2Snapshots(market) {
     this._wss.send(
       JSON.stringify({
         op: "subscribe",
@@ -77,15 +77,15 @@ class FtxClient extends BasicClient {
     );
   };
 
-  _sendSubLevel2Updates = market => {
+  _sendSubLevel2Updates(market) {
     // handled already on snapshot sub
   };
 
-  _sendUnsubLevel2Updates = market => {
+  _sendUnsubLevel2Updates(market) {
     // handled already on snapshot unsub
   };
 
-  _onMessage = raw => {
+  _onMessage(raw) {
     const { type, channel, market: symbol, data } = JSON.parse(raw);
 
     if (!type || !channel || !symbol) {
@@ -105,7 +105,7 @@ class FtxClient extends BasicClient {
     }
   };
 
-  _tickerMessageHandler = (data, symbol, type) => {
+  _tickerMessageHandler(data, symbol, type) {
     if (!data || !symbol) {
       return;
     }
@@ -132,7 +132,7 @@ class FtxClient extends BasicClient {
     this.emit("ticker", ticker, market);
   };
 
-  _tradesMessageHandler = (data, symbol, type) => {
+  _tradesMessageHandler(data, symbol, type) {
     if (!data || !symbol) {
       return;
     }
@@ -162,7 +162,7 @@ class FtxClient extends BasicClient {
     }
   };
 
-  _orderbookMessageHandler = (data, symbol, type) => {
+  _orderbookMessageHandler(data, symbol, type) {
     switch (type) {
       case "partial":
         this._orderbookSnapshotEvent(data, symbol);
@@ -173,7 +173,7 @@ class FtxClient extends BasicClient {
     }
   };
 
-  _orderbookSnapshotEvent = (data, symbol) => {
+  _orderbookSnapshotEvent(data, symbol) {
     if (!data || !symbol) {
       return;
     }
@@ -184,7 +184,7 @@ class FtxClient extends BasicClient {
     this.emit("l2snapshot", eventData, market);
   };
 
-  _orderbookUpdateEvent = (data, symbol) => {
+  _orderbookUpdateEvent(data, symbol) {
     if (!data || !symbol || (!data.asks.length && !data.bids.length)) {
       return;
     }
@@ -195,7 +195,7 @@ class FtxClient extends BasicClient {
     this.emit("l2update", eventData, market);
   };
 
-  _orderbookEventContent = (data, market) => {
+  _orderbookEventContent(data, market) {
     const { time, asks, bids } = data;
     const level2PointAsks = asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
     const level2PointBids = bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(8)));
