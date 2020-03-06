@@ -89,8 +89,7 @@ class FtxClient extends BasicClient {
     }
 
     const shouldSubscribe =
-      !this._orderbookSnapshotSubs.has(market) &&
-      !this._orderbookUpdateSubs.has(market);
+      !this._orderbookSnapshotSubs.has(market) && !this._orderbookUpdateSubs.has(market);
 
     if (type === "snapshot") {
       this._orderbookSnapshotSubs.set(market, true);
@@ -259,7 +258,6 @@ class FtxClient extends BasicClient {
       timestampMs,
       asks: level2PointAsks,
       bids: level2PointBids,
-      type: market.type,
     };
   }
 
