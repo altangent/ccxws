@@ -6,84 +6,130 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
-const https = require("../https");
 
 class FtxClient extends BasicClient {
-  constructor({ autoloadSymbolMaps = true } = {}) {
+  constructor() {
     super("wss://ftx.com/ws", "FTX");
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
+
+    this._orderbookSnapshotSubs = new Map();
+    this._orderbookUpdateSubs = new Map();
   }
 
   _sendSubTicker(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        channel: "ticker",
-        market,
-      })
-    );
-  };
+    if (this._isSpotMarket(market)) {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          channel: "ticker",
+          market,
+        })
+      );
+    }
+  }
 
   _sendUnsubTicker(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "unsubscribe",
-        channel: "ticker",
-        market,
-      })
-    );
-  };
+    if (this._isSpotMarket(market)) {
+      this._wss.send(
+        JSON.stringify({
+          op: "unsubscribe",
+          channel: "ticker",
+          market,
+        })
+      );
+    }
+  }
 
   _sendSubTrades(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        channel: "trades",
-        market,
-      })
-    );
-  };
+    if (this._isSpotMarket(market)) {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          channel: "trades",
+          market,
+        })
+      );
+    }
+  }
 
   _sendUnsubTrades(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "unsubscribe",
-        channel: "trades",
-        market,
-      })
-    );
-  };
+    if (this._isSpotMarket(market)) {
+      this._wss.send(
+        JSON.stringify({
+          op: "unsubscribe",
+          channel: "trades",
+          market,
+        })
+      );
+    }
+  }
 
   _sendSubLevel2Snapshots(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        channel: "orderbook",
-        market,
-      })
-    );
-  };
+    this._subscribeToOrderbook("snapshot", market);
+  }
 
   _sendUnsubLevel2Snapshots(market) {
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        channel: "orderbook",
-        market,
-      })
-    );
-  };
+    this._unsubscribeFromOrderbook("snapshot", market);
+  }
 
   _sendSubLevel2Updates(market) {
-    // handled already on snapshot sub
-  };
+    this._subscribeToOrderbook("update", market);
+  }
 
   _sendUnsubLevel2Updates(market) {
-    // handled already on snapshot unsub
-  };
+    this._unsubscribeFromOrderbook("update", market);
+  }
+
+  _subscribeToOrderbook(type, market) {
+    if (!this._isSpotMarket(market)) {
+      return;
+    }
+
+    const shouldSubscribe =
+      !this._orderbookSnapshotSubs.has(market) &&
+      !this._orderbookUpdateSubs.has(market);
+
+    if (type === "snapshot") {
+      this._orderbookSnapshotSubs.set(market, true);
+    } else {
+      this._orderbookUpdateSubs.set(market, true);
+    }
+
+    if (shouldSubscribe) {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          channel: "orderbook",
+          market,
+        })
+      );
+    }
+  }
+
+  _unsubscribeFromOrderbook(type, market) {
+    if (!this._isSpotMarket(market)) {
+      return;
+    }
+
+    if (type === "snapshot") {
+      this._orderbookSnapshotSubs.delete(market);
+    } else {
+      this._orderbookUpdateSubs.delete(market);
+    }
+
+    if (!this._orderbookSnapshotSubs.has(market) && !this._orderbookUpdateSubs.has(market)) {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          channel: "orderbook",
+          market,
+        })
+      );
+    }
+  }
 
   _onMessage(raw) {
     const { type, channel, market: symbol, data } = JSON.parse(raw);
@@ -94,18 +140,18 @@ class FtxClient extends BasicClient {
 
     switch (channel) {
       case "ticker":
-        this._tickerMessageHandler(data, symbol, type);
+        this._tickerMessageHandler(data, symbol);
         break;
       case "trades":
-        this._tradesMessageHandler(data, symbol, type);
+        this._tradesMessageHandler(data, symbol);
         break;
       case "orderbook":
         this._orderbookMessageHandler(data, symbol, type);
         break;
     }
-  };
+  }
 
-  _tickerMessageHandler(data, symbol, type) {
+  _tickerMessageHandler(data, symbol) {
     if (!data || !symbol) {
       return;
     }
@@ -130,9 +176,9 @@ class FtxClient extends BasicClient {
     });
 
     this.emit("ticker", ticker, market);
-  };
+  }
 
-  _tradesMessageHandler(data, symbol, type) {
+  _tradesMessageHandler(data, symbol) {
     if (!data || !symbol) {
       return;
     }
@@ -160,7 +206,7 @@ class FtxClient extends BasicClient {
 
       this.emit("trade", trade, market);
     }
-  };
+  }
 
   _orderbookMessageHandler(data, symbol, type) {
     switch (type) {
@@ -171,10 +217,10 @@ class FtxClient extends BasicClient {
         this._orderbookUpdateEvent(data, symbol);
         break;
     }
-  };
+  }
 
   _orderbookSnapshotEvent(data, symbol) {
-    if (!data || !symbol) {
+    if (!data || !symbol || !this._orderbookSnapshotSubs.has(symbol)) {
       return;
     }
 
@@ -182,18 +228,23 @@ class FtxClient extends BasicClient {
     const content = this._orderbookEventContent(data, market);
     const eventData = new Level2Snapshot(content);
     this.emit("l2snapshot", eventData, market);
-  };
+  }
 
   _orderbookUpdateEvent(data, symbol) {
-    if (!data || !symbol || (!data.asks.length && !data.bids.length)) {
+    if (
+      !data ||
+      !symbol ||
+      !this._orderbookUpdateSubs.has(symbol) ||
+      (!data.asks.length && !data.bids.length)
+    ) {
       return;
     }
 
-    const market = this._level2SnapshotSubs.get(symbol);
+    const market = this._level2UpdateSubs.get(symbol);
     const content = this._orderbookEventContent(data, market);
     const eventData = new Level2Update(content);
     this.emit("l2update", eventData, market);
-  };
+  }
 
   _orderbookEventContent(data, market) {
     const { time, asks, bids } = data;
@@ -208,15 +259,21 @@ class FtxClient extends BasicClient {
       timestampMs,
       asks: level2PointAsks,
       bids: level2PointBids,
+      type: market.type,
     };
-  };
+  }
 
   _timeToTimestampMs(time) {
     return new Decimal(time)
       .mul(1000)
       .toDecimalPlaces(0)
       .toNumber();
-  };
+  }
+
+  _isSpotMarket(id) {
+    const isSpot = id.includes("/");
+    return isSpot;
+  }
 }
 
 module.exports = FtxClient;
