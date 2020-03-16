@@ -5,6 +5,7 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
+const Level2Snapshot = require("../level2-snapshot");
 
 class FtxClient extends BasicClient {
   constructor() {
@@ -76,7 +77,7 @@ class FtxClient extends BasicClient {
 
   _onMessage(raw) {
     const { type, channel, market: symbol, data } = JSON.parse(raw);
-    if (!type || !channel || !symbol) {
+    if (!data || !type || !channel || !symbol) {
       return;
     }
 
@@ -88,18 +89,14 @@ class FtxClient extends BasicClient {
         this._tradesMessageHandler(data, symbol);
         break;
       case "orderbook":
-        this._orderbookMessageHandler(data, symbol);
+        this._orderbookMessageHandler(data, symbol, type);
         break;
     }
   }
 
   _tickerMessageHandler(data, symbol) {
-    if (!data || !symbol) {
-      return;
-    }
-
     const market = this._tickerSubs.get(symbol);
-    if (!market.base || !market.quote) {
+    if (!market || !market.base || !market.quote) {
       return;
     }
 
@@ -116,18 +113,13 @@ class FtxClient extends BasicClient {
       bidVolume: bidVolume !== undefined && bidVolume !== null ? bidVolume.toFixed(8) : undefined,
       askVolume: askVolume !== undefined && askVolume !== null ? askVolume.toFixed(8) : undefined,
     });
-    ticker['market'] = market.id;
 
     this.emit("ticker", ticker, market);
   }
 
   _tradesMessageHandler(data, symbol) {
-    if (!data || !symbol) {
-      return;
-    }
-
     const market = this._tradeSubs.get(symbol);
-    if (!market.base || !market.quote) {
+    if (!market || !market.base || !market.quote) {
       return;
     }
 
@@ -147,23 +139,36 @@ class FtxClient extends BasicClient {
         liquidation,
       });
 
-      trade['market'] = market.id;
-
       this.emit("trade", trade, market);
     }
   }
 
-  _orderbookMessageHandler(data, symbol) {
-    if (!data || !symbol || (!data.asks.length && !data.bids.length)) {
+  _orderbookMessageHandler(data, symbol, type) {
+    const market = this._level2UpdateSubs.get(symbol);
+    if (!market || !market.base || !market.quote || (!data.asks.length && !data.bids.length)) {
       return;
     }
 
-    const market = this._level2UpdateSubs.get(symbol);
+    switch (type) {
+      case "partial":
+        this._orderbookSnapshotEvent(data, market);
+        break;
+      case "update":
+        this._orderbookUpdateEvent(data, market);
+        break;
+    }
+  }
+
+  _orderbookUpdateEvent(data, market) {
     const content = this._orderbookEventContent(data, market);
     const eventData = new Level2Update(content);
-    eventData['market'] = market.id;
-
     this.emit("l2update", eventData, market);
+  }
+
+  _orderbookSnapshotEvent(data, market) {
+    const content = this._orderbookEventContent(data, market);
+    const eventData = new Level2Snapshot(content);
+    this.emit("l2snapshot", eventData, market);
   }
 
   _orderbookEventContent(data, market) {
