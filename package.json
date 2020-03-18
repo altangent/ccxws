@@ -35,7 +35,7 @@
     "eslint": "^5.16.0",
     "mocha": "^6.2.0",
     "mocha-parallel-tests": "^2.2.1",
-    "nyc": "^14.1.1",
+    "nyc": "^15.0.0",
     "prettier": "^1.18.2",
     "sinon": "^7.3.2"
   }
