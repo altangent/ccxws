@@ -49,7 +49,7 @@ testClient({
 
   l2snapshot: {
     hasTimestampMs: true,
-    hasSequenceId: false,
+    hasSequenceId: true,
     hasCount: false,
   },
 });
