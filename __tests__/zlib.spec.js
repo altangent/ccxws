@@ -51,3 +51,27 @@ describe("unzip", () => {
     zlib.unzip(Buffer.from("1f8b08000000000000133302000dbed51a01000000", "hex"), cb);
   });
 });
+
+describe("inflateRaw", () => {
+  it("should process operations in order", done => {
+    const vals = [];
+    const cb = (err, val) => {
+      vals.push(val);
+      if (vals.length === 5) {
+        expect(vals).to.deep.equal([
+          Buffer.from("1"),
+          Buffer.from("2"),
+          Buffer.from("3"),
+          Buffer.from("4"),
+          Buffer.from("5"),
+        ]);
+        done();
+      }
+    };
+    zlib.inflateRaw(Buffer.from("330400", "hex"), cb);
+    zlib.inflateRaw(Buffer.from("330200", "hex"), cb);
+    zlib.inflateRaw(Buffer.from("330600", "hex"), cb);
+    zlib.inflateRaw(Buffer.from("330100", "hex"), cb);
+    zlib.inflateRaw(Buffer.from("330500", "hex"), cb);
+  });
+});
