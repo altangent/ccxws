@@ -46,6 +46,18 @@ class KrakenClient extends BasicClient {
     this.fromRestMap = new Map();
     this.fromWsMap = new Map();
 
+    this._spreadSubs = new Map();
+
+    const originalOnConnected = this._onConnected.bind(this);
+
+    // monkey patch in the spread subscription that is local to only this client
+    this._onConnected = (function () {
+      for (let marketSymbol of this._spreadSubs.keys()) {
+        this._sendSubSpread(marketSymbol);
+      }
+      originalOnConnected();
+    }).bind(this);
+
     if (autoloadSymbolMaps) {
       this.loadSymbolMaps().catch(err => this.emit("error", err));
     }
@@ -153,6 +165,33 @@ class KrakenClient extends BasicClient {
    */
   _sendUnsubTicker() {
     this._debounceSend("unsub-ticker", this._tickerSubs, false, { name: "ticker" });
+  }
+
+  /**
+   * Subscribes to spread feed. Note that this is not a ccxws standard API.
+   * Constructs a request that looks like:
+    {
+      "event": "unsubscribe",
+      "pair": ["XBT/USD","BCH/USD"]
+      "subscription": {
+        "name": "spread"
+      }
+    }
+   */
+  subscribeSpread(market) {
+    return this._subscribe(market, this._spreadSubs, this._sendSubSpread.bind(this));
+  }
+  unsubscribeSpread(market) {
+    // note: bind w/market in arguments, because _unsubscribe() will delete it from 
+    // the _spreadSubs map, so the map will be empty by the time _sendUnsubSpread is called
+    const tempSubMap = new Map([[market.id, market]]);
+    return this._unsubscribe(market, this._spreadSubs, this._sendUnsubSpread.bind(this, tempSubMap));
+  }
+  _sendSubSpread() {
+    this._debounceSend("sub-spread", this._spreadSubs, true, { name: "spread" });
+  }
+  _sendUnsubSpread(spreadSubs) {
+    this._debounceSend("unsub-spread", spreadSubs, false, { name: "spread" });
   }
 
   /**
@@ -313,6 +352,26 @@ class KrakenClient extends BasicClient {
       return;
     }
 
+    // tickers use the "spread" feed to get live updates on each top of book update. 
+    // we don't use the "tickers" feed because it only gets updates on every match (trade)
+    /*
+      spread event example, they're a little different as it's just an array:
+      [ 815,
+      [ '0.00701600',
+        '0.00703000',
+        '1585073192.399057',
+        '42.06782973',
+        '7.35858647' ],
+      'spread',
+      'XMR/XBT' ]
+    */
+    if (Array.isArray(msg) && msg.length === 4 && msg[2] === 'spread') {
+      const spreadUpdate = this._constructSpread(msg);
+      const market = this._spreadSubs.get(remote_id);
+      this.emit("spread", spreadUpdate, market);
+      return;
+    }
+
     // trades
     if (sl.subscription.name === "trade") {
       if (Array.isArray(msg[1])) {
@@ -362,6 +421,22 @@ class KrakenClient extends BasicClient {
     return;
   }
 
+  _constructSpread(msg) {
+    const updates = msg[1];
+    const bid = parseFloat(updates[0]);
+    const ask = parseFloat(updates[1]);
+    const timestamp = parseFloat(updates[2]);
+    const bidVolume = parseFloat(updates[3]);
+    const askVolume = parseFloat(updates[4]);
+    const spreadUpdate = {
+      bid,
+      ask,
+      timestamp,
+      bidVolume,
+      askVolume
+    };
+    return spreadUpdate;
+  }
   /**
     Refer to https://www.kraken.com/en-us/features/websocket-api#message-ticker
    */
