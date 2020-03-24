@@ -352,8 +352,7 @@ class KrakenClient extends BasicClient {
       return;
     }
 
-    // tickers use the "spread" feed to get live updates on each top of book update. 
-    // we don't use the "tickers" feed because it only gets updates on every match (trade)
+    // use the "spread" feed to get live updates on each top of book update. 
     /*
       spread event example, they're a little different as it's just an array:
       [ 815,
