@@ -1,4 +1,4 @@
-const zlib = require("zlib");
+const zlib = require("../zlib");
 const semaphore = require("semaphore");
 const moment = require("moment");
 const BasicClient = require("../basic-client");

@@ -1,5 +1,5 @@
 const BasicClient = require("../basic-client");
-const zlib = require("zlib");
+const zlib = require("../zlib");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
