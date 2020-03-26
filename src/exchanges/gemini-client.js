@@ -304,8 +304,8 @@ class GeminiClient extends EventEmitter {
           if (event.type === "trade") {
             thisCachedTicker.last = event.price;
             thisCachedTicker.timestamp = msg.timestampms;
+            this.emit("ticker", this.tickersCache.get(marketId), market);
           }
-          this.emit("ticker", this.tickersCache.get(marketId), market);
         }
       }
     }
