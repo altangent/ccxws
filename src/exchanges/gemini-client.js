@@ -301,11 +301,17 @@ class GeminiClient extends EventEmitter {
             thisCachedTicker.bid = event.price;
             thisCachedTicker.timestamp = msg.timestampms;
           }
+          
           if (event.type === "trade") {
             thisCachedTicker.last = event.price;
             thisCachedTicker.timestamp = msg.timestampms;
           }
-          this.emit("ticker", this.tickersCache.get(marketId), market);
+          // don't emit a partial ticker if we haven't received last, ask and bid yet.
+          // so it will wait for the first trade to arrive, that is when we receive
+          // the first "last" value
+          if (thisCachedTicker.last && thisCachedTicker.ask && thisCachedTicker.bid) {
+            this.emit("ticker", this.tickersCache.get(marketId), market);
+          }
         }
       }
     }
