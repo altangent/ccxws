@@ -40,6 +40,8 @@ class BinanceClient extends EventEmitter {
     this._watcher = new Watcher(this, reconnectIntervalMs);
     this._restSem = semaphore(1);
     this.REST_REQUEST_DELAY_MS = 1000;
+
+    this._messageId = 0;
   }
 
   get subCount() {
@@ -108,16 +110,51 @@ class BinanceClient extends EventEmitter {
   _subscribe(market, map) {
     let remote_id = market.id.toLowerCase();
     if (!map.has(remote_id)) {
-      map.set(remote_id, market);
-      this._reconnect();
+      if (!this._wss) {
+        map.set(remote_id, market);
+        this._reconnect();
+      } else {
+        const oldStreams = this._buildStreams();
+        map.set(remote_id, market);
+        const newStreams = this._buildStreams();
+        const subscribeStreams = newStreams.filter(stream => !oldStreams.includes(stream));
+        const request = {
+          method: "SUBSCRIBE",
+          params: subscribeStreams,
+          id: this._createMessageId(),
+        };
+
+        // as we are not reconnecting, we have to
+        // request the snapshot for l2 updates
+        for (const stream of subscribeStreams) {
+          if (stream.endsWith('@depth')) {
+            this._requestLevel2Snapshot(market);
+          }
+        }
+
+        this._wss.send(JSON.stringify(request));
+      }
     }
   }
 
   _unsubscribe(market, map) {
     let remote_id = market.id.toLowerCase();
     if (map.has(remote_id)) {
-      map.delete(remote_id);
-      this._reconnect();
+      if (!this._wss) {
+        map.delete(remote_id);
+        this._reconnect();
+      } else {
+        const oldStreams = this._buildStreams();
+        map.delete(remote_id);
+        const newStreams = this._buildStreams();
+        const subscribeStreams = oldStreams.filter(stream => !newStreams.includes(stream));
+        const request = {
+          method: "UNSUBSCRIBE",
+          params: subscribeStreams,
+          id: this._createMessageId(),
+        };
+        this._wss.send(JSON.stringify(request));
+      }
     }
   }
 
@@ -155,20 +192,7 @@ class BinanceClient extends EventEmitter {
    */
   _connect() {
     if (!this._wss) {
-      let streams = [].concat(
-        Array.from(this._tradeSubs.keys()).map(
-          p => p + (this.useAggTrades ? "@aggTrade" : "@trade")
-        ),
-        Array.from(this._candleSubs.keys()).map(
-          p => `${p}@kline_${candlePeriod(this.candlePeriod)}`
-        ),
-        Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
-        Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
-      );
-      if (this._tickerSubs.size > 0) {
-        streams.push("!ticker@arr");
-      }
-
+      const streams = this._buildStreams();
       let wssPath = "wss://stream.binance.com:9443/stream?streams=" + streams.join("/");
 
       this._wss = new SmartWss(wssPath);
@@ -223,6 +247,15 @@ class BinanceClient extends EventEmitter {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
+
+    // incremental subscribe/unsubscribe responses
+    if (!msg.stream && !msg.data && msg.id) {
+      if (msg.result !== null) {
+        this.emit("error", msg.result);
+
+      }
+      return;
+    }
 
     // ticker
     if (msg.stream === "!ticker@arr") {
@@ -452,6 +485,25 @@ class BinanceClient extends EventEmitter {
         if (failed) this._requestLevel2Snapshot(market);
       }
     });
+  }
+
+  _createMessageId() {
+    this._messageId = this._messageId + 1;
+    return this._messageId;
+  }
+
+  _buildStreams() {
+    let streams = [].concat(
+      Array.from(this._tradeSubs.keys()).map(p => p + (this.useAggTrades ? "@aggTrade" : "@trade")),
+      Array.from(this._candleSubs.keys()).map(p => `${p}@kline_${candlePeriod(this.candlePeriod)}`),
+      Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
+      Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
+    );
+    if (this._tickerSubs.size > 0) {
+      streams.push("!ticker@arr");
+    }
+
+    return streams;
   }
 }
 
