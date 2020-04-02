@@ -61,14 +61,26 @@ function testClient(spec) {
 
     if (spec.hasLevel2Snapshots && spec.l2snapshot) {
       testLevel2Snapshots(spec, state);
+
+      if (spec.hasIncrementalSubscribe) {
+        testIncrementalLevel2Snapshots(spec, state);
+      }
     }
 
     if (spec.hasLevel2Updates && spec.l2update) {
       testLevel2Updates(spec, state);
+
+      if (spec.hasIncrementalSubscribe) {
+        testIncrementalLevel2Updates(spec, state);
+      }
     }
 
     if (spec.hasLevel3Updates && spec.l3update) {
       testLevel3Updates(spec, state);
+
+      if (spec.hasIncrementalSubscribe) {
+        testIncrementalLevel3Updates(spec, state);
+      }
     }
 
     describe("close", () => {
@@ -673,6 +685,112 @@ function testLevel3Result(spec, result, type) {
     expect(parseFloat(actual)).to.not.be.NaN;
   });
 }
+
+function testIncrementalLevel2Snapshots(spec, state) {
+  describe("subscribeLevel2SnapshotsIncrementally", () => {
+    let result = { closed: false };
+    let client;
+
+    before(() => {
+      client = state.client;
+    })
+
+    it("should subscribe and unsubscribe but not reconnect", done => {
+      for (let market of spec.markets) {
+        client.subscribeLevel2Snapshots(market);
+      }
+
+      client.on("closed", () => {
+        result.closed = true;
+      });
+
+      client.on('l2snapshot', () => {
+        for (let market of spec.markets) {
+          client.unsubscribeLevel2Snapshots(market);
+        }
+
+        expect(result.closed).to.be.false;
+        client.removeAllListeners("l2snapshot");
+        client.removeAllListeners("closed");
+        done();
+
+      })
+    })
+      .timeout(60000)
+      .retries(3);
+  })
+}
+
+function testIncrementalLevel2Updates(spec, state) {
+  describe("subscribeLevel2UpdatesIncrementally", () => {
+    let result = { closed: false };
+    let client;
+
+    before(() => {
+      client = state.client;
+    })
+
+    it("should subscribe and unsubscribe but not reconnect", done => {
+      for (let market of spec.markets) {
+        client.subscribeLevel2Updates(market);
+      }
+
+      client.on("closed", () => {
+        result.closed = true;
+      });
+
+      client.on('l2update', () => {
+        for (let market of spec.markets) {
+          client.unsubscribeLevel2Updates(market);
+        }
+
+        expect(result.closed).to.be.false;
+        client.removeAllListeners("l2update");
+        client.removeAllListeners("closed");
+        done();
+
+      })
+    })
+      .timeout(60000)
+      .retries(3);
+  })
+}
+
+function testIncrementalLevel3Updates(spec, state) {
+  describe("subscribeLevel3UpdatesIncrementally", () => {
+    let result = { closed: false };
+    let client;
+
+    before(() => {
+      client = state.client;
+    })
+
+    it("should subscribe and unsubscribe but not reconnect", done => {
+      for (let market of spec.markets) {
+        client.subscribeLevel3Updates(market);
+      }
+
+      client.on("closed", () => {
+        result.closed = true;
+      });
+
+      client.on('l3update', () => {
+        for (let market of spec.markets) {
+          client.unsubscribeLevel3Updates(market);
+        }
+
+        expect(result.closed).to.be.false;
+        client.removeAllListeners("l3update");
+        client.removeAllListeners("closed");
+        done();
+
+      })
+    })
+      .timeout(60000)
+      .retries(3);
+  })
+}
+
 
 //////////////////////////////////////////////////////
 

@@ -25,6 +25,7 @@ testClient({
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
   hasLevel3Updates: false,
+  hasIncrementalSubscribe: true,
 
   ticker: {
     hasTimestamp: true,
