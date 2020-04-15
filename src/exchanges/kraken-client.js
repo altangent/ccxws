@@ -484,7 +484,22 @@ class KrakenClient extends BasicClient {
 
     // then find the max value of all the timestamps
     let timestamp = Math.max.apply(null, timestamps);
-
+    
+    // eiliminating duplicate prices
+    let uniqueBook = {asks: {}, bids: {}};
+    a.map(p => {
+      
+      if (!uniqueBook.asks[p[0]]) uniqueBook.asks[p[0]] = p;
+      if (parseFloat(uniqueBook.asks[p[0]][2]) < parseFloat(p[2])) uniqueBook.asks[p[0]] = p;
+    });
+    b.map(p => {
+      
+      if (!uniqueBook.bids[p[0]]) uniqueBook.bids[p[0]] = p;
+      if (parseFloat(uniqueBook.bids[p[0]][2]) < parseFloat(p[2])) uniqueBook.bids[p[0]] = p;
+    });
+    a = Object.values(uniqueBook.asks);
+    b = Object.values(uniqueBook.bids);
+    
     let asks = a.map(p => new Level2Point(p[0], p[1]));
     let bids = b.map(p => new Level2Point(p[0], p[1]));
 
