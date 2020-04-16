@@ -1,6 +1,6 @@
 {
   "name": "ccxws",
-  "version": "0.29.3",
+  "version": "0.31.1",
   "description": "Websocket client for 20+ cryptocurrency exchanges",
   "keywords": [
     "bitmex",
@@ -35,7 +35,7 @@
     "eslint": "^5.16.0",
     "mocha": "^6.2.0",
     "mocha-parallel-tests": "^2.2.1",
-    "nyc": "^14.1.1",
+    "nyc": "^15.0.0",
     "prettier": "^1.18.2",
     "sinon": "^7.3.2"
   }

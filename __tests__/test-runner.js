@@ -103,7 +103,7 @@ function testClient(spec) {
       return () => {
         try {
           expect(actual).to.deep.equal(expected);
-          done();
+          setTimeout(done, 1000); // delay this to prevent async "connection" events to complete
         } catch (ex) {
           done(ex);
         }

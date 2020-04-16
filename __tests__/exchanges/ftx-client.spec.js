@@ -1,20 +1,15 @@
 const { testClient } = require("../test-runner");
-const GateioClient = require("../../src/exchanges/gateio-client");
+const FtxClient = require("../../src/exchanges/ftx-client");
 
 testClient({
-  clientFactory: () => new GateioClient(),
-  clientName: "GateioClient",
-  exchangeName: "Gateio",
+  clientFactory: () => new FtxClient(),
+  clientName: "FtxClient",
+  exchangeName: "FTX",
   markets: [
     {
-      id: "btc_usdt",
+      id: "BTC/USD",
       base: "BTC",
-      quote: "USDT",
-    },
-    {
-      id: "eth_btc",
-      base: "ETH",
-      quote: "BTC",
+      quote: "USD",
     },
   ],
 
@@ -34,32 +29,33 @@ testClient({
   ticker: {
     hasTimestamp: true,
     hasLast: true,
-    hasOpen: true,
-    hasHigh: true,
-    hasLow: true,
-    hasVolume: true,
-    hasQuoteVolume: true,
-    hasChange: true,
-    hasChangePercent: true,
-    hasBid: false,
-    hasBidVolume: false,
-    hasAsk: false,
-    hasAskVolume: false,
+    hasOpen: false,
+    hasHigh: false,
+    hasLow: false,
+    hasVolume: false,
+    hasQuoteVolume: false,
+    hasChange: false,
+    hasChangePercent: false,
+    hasAsk: true,
+    hasBid: true,
+    hasAskVolume: true,
+    hasBidVolume: true,
   },
 
   trade: {
     hasTradeId: true,
+    tradeIdPattern: /[0-9]+/,
   },
 
   l2snapshot: {
-    hasTimestampMs: false,
+    hasTimestampMs: true,
     hasSequenceId: false,
     hasCount: false,
   },
 
   l2update: {
     hasSnapshot: true,
-    hasTimestampMs: false,
+    hasTimestampMs: true,
     hasSequenceId: false,
     hasCount: false,
   },
