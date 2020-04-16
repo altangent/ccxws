@@ -23,6 +23,27 @@ class LiquidClient extends BasicClient {
     }
   }
 
+  _beforeConnect() {
+    this._wss.on("connected", this._startPing.bind(this));
+    this._wss.on("disconnected", this._stopPing.bind(this));
+    this._wss.on("closed", this._stopPing.bind(this));
+  }
+
+  _startPing() {
+    clearInterval(this._pingInterval);
+    this._pingInterval = setInterval(this._sendPing.bind(this), 60000);
+  }
+
+  _stopPing() {
+    clearInterval(this._pingInterval);
+  }
+
+  _sendPing() {
+    if (this._wss) {
+      this._wss.send(JSON.stringify({ event: "pusher:ping", data: {} }));
+    }
+  }
+
   /**
    * Liquid endpoints brilliantly/s require you to include the product id
    * in addition to the market symbol. So we need a way to reference this.
