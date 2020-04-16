@@ -278,35 +278,15 @@ class GeminiClient extends EventEmitter {
         }
         return;
       }
+
+      // process ticker
+      // tickers are processed from a seperate websocket
       if (subscription.tickers) {
-        const marketId = subscription.market.id;
-        if (!this.tickersCache.has(marketId)) {
-          this.tickersCache.set(
-            marketId,
-            new Ticker({
-              exchange: "Gemini",
-              base: subscription.market.base,
-              quote: subscription.market.quote,
-            })
-          );
+        const ticker = this._constructTicker(msg, market);
+        if (ticker.last && ticker.bid && ticker.ask) {
+          this.emit("ticker", ticker, market);
         }
-        const thisCachedTicker = this.tickersCache.get(marketId);
-        for (let i = 0; i < msg.events.length; i++) {
-          let event = msg.events[i];
-          if (event.type === "change" && event.side === "ask") {
-            thisCachedTicker.ask = event.price;
-            thisCachedTicker.timestamp = msg.timestampms;
-          }
-          if (event.type === "change" && event.side === "bid") {
-            thisCachedTicker.bid = event.price;
-            thisCachedTicker.timestamp = msg.timestampms;
-          }
-          if (event.type === "trade") {
-            thisCachedTicker.last = event.price;
-            thisCachedTicker.timestamp = msg.timestampms;
-          }
-          this.emit("ticker", this.tickersCache.get(marketId), market);
-        }
+        return;
       }
     }
   }
@@ -367,6 +347,51 @@ class GeminiClient extends EventEmitter {
       asks,
       bids,
     });
+  }
+
+  _constructTicker(msg, market) {
+    const ticker = this._getTicker(market);
+    for (let i = 0; i < msg.events.length; i++) {
+      const event = msg.events[i];
+
+      // asks - top_of_book in use
+      if (event.type === "change" && event.side === "ask") {
+        ticker.ask = event.price;
+        ticker.timestamp = msg.timestampms;
+      }
+
+      // bids - top_of_book in use
+      if (event.type === "change" && event.side === "bid") {
+        ticker.bid = event.price;
+        ticker.timestamp = msg.timestampms;
+      }
+
+      // attach latest trade information
+      if (event.type === "trade") {
+        ticker.last = event.price;
+        ticker.timestamp = msg.timestampms;
+      }
+    }
+
+    return ticker;
+  }
+
+  /**
+   * Ensures that a ticker for the market exists
+   * @param {*} market
+   */
+  _getTicker(market) {
+    if (!this.tickersCache.has(market.id)) {
+      this.tickersCache.set(
+        market.id,
+        new Ticker({
+          exchange: "Gemini",
+          base: market.base,
+          quote: market.quote,
+        })
+      );
+    }
+    return this.tickersCache.get(market.id);
   }
 }
 
