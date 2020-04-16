@@ -22,7 +22,7 @@ testClient({
   hasTrades: true,
   hasCandles: false,
   hasLevel2Snapshots: false,
-  hasLevel2Updates: false,
+  hasLevel2Updates: true,
   hasLevel3Snapshots: false,
   hasLevel3Updates: false,
 
@@ -52,10 +52,10 @@ testClient({
   //   hasCount: true,
   // },
 
-  // l2update: {
-  //   hasSnapshot: true,
-  //   hasTimestampMs: true,
-  //   hasSequenceId: false,
-  //   hasCount: true,
-  // },
+  l2update: {
+    hasSnapshot: false,
+    hasTimestampMs: false,
+    hasSequenceId: false,
+    hasCount: false,
+  },
 });

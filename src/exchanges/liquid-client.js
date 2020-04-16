@@ -2,6 +2,8 @@ const BasicClient = require("../basic-client");
 const https = require("../https");
 const Trade = require("../trade");
 const Ticker = require("../ticker");
+const Level2Update = require("../level2-update");
+const Level2Point = require("../level2-point");
 
 /**
  * Liquid client as implemented by:
@@ -16,6 +18,7 @@ class LiquidClient extends BasicClient {
     this.requestSnapshot = false;
     this.hasTrades = true;
     this.hasTickers = true;
+    this.hasLevel2Updates = true;
 
     this.productIdMap = new Map();
     if (autoloadSymbolMaps) {
@@ -97,11 +100,13 @@ class LiquidClient extends BasicClient {
   }
 
   _sendUnsubTicker(remote_id) {
+    remote_id = remote_id.toLowerCase();
+    const product_id = this.productIdMap.get(remote_id);
     this._wss.send(
       JSON.stringify({
         event: "pusher:unsubscribe",
         data: {
-          channel: `product_cash_${remote_id.toLowerCase()}`,
+          channel: `product_cash_${remote_id}_${product_id}`,
         },
       })
     );
@@ -124,6 +129,46 @@ class LiquidClient extends BasicClient {
         event: "pusher:unsubscribe",
         data: {
           channel: `executions_cash_${remote_id.toLowerCase()}`,
+        },
+      })
+    );
+  }
+
+  _sendSubLevel2Updates(remote_id) {
+    remote_id = remote_id.toLowerCase();
+    this._wss.send(
+      JSON.stringify({
+        event: "pusher:subscribe",
+        data: {
+          channel: `price_ladders_cash_${remote_id}_buy`,
+        },
+      })
+    );
+    this._wss.send(
+      JSON.stringify({
+        event: "pusher:subscribe",
+        data: {
+          channel: `price_ladders_cash_${remote_id}_sell`,
+        },
+      })
+    );
+  }
+
+  _sendUnsubLevel2Updates(remote_id) {
+    remote_id = remote_id.toLowerCase();
+    this._wss.send(
+      JSON.stringify({
+        event: "pusher:unsubscribe",
+        data: {
+          channel: `price_ladders_cash_${remote_id}_buy`,
+        },
+      })
+    );
+    this._wss.send(
+      JSON.stringify({
+        event: "pusher:unsubscribe",
+        data: {
+          channel: `price_ladders_cash_${remote_id}_sell`,
         },
       })
     );
@@ -154,6 +199,12 @@ class LiquidClient extends BasicClient {
 
       if (msg.channel.startsWith("product_cash_")) {
         this._onTicker(msg);
+        return;
+      }
+
+      if (msg.channel.startsWith("price_ladders_cash_")) {
+        this._onOrderBook(msg);
+        return;
       }
     }
   }
@@ -240,6 +291,50 @@ class LiquidClient extends BasicClient {
     });
 
     this.emit("trade", trade, market);
+  }
+
+  /**
+   * {
+        channel: 'price_ladders_cash_btcjpy_buy',
+        data: '[["755089.00000","0.03319269"],["755087.00000","0.00593314"],["755068.00000","0.00150000"],["755060.00000","0.00100000"],["755059.00000","0.03244832"],["755050.00000","0.03244969"],["755044.00000","0.47500000"],["754978.00000","0.47500000"],["754941.00000","0.00100000"],["754929.00000","0.00100000"],["754913.00000","0.05409938"],["754891.00000","0.37872763"],["754890.00000","0.03974826"],["754869.00000","0.04059000"],["754850.00000","0.05000000"],["754835.00000","0.03300000"],["754834.00000","0.25000000"],["754776.00000","0.03000000"],["754738.00000","0.00960000"],["754715.00000","0.00500000"],["754713.00000","0.05000000"],["754701.00000","0.03244949"],["754698.00000","0.00100000"],["754695.00000","0.03245118"],["754685.00000","0.48000000"],["754674.00000","0.00900000"],["754625.00000","0.50000013"],["754611.00000","0.10000000"],["754604.00000","0.05000000"],["754602.00000","0.05000000"],["754601.00000","0.03000000"],["754593.00000","0.01000000"],["754581.00000","0.01000000"],["754578.00000","0.01020000"],["754479.00000","0.01840000"],["754469.00000","1.00000013"],["754401.00000","0.02500000"],["754400.00000","0.01000000"],["754398.00000","0.03000000"],["754390.00000","0.25000000"]]',
+        event: 'updated'
+      }
+   */
+  _onOrderBook(msg) {
+    let data;
+    try {
+      data = JSON.parse(msg.data);
+    } catch (e) {
+      return;
+    }
+
+    let remote_id = /(price_ladders_cash_)(\w+)_(buy|sell)+/.exec(msg.channel)[2];
+    let market = this._level2UpdateSubs.get(remote_id);
+    if (!market) return;
+
+    let side = msg.channel.endsWith("buy") ? "buy" : "sell";
+    let points = data.map(([price, amount]) => new Level2Point(price, amount));
+
+    let bids;
+    let asks;
+
+    if (side == "buy") {
+      bids = points;
+      asks = [];
+    } else {
+      bids = [];
+      asks = points;
+    }
+
+    let update = new Level2Update({
+      exchange: "Liquid",
+      base: market.base,
+      quote: market.quote,
+      bids,
+      asks,
+    });
+
+    this.emit("l2update", update, market);
   }
 }
 
