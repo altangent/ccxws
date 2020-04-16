@@ -11,17 +11,18 @@ const cex = require("./exchanges/cex-client");
 const coinbasepro = require("./exchanges/coinbasepro-client");
 const coinex = require("./exchanges/coinex-client");
 const ethfinex = require("./exchanges/ethfinex-client");
+const ftx = require("./exchanges/ftx-client");
 const gateio = require("./exchanges/gateio-client");
 const gemini = require("./exchanges/gemini-client");
 const hitbtc = require("./exchanges/hitbtc-client");
 const huobi = require("./exchanges/huobi-client");
 const kucoin = require("./exchanges/kucoin-client");
 const kraken = require("./exchanges/kraken-client");
+const liquid = require("./exchanges/liquid-client");
 const okex = require("./exchanges/okex-client");
 const poloniex = require("./exchanges/poloniex-client");
 const upbit = require("./exchanges/upbit-client");
 const zb = require("./exchanges/zb-client");
-const ftx = require("./exchanges/ftx-client");
 
 module.exports = {
   // export all exchanges
@@ -38,6 +39,7 @@ module.exports = {
   coinbasepro,
   coinex,
   ethfinex,
+  ftx,
   gateio,
   gemini,
   hitbtc,
@@ -46,12 +48,12 @@ module.exports = {
   huobipro: huobi,
   kucoin,
   kraken,
+  liquid,
   okex,
   okex3: okex,
   poloniex,
   upbit,
   zb,
-  ftx,
 
   // export all legacy exchange names
   Bibox: bibox,
