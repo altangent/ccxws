@@ -1,14 +1,11 @@
-const semaphore = require("semaphore");
-const { wait } = require("../util");
-const https = require("../https");
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
-const Level2Point = require("../level2-point");
-const Level2Snapshot = require("../level2-snapshot");
-const Level2Update = require("../level2-update");
 
+/**
+ * Liquid client as implemented by:
+ * https://developers.liquid.com/#public-channels
+ */
 class LiquidClient extends BasicClient {
-
   constructor() {
     super();
 
@@ -16,11 +13,7 @@ class LiquidClient extends BasicClient {
     this._wssPath = "wss://tap.liquid.com/app/LiquidTapClient";
     this.requestSnapshot = false;
     this.hasTrades = true;
-    this.hasLevel2Snapshots = false;
-    this.hasLevel2Updates = false;
   }
-
-  //executions_cash_ channel ID's for liquid are all lowercase, e.g. "btyjpy"
 
   _sendSubTrades(remote_id) {
     this._wss.send(
@@ -28,7 +21,7 @@ class LiquidClient extends BasicClient {
         event: "pusher:subscribe",
         data: {
           channel: `executions_cash_${remote_id.toLowerCase()}`,
-        }
+        },
       })
     );
   }
@@ -39,7 +32,7 @@ class LiquidClient extends BasicClient {
         event: "pusher:unsubscribe",
         data: {
           channel: `executions_cash_${remote_id.toLowerCase()}`,
-        }
+        },
       })
     );
   }
@@ -47,26 +40,40 @@ class LiquidClient extends BasicClient {
   /////////////////////////////////////////////
 
   _onMessage(raw) {
-    try{
+    try {
       var msg = JSON.parse(raw);
-    }
-    catch(e){
+    } catch (e) {
+      this.emit("error", e);
       return;
     }
 
-    if(msg.channel){
-      if(msg.channel.startsWith("executions_cash_") != -1){
+    // success messages look like:
+    // {
+    //   channel: 'executions_cash_btcjpy',
+    //   data: {},
+    //   event: 'pusher_internal:subscription_succeeded'
+    // }
+
+    if (msg.channel) {
+      if (msg.channel.startsWith("executions_cash_") != -1) {
         this._onTrade(msg);
         return;
       }
     }
   }
 
+  /**
+   * Trade message in the format:
+   * {
+   *   channel: 'executions_cash_btcjpy',
+   *   data: '{"created_at":1587056568,"id":297058474,"price":757584.0,"quantity":0.178,"taker_side":"sell"}',
+   *   event: 'created'
+   * }
+   */
   _onTrade(msg) {
-    try{
+    try {
       var data = JSON.parse(msg.data);
-    }
-    catch(e){
+    } catch (e) {
       return;
     }
 
@@ -80,12 +87,12 @@ class LiquidClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       tradeId: data.id.toFixed(),
-      unix: parseInt(data.created_at),
+      unix: parseInt(data.created_at) * 1000,
       side: data.taker_side == "buy" ? "buy" : "sell",
-      price: data.price,
-      amount: data.quantity,
+      price: data.price.toFixed(),
+      amount: data.quantity.toFixed(),
       buyOrderId: undefined,
-      sellOrderId: undefined
+      sellOrderId: undefined,
     });
 
     this.emit("trade", trade, market);
