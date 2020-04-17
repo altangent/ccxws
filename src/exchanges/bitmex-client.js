@@ -25,72 +25,6 @@ class BitmexClient extends BasicClient {
     this.tickerMap = new Map();
   }
 
-  /**
-   * Stores updated ticker data and emits ticker event.
-   */
-  _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
-    const market = this._tickerSubs.get(remote_id);
-    if (!market) return;
-
-    const ticker = this._getTicker(market);
-
-    if (last) {
-      ticker.last = last;
-    }
-
-    if (ask) {
-      ticker.ask = ask;
-    }
-
-    if (askVolume) {
-      ticker.askVolume = askVolume;
-    }
-
-    if (bid) {
-      ticker.bid = bid;
-    }
-
-    if (bidVolume) {
-      ticker.bidVolume = bidVolume;
-    }
-
-    this.emit("ticker", ticker, market);
-  }
-
-  /**
-   * Creates a blank ticker for the specified market. The Ticker class is optimized
-   * to maintain a consistent shape to prevent shape transitions and reduce garbage.
-   * @param {*} market
-   */
-  _createTicker(market) {
-    return new Ticker({
-      exchange: "BitMEX",
-      base: market.base,
-      quote: market.quote,
-    });
-  }
-
-  /**
-   * Retrieves a ticker for the market or constructs one if it doesn't exist
-   * @param {string} market
-   */
-  _getTicker(market) {
-    const remote_id = market.id;
-    let ticker = this.tickerMap.get(remote_id);
-    if (!ticker) {
-      ticker = this._createTicker(market);
-      this.tickerMap.set(remote_id, ticker);
-    }
-    return ticker;
-  }
-
-  /**
-   * Deletes cached ticker data after unsubbing from ticker.
-   */
-  _deleteTicker(remote_id) {
-    delete this.tickerMap.delete(remote_id);
-  }
-
   _sendSubTicker(remote_id) {
     this._sendSubQuote(remote_id);
     this._sendSubTrades(remote_id);
@@ -431,6 +365,72 @@ class BitmexClient extends BasicClient {
       asks,
       bids,
     });
+  }
+
+  /**
+   * Stores updated ticker data and emits ticker event.
+   */
+  _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
+    const market = this._tickerSubs.get(remote_id);
+    if (!market) return;
+
+    const ticker = this._getTicker(market);
+
+    if (last) {
+      ticker.last = last;
+    }
+
+    if (ask) {
+      ticker.ask = ask;
+    }
+
+    if (askVolume) {
+      ticker.askVolume = askVolume;
+    }
+
+    if (bid) {
+      ticker.bid = bid;
+    }
+
+    if (bidVolume) {
+      ticker.bidVolume = bidVolume;
+    }
+
+    this.emit("ticker", ticker, market);
+  }
+
+  /**
+   * Creates a blank ticker for the specified market. The Ticker class is optimized
+   * to maintain a consistent shape to prevent shape transitions and reduce garbage.
+   * @param {*} market
+   */
+  _createTicker(market) {
+    return new Ticker({
+      exchange: "BitMEX",
+      base: market.base,
+      quote: market.quote,
+    });
+  }
+
+  /**
+   * Retrieves a ticker for the market or constructs one if it doesn't exist
+   * @param {string} market
+   */
+  _getTicker(market) {
+    const remote_id = market.id;
+    let ticker = this.tickerMap.get(remote_id);
+    if (!ticker) {
+      ticker = this._createTicker(market);
+      this.tickerMap.set(remote_id, ticker);
+    }
+    return ticker;
+  }
+
+  /**
+   * Deletes cached ticker data after unsubbing from ticker.
+   */
+  _deleteTicker(remote_id) {
+    delete this.tickerMap.delete(remote_id);
   }
 }
 
