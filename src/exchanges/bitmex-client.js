@@ -98,7 +98,7 @@ class BitmexClient extends BasicClient {
     let { table, action } = message;
 
     if (table === "quote") {
-      this._processQuotes(message.data);
+      this._onQuoteMessage(message);
       return;
     }
 
@@ -330,11 +330,10 @@ class BitmexClient extends BasicClient {
   }
 
   /**
-   * Updates and emits tickers from a batch of quote updates. From
+   * Updates a ticker for a quote update. From
    * testing, quote broadcasts are sorted from oldest to newest and are
-   * for a single market. To prevent any issues, the entire collection will be
-   * iterated but only a single event will be emitted for each symbol
-   * The parent message looks like:
+   * for a single market. The parent message looks like below and
+   * the last object in the array is provided to this method.
    * {
         table: 'quote',
         action: 'insert',
@@ -358,35 +357,38 @@ class BitmexClient extends BasicClient {
         ]
       }
    */
-  _processQuotes(quotes) {
-    // collapses the quotes into a single update per market.
-    // starting from the end, since results are sorted in ascending order, add each symbol.
-    const quoteMap = new Map();
-    for (let i = quotes.length - 1; i >= 0; i--) {
-      const quote = quotes[i];
-      if (!quoteMap.has(quotes.symbol)) {
-        quoteMap.set(quote.symbol, quote);
-      }
-    }
-
-    // individually process each quote
-    for (let quote of quoteMap.values()) {
-      this._processQuote(quote);
+  _onQuoteMessage(msg) {
+    const data = msg.data;
+    const lastQuote = data[data.length - 1];
+    const remote_id = lastQuote.symbol;
+    const market = this._tickerSubs.get(remote_id);
+    if (market) {
+      const ticker = this._constructTickerForQuote(lastQuote, market);
+      this.emit("ticker", ticker, market);
     }
   }
 
   /**
-   * Process a single quote update
-   * @param {*} quote
+   * Constructs a ticker from a single quote data
+    {
+      timestamp: '2020-04-17T16:05:58.016Z',
+      symbol: 'XBTUSD',
+      bidSize: 684279,
+      bidPrice: 7055,
+      askPrice: 7055.5,
+      askSize: 927374
+    }
+   * @param {*} datum
+   * @param {*} market
    */
-  _processQuote(quote) {
-    const remote_id = quote.symbol;
-    this._storeLimitedTickerDataAndEmitTicker(remote_id, {
-      ask: quote.askPrice,
-      askVolume: quote.askSize,
-      bid: quote.bidPrice,
-      bidVolume: quote.bidSize,
-    });
+  _constructTickerForQuote(datum, market) {
+    const ticker = this._getTicker(market);
+    ticker.ask = datum.askPrice;
+    ticker.askVolume = datum.askSize;
+    ticker.bid = datum.bidPrice;
+    ticker.bidVolume = datum.bidSize;
+    ticker.timestamp = new Date(datum.timestamp).valueOf();
+    return ticker;
   }
 
   /**
@@ -411,38 +413,6 @@ class BitmexClient extends BasicClient {
     ticker.last = data.price.toFixed();
     ticker.timestamp = new Date(data.timestamp).valueOf();
     return ticker;
-  }
-
-  /**
-   * Stores updated ticker data and emits ticker event.
-   */
-  _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
-    const market = this._tickerSubs.get(remote_id);
-    if (!market) return;
-
-    const ticker = this._getTicker(market);
-
-    if (last) {
-      ticker.last = last;
-    }
-
-    if (ask) {
-      ticker.ask = ask;
-    }
-
-    if (askVolume) {
-      ticker.askVolume = askVolume;
-    }
-
-    if (bid) {
-      ticker.bid = bid;
-    }
-
-    if (bidVolume) {
-      ticker.bidVolume = bidVolume;
-    }
-
-    this.emit("ticker", ticker, market);
   }
 
   /**
