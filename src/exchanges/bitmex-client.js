@@ -37,6 +37,7 @@ class BitmexClient extends BasicClient {
 
     this.limitedTickerData[remote_id] =
       this.limitedTickerData[remote_id] || this._createTickerForMarket(market);
+
     last && (this.limitedTickerData[remote_id].last = last);
     ask && (this.limitedTickerData[remote_id].ask = ask);
     askVolume && (this.limitedTickerData[remote_id].askVolume = askVolume);
@@ -57,6 +58,20 @@ class BitmexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
     });
+  }
+
+  /**
+   * Retrieves a ticker for the market or constructs one if it doesn't exist
+   * @param {string} market
+   */
+  _getTicker(market) {
+    const remote_id = market.id;
+    let ticker = this.limitedTickerData[remote_id];
+    if (!ticker) {
+      ticker = this._createTicker(market);
+      this.limitedTickerData[remote_id] = ticker;
+    }
+    return ticker;
   }
 
   /**
