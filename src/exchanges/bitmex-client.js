@@ -18,11 +18,13 @@ class BitmexClient extends BasicClient {
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
 
-    this._storeLimitedTickerDataAndEmitTicker = this._storeLimitedTickerDataAndEmitTicker.bind(this);
+    this._storeLimitedTickerDataAndEmitTicker = this._storeLimitedTickerDataAndEmitTicker.bind(
+      this
+    );
     this._deleteLimitedTickerDataCache = this._deleteLimitedTickerDataCache.bind(this);
 
     // key-value pairs in format <remote_id>: {last: <Number>, ask: <Number>, askVolume: <Number>,  bid: <Number>, bidVolume: <Number>, }
-    this.limitedTickerData = { };
+    this.limitedTickerData = {};
   }
 
   /**
@@ -35,7 +37,7 @@ class BitmexClient extends BasicClient {
       ask: undefined,
       askVolume: undefined,
       bid: undefined,
-      bidVolume: undefined
+      bidVolume: undefined,
     };
     last && (this.limitedTickerData[remote_id].last = last);
     ask && (this.limitedTickerData[remote_id].ask = ask);
@@ -126,7 +128,7 @@ class BitmexClient extends BasicClient {
     let { table, action } = message;
 
     if (table === "quote") {
-      // group quotes by symbol, then for each symbol we're subscribed to tickers for 
+      // group quotes by symbol, then for each symbol we're subscribed to tickers for
       // we store the ask/askSize/bid/bidSize for ticker data
       // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
       const quotesGroupedBySymbol = {};
@@ -138,7 +140,7 @@ class BitmexClient extends BasicClient {
         const thisSymbolQuotes = quotesGroupedBySymbol[thisSymbol];
         if (this._tickerSubs.has(thisSymbol)) {
           const latestQuote = thisSymbolQuotes.sort((a, b) => {
-            return new Date(b) - new Date(a)
+            return new Date(b) - new Date(a);
           })[0];
           const ask = latestQuote.askPrice;
           const askVolume = latestQuote.askSize;
@@ -148,11 +150,10 @@ class BitmexClient extends BasicClient {
             ask,
             askVolume,
             bid,
-            bidVolume
+            bidVolume,
           });
         }
       });
-
     }
 
     if (table === "trade") {
@@ -168,7 +169,7 @@ class BitmexClient extends BasicClient {
       }
 
       // handle ticker data
-      // group trades by symbol, then for each symbol we're subscribed to tickers for 
+      // group trades by symbol, then for each symbol we're subscribed to tickers for
       // we find the latest trade and use its price as the ticker "last" price
       // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
       const tradesGroupedBySymbol = {};
@@ -181,11 +182,11 @@ class BitmexClient extends BasicClient {
         // get latest trade to use as "last" for ticker
         if (this._tickerSubs.has(thisSymbol)) {
           const latestTrade = thisSymbolTrades.sort((a, b) => {
-            return new Date(b) - new Date(a)
+            return new Date(b) - new Date(a);
           })[0];
           const lastPrice = latestTrade.price;
           this._storeLimitedTickerDataAndEmitTicker(thisSymbol, {
-            last: lastPrice
+            last: lastPrice,
           });
         }
       });
