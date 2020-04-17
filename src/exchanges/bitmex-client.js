@@ -119,7 +119,9 @@ class BitmexClient extends BasicClient {
         market = this._tickerSubs.get(remote_id);
         if (market) {
           const ticker = this._constructTickerForTrade(datum, market);
-          this.emit("ticker", ticker, market);
+          if (this._isTickerReady(ticker)) {
+            this.emit("ticker", ticker, market);
+          }
         }
       }
       return;
@@ -364,7 +366,9 @@ class BitmexClient extends BasicClient {
     const market = this._tickerSubs.get(remote_id);
     if (market) {
       const ticker = this._constructTickerForQuote(lastQuote, market);
-      this.emit("ticker", ticker, market);
+      if (this._isTickerReady(ticker)) {
+        this.emit("ticker", ticker, market);
+      }
     }
   }
 
@@ -383,10 +387,10 @@ class BitmexClient extends BasicClient {
    */
   _constructTickerForQuote(datum, market) {
     const ticker = this._getTicker(market);
-    ticker.ask = datum.askPrice;
-    ticker.askVolume = datum.askSize;
-    ticker.bid = datum.bidPrice;
-    ticker.bidVolume = datum.bidSize;
+    ticker.ask = datum.askPrice.toFixed();
+    ticker.askVolume = datum.askSize.toFixed();
+    ticker.bid = datum.bidPrice.toFixed();
+    ticker.bidVolume = datum.bidSize.toFixed();
     ticker.timestamp = new Date(datum.timestamp).valueOf();
     return ticker;
   }
@@ -447,6 +451,17 @@ class BitmexClient extends BasicClient {
    */
   _deleteTicker(remote_id) {
     delete this.tickerMap.delete(remote_id);
+  }
+
+  /**
+   * Returns true when all required information is available
+   * in the ticker. Because the ticker is built from multiple stream
+   * testing will break if a ticker is prematurely emitted that does
+   * not contain all of the required data.
+   * @param {*} ticker
+   */
+  _isTickerReady(ticker) {
+    return ticker.last && ticker.bid && ticker.ask;
   }
 }
 
