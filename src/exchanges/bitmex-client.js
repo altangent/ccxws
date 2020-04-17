@@ -57,7 +57,7 @@ class BitmexClient extends BasicClient {
       ticker.bidVolume = bidVolume;
     }
 
-    this.emit("ticker", ticker, remote_id);
+    this.emit("ticker", ticker, market);
   }
 
   /**
