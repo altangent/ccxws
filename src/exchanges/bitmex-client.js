@@ -3,6 +3,7 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
+const Ticker = require("../ticker");
 const moment = require("moment");
 
 class BitmexClient extends BasicClient {
@@ -13,9 +14,47 @@ class BitmexClient extends BasicClient {
   constructor() {
     super("wss://www.bitmex.com/realtime", "BitMEX");
     this.hasTrades = true;
+    this.hasTickers = true;
     this.hasLevel2Updates = true;
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
+
+    /**
+     * Keyed from remote_id, market.id
+     * */
+    this.tickerMap = new Map();
+  }
+
+  _sendSubTicker(remote_id) {
+    this._sendSubQuote(remote_id);
+    this._sendSubTrades(remote_id);
+  }
+
+  _sendUnsubTicker(remote_id) {
+    this._sendUnsubQuote(remote_id);
+    // if we're still subscribed to trades for this symbol, don't unsub
+    if (!this._tradeSubs.has(remote_id)) {
+      this._sendUnsubTrades(remote_id);
+    }
+    this._deleteTicker(remote_id);
+  }
+
+  _sendSubQuote(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "subscribe",
+        args: [`quote:${remote_id}`],
+      })
+    );
+  }
+
+  _sendUnsubQuote(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "unsubscribe",
+        args: [`quote:${remote_id}`],
+      })
+    );
   }
 
   _sendSubTrades(remote_id) {
@@ -58,15 +97,32 @@ class BitmexClient extends BasicClient {
     let message = JSON.parse(msgs);
     let { table, action } = message;
 
+    if (table === "quote") {
+      this._onQuoteMessage(message);
+      return;
+    }
+
     if (table === "trade") {
       if (action !== "insert") return;
+
       for (let datum of message.data) {
         let remote_id = datum.symbol;
-        let market = this._tradeSubs.get(remote_id);
-        if (!market) continue;
 
-        let trade = this._constructTrades(datum, market);
-        this.emit("trade", trade, market);
+        // trade
+        let market = this._tradeSubs.get(remote_id);
+        if (market) {
+          let trade = this._constructTrades(datum, market);
+          this.emit("trade", trade, market);
+        }
+
+        // ticker
+        market = this._tickerSubs.get(remote_id);
+        if (market) {
+          const ticker = this._constructTickerForTrade(datum, market);
+          if (this._isTickerReady(ticker)) {
+            this.emit("ticker", ticker, market);
+          }
+        }
       }
       return;
     }
@@ -273,6 +329,139 @@ class BitmexClient extends BasicClient {
       asks,
       bids,
     });
+  }
+
+  /**
+   * Updates a ticker for a quote update. From
+   * testing, quote broadcasts are sorted from oldest to newest and are
+   * for a single market. The parent message looks like below and
+   * the last object in the array is provided to this method.
+   * {
+        table: 'quote',
+        action: 'insert',
+        data: [
+          {
+            timestamp: '2020-04-17T16:05:57.560Z',
+            symbol: 'XBTUSD',
+            bidSize: 689279,
+            bidPrice: 7055,
+            askPrice: 7055.5,
+            askSize: 927374
+          },
+          {
+            timestamp: '2020-04-17T16:05:58.016Z',
+            symbol: 'XBTUSD',
+            bidSize: 684279,
+            bidPrice: 7055,
+            askPrice: 7055.5,
+            askSize: 927374
+          }
+        ]
+      }
+   */
+  _onQuoteMessage(msg) {
+    const data = msg.data;
+    const lastQuote = data[data.length - 1];
+    const remote_id = lastQuote.symbol;
+    const market = this._tickerSubs.get(remote_id);
+    if (market) {
+      const ticker = this._constructTickerForQuote(lastQuote, market);
+      if (this._isTickerReady(ticker)) {
+        this.emit("ticker", ticker, market);
+      }
+    }
+  }
+
+  /**
+   * Constructs a ticker from a single quote data
+    {
+      timestamp: '2020-04-17T16:05:58.016Z',
+      symbol: 'XBTUSD',
+      bidSize: 684279,
+      bidPrice: 7055,
+      askPrice: 7055.5,
+      askSize: 927374
+    }
+   * @param {*} datum
+   * @param {*} market
+   */
+  _constructTickerForQuote(datum, market) {
+    const ticker = this._getTicker(market);
+    ticker.ask = datum.askPrice.toFixed();
+    ticker.askVolume = datum.askSize.toFixed();
+    ticker.bid = datum.bidPrice.toFixed();
+    ticker.bidVolume = datum.bidSize.toFixed();
+    ticker.timestamp = new Date(datum.timestamp).valueOf();
+    return ticker;
+  }
+
+  /**
+   * Updates a ticker for the market based on the trade informatio
+      {
+        timestamp: '2020-04-17T16:39:53.324Z',
+        symbol: 'XBTUSD',
+        side: 'Buy',
+        size: 20,
+        price: 7062,
+        tickDirection: 'ZeroPlusTick',
+        trdMatchID: 'e6101cc7-844e-25d2-e4a5-7e71d04439e3',
+        grossValue: 283200,
+        homeNotional: 0.002832,
+        foreignNotional: 20
+      }
+   * @param {*} data
+   * @param {*} market
+   */
+  _constructTickerForTrade(data, market) {
+    const ticker = this._getTicker(market);
+    ticker.last = data.price.toFixed();
+    ticker.timestamp = new Date(data.timestamp).valueOf();
+    return ticker;
+  }
+
+  /**
+   * Creates a blank ticker for the specified market. The Ticker class is optimized
+   * to maintain a consistent shape to prevent shape transitions and reduce garbage.
+   * @param {*} market
+   */
+  _createTicker(market) {
+    return new Ticker({
+      exchange: "BitMEX",
+      base: market.base,
+      quote: market.quote,
+    });
+  }
+
+  /**
+   * Retrieves a ticker for the market or constructs one if it doesn't exist
+   * @param {string} market
+   */
+  _getTicker(market) {
+    const remote_id = market.id;
+    let ticker = this.tickerMap.get(remote_id);
+    if (!ticker) {
+      ticker = this._createTicker(market);
+      this.tickerMap.set(remote_id, ticker);
+    }
+    return ticker;
+  }
+
+  /**
+   * Deletes cached ticker data after unsubbing from ticker.
+   */
+  _deleteTicker(remote_id) {
+    delete this.tickerMap.delete(remote_id);
+  }
+
+  /**
+   * Returns true when all required information is available
+   * in the ticker. Because the ticker is built from multiple stream
+   * testing will break if a ticker is prematurely emitted that does
+   * not contain all of the required data.
+   * @param {*} ticker
+   */
+  _isTickerReady(ticker) {
+    return ticker.last && ticker.bid && ticker.ask;
   }
 }
 
