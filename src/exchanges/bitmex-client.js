@@ -19,11 +19,6 @@ class BitmexClient extends BasicClient {
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
 
-    this._storeLimitedTickerDataAndEmitTicker = this._storeLimitedTickerDataAndEmitTicker.bind(
-      this
-    );
-    this._deleteLimitedTickerDataCache = this._deleteTicker.bind(this);
-
     /**
      * Keyed from remote_id, market.id
      * */
