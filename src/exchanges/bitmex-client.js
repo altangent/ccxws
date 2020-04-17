@@ -27,7 +27,7 @@ class BitmexClient extends BasicClient {
 
   _sendSubTicker(remote_id) {
     this._sendSubQuote(remote_id);
-    // this._sendSubTrades(remote_id);
+    this._sendSubTrades(remote_id);
   }
 
   _sendUnsubTicker(remote_id) {
@@ -104,38 +104,24 @@ class BitmexClient extends BasicClient {
 
     if (table === "trade") {
       if (action !== "insert") return;
-      // handle trade event
+
       for (let datum of message.data) {
         let remote_id = datum.symbol;
+
+        // trade
         let market = this._tradeSubs.get(remote_id);
-        if (!market) continue;
-
-        let trade = this._constructTrades(datum, market);
-        this.emit("trade", trade, market);
-      }
-
-      // handle ticker data
-      // group trades by symbol, then for each symbol we're subscribed to tickers for
-      // we find the latest trade and use its price as the ticker "last" price
-      // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
-      const tradesGroupedBySymbol = {};
-      message.data.forEach(thisTrade => {
-        tradesGroupedBySymbol[thisTrade.symbol] = tradesGroupedBySymbol[thisTrade.symbol] || [];
-        tradesGroupedBySymbol[thisTrade.symbol].push(thisTrade);
-      });
-      Object.keys(tradesGroupedBySymbol).forEach(thisSymbol => {
-        const thisSymbolTrades = tradesGroupedBySymbol[thisSymbol];
-        // get latest trade to use as "last" for ticker
-        if (this._tickerSubs.has(thisSymbol)) {
-          const latestTrade = thisSymbolTrades.sort((a, b) => {
-            return new Date(b) - new Date(a);
-          })[0];
-          const lastPrice = latestTrade.price;
-          this._storeLimitedTickerDataAndEmitTicker(thisSymbol, {
-            last: lastPrice,
-          });
+        if (market) {
+          let trade = this._constructTrades(datum, market);
+          this.emit("trade", trade, market);
         }
-      });
+
+        // ticker
+        market = this._tickerSubs.get(remote_id);
+        if (market) {
+          const ticker = this._constructTickerForTrade(datum, market);
+          this.emit("ticker", ticker, market);
+        }
+      }
       return;
     }
 
@@ -401,6 +387,30 @@ class BitmexClient extends BasicClient {
       bid: quote.bidPrice,
       bidVolume: quote.bidSize,
     });
+  }
+
+  /**
+   * Updates a ticker for the market based on the trade informatio
+      {
+        timestamp: '2020-04-17T16:39:53.324Z',
+        symbol: 'XBTUSD',
+        side: 'Buy',
+        size: 20,
+        price: 7062,
+        tickDirection: 'ZeroPlusTick',
+        trdMatchID: 'e6101cc7-844e-25d2-e4a5-7e71d04439e3',
+        grossValue: 283200,
+        homeNotional: 0.002832,
+        foreignNotional: 20
+      }
+   * @param {*} data
+   * @param {*} market
+   */
+  _constructTickerForTrade(data, market) {
+    const ticker = this._getTicker(market);
+    ticker.last = data.price.toFixed();
+    ticker.timestamp = new Date(data.timestamp).valueOf();
+    return ticker;
   }
 
   /**
