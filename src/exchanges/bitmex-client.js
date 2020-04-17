@@ -22,10 +22,12 @@ class BitmexClient extends BasicClient {
     this._storeLimitedTickerDataAndEmitTicker = this._storeLimitedTickerDataAndEmitTicker.bind(
       this
     );
-    this._deleteLimitedTickerDataCache = this._deleteLimitedTickerDataCache.bind(this);
+    this._deleteLimitedTickerDataCache = this._deleteTicker.bind(this);
 
-    // key-value pairs in format <remote_id>: {last: <Number>, ask: <Number>, askVolume: <Number>,  bid: <Number>, bidVolume: <Number>, }
-    this.limitedTickerData = {};
+    /**
+     * Keyed from remote_id, market.id
+     * */
+    this.tickerMap = new Map();
   }
 
   /**
@@ -79,10 +81,10 @@ class BitmexClient extends BasicClient {
    */
   _getTicker(market) {
     const remote_id = market.id;
-    let ticker = this.limitedTickerData[remote_id];
+    let ticker = this.tickerMap.get(remote_id);
     if (!ticker) {
       ticker = this._createTicker(market);
-      this.limitedTickerData[remote_id] = ticker;
+      this.tickerMap.set(remote_id, ticker);
     }
     return ticker;
   }
@@ -90,8 +92,8 @@ class BitmexClient extends BasicClient {
   /**
    * Deletes cached ticker data after unsubbing from ticker.
    */
-  _deleteLimitedTickerDataCache(remote_id) {
-    delete this.limitedTickerData[remote_id];
+  _deleteTicker(remote_id) {
+    delete this.tickerMap.delete(remote_id);
   }
 
   _sendSubTicker(remote_id) {
@@ -105,7 +107,7 @@ class BitmexClient extends BasicClient {
     if (!this._tradeSubs.has(remote_id)) {
       this._sendUnsubTrades(remote_id);
     }
-    this._deleteLimitedTickerDataCache(remote_id);
+    this._deleteTicker(remote_id);
   }
 
   _sendSubQuote(remote_id) {
