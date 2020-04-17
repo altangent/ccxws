@@ -35,16 +35,15 @@ class BitmexClient extends BasicClient {
     const market = this._tickerSubs.get(remote_id);
     if (!market) return;
 
-    this.limitedTickerData[remote_id] =
-      this.limitedTickerData[remote_id] || this._createTickerForMarket(market);
+    const ticker = this._getTicker(market);
 
-    last && (this.limitedTickerData[remote_id].last = last);
-    ask && (this.limitedTickerData[remote_id].ask = ask);
-    askVolume && (this.limitedTickerData[remote_id].askVolume = askVolume);
-    bid && (this.limitedTickerData[remote_id].bid = bid);
-    bidVolume && (this.limitedTickerData[remote_id].bidVolume = bidVolume);
+    last && (ticker.last = last);
+    ask && (ticker.ask = ask);
+    askVolume && (ticker.askVolume = askVolume);
+    bid && (ticker.bid = bid);
+    bidVolume && (ticker.bidVolume = bidVolume);
 
-    this.emit("ticker", this.limitedTickerData[remote_id], remote_id);
+    this.emit("ticker", ticker, remote_id);
   }
 
   /**
