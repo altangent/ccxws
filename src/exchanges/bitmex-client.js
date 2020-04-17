@@ -31,7 +31,9 @@ class BitmexClient extends BasicClient {
    * Stores updated ticker data and emits ticker event.
    */
   _storeLimitedTickerDataAndEmitTicker(remote_id, { last, ask, askVolume, bid, bidVolume } = {}) {
-    if (!this._tickerSubs.has(remote_id)) return;
+    const market = this._tickerSubs.get(remote_id);
+    if (!market) return;
+
     this.limitedTickerData[remote_id] = this.limitedTickerData[remote_id] || {
       last: undefined,
       ask: undefined,
