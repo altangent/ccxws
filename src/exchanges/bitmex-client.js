@@ -27,7 +27,7 @@ class BitmexClient extends BasicClient {
 
   _sendSubTicker(remote_id) {
     this._sendSubQuote(remote_id);
-    this._sendSubTrades(remote_id);
+    // this._sendSubTrades(remote_id);
   }
 
   _sendUnsubTicker(remote_id) {
@@ -98,32 +98,8 @@ class BitmexClient extends BasicClient {
     let { table, action } = message;
 
     if (table === "quote") {
-      // group quotes by symbol, then for each symbol we're subscribed to tickers for
-      // we store the ask/askSize/bid/bidSize for ticker data
-      // stored in key-value pairs in format <symbol>: [<quoteObject>, ...]
-      const quotesGroupedBySymbol = {};
-      message.data.forEach(thisQuote => {
-        quotesGroupedBySymbol[thisQuote.symbol] = quotesGroupedBySymbol[thisQuote.symbol] || [];
-        quotesGroupedBySymbol[thisQuote.symbol].push(thisQuote);
-      });
-      Object.keys(quotesGroupedBySymbol).forEach(thisSymbol => {
-        const thisSymbolQuotes = quotesGroupedBySymbol[thisSymbol];
-        if (this._tickerSubs.has(thisSymbol)) {
-          const latestQuote = thisSymbolQuotes.sort((a, b) => {
-            return new Date(b) - new Date(a);
-          })[0];
-          const ask = latestQuote.askPrice;
-          const askVolume = latestQuote.askSize;
-          const bid = latestQuote.bidPrice;
-          const bidVolume = latestQuote.bidSize;
-          this._storeLimitedTickerDataAndEmitTicker(thisSymbol, {
-            ask,
-            askVolume,
-            bid,
-            bidVolume,
-          });
-        }
-      });
+      this._processQuotes(message.data);
+      return;
     }
 
     if (table === "trade") {
@@ -364,6 +340,66 @@ class BitmexClient extends BasicClient {
       id: market.id,
       asks,
       bids,
+    });
+  }
+
+  /**
+   * Updates and emits tickers from a batch of quote updates. From
+   * testing, quote broadcasts are sorted from oldest to newest and are
+   * for a single market. To prevent any issues, the entire collection will be
+   * iterated but only a single event will be emitted for each symbol
+   * The parent message looks like:
+   * {
+        table: 'quote',
+        action: 'insert',
+        data: [
+          {
+            timestamp: '2020-04-17T16:05:57.560Z',
+            symbol: 'XBTUSD',
+            bidSize: 689279,
+            bidPrice: 7055,
+            askPrice: 7055.5,
+            askSize: 927374
+          },
+          {
+            timestamp: '2020-04-17T16:05:58.016Z',
+            symbol: 'XBTUSD',
+            bidSize: 684279,
+            bidPrice: 7055,
+            askPrice: 7055.5,
+            askSize: 927374
+          }
+        ]
+      }
+   */
+  _processQuotes(quotes) {
+    // collapses the quotes into a single update per market.
+    // starting from the end, since results are sorted in ascending order, add each symbol.
+    const quoteMap = new Map();
+    for (let i = quotes.length - 1; i >= 0; i--) {
+      const quote = quotes[i];
+      if (!quoteMap.has(quotes.symbol)) {
+        quoteMap.set(quote.symbol, quote);
+      }
+    }
+
+    // individually process each quote
+    for (let quote of quoteMap.values()) {
+      this._processQuote(quote);
+    }
+  }
+
+  /**
+   * Process a single quote update
+   * @param {*} quote
+   */
+  _processQuote(quote) {
+    const remote_id = quote.symbol;
+    this._storeLimitedTickerDataAndEmitTicker(remote_id, {
+      ask: quote.askPrice,
+      askVolume: quote.askSize,
+      bid: quote.bidPrice,
+      bidVolume: quote.bidSize,
     });
   }
 
