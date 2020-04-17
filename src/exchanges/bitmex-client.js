@@ -3,6 +3,7 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
+const Ticker = require("../ticker");
 const moment = require("moment");
 
 class BitmexClient extends BasicClient {
@@ -34,13 +35,8 @@ class BitmexClient extends BasicClient {
     const market = this._tickerSubs.get(remote_id);
     if (!market) return;
 
-    this.limitedTickerData[remote_id] = this.limitedTickerData[remote_id] || {
-      last: undefined,
-      ask: undefined,
-      askVolume: undefined,
-      bid: undefined,
-      bidVolume: undefined,
-    };
+    this.limitedTickerData[remote_id] =
+      this.limitedTickerData[remote_id] || this._createTickerForMarket(market);
     last && (this.limitedTickerData[remote_id].last = last);
     ask && (this.limitedTickerData[remote_id].ask = ask);
     askVolume && (this.limitedTickerData[remote_id].askVolume = askVolume);
@@ -48,6 +44,19 @@ class BitmexClient extends BasicClient {
     bidVolume && (this.limitedTickerData[remote_id].bidVolume = bidVolume);
 
     this.emit("ticker", this.limitedTickerData[remote_id], remote_id);
+  }
+
+  /**
+   * Creates a blank ticker for the specified market. The Ticker class is optimized
+   * to maintain a consistent shape to prevent shape transitions and reduce garbage.
+   * @param {*} market
+   */
+  _createTicker(market) {
+    return new Ticker({
+      exchange: "BitMEX",
+      base: market.base,
+      quote: market.quote,
+    });
   }
 
   /**
