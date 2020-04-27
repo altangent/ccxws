@@ -118,6 +118,11 @@ class BinanceClient extends EventEmitter {
         map.set(remote_id, market);
         const newStreams = this._buildStreams();
         const subscribeStreams = newStreams.filter(stream => !oldStreams.includes(stream));
+
+        if (!subscribeStreams.length) {
+          return;
+        }
+
         const request = {
           method: "SUBSCRIBE",
           params: subscribeStreams,
@@ -148,6 +153,11 @@ class BinanceClient extends EventEmitter {
         map.delete(remote_id);
         const newStreams = this._buildStreams();
         const subscribeStreams = oldStreams.filter(stream => !newStreams.includes(stream));
+
+        if (!subscribeStreams.length) {
+          return;
+        }
+
         const request = {
           method: "UNSUBSCRIBE",
           params: subscribeStreams,
