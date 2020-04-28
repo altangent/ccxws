@@ -23,6 +23,16 @@ function createAuthToken(apiKey, apiSecret) {
 }
 
 const multiplier = {
+  ADA: 1e6,
+  ATOM: 1e6,
+  BAT: 1e6,
+  GAS: 1e8,
+  NEO: 1e6,
+  ONT: 1e6,
+  ONG: 1e6,
+  MATIC: 1e6,
+  LINK: 1e6,
+  XTZ: 1e6,
   BCH: 1e8,
   BTC: 1e8,
   BTG: 1e8,
