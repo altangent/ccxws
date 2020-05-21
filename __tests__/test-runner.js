@@ -4,6 +4,8 @@ module.exports = {
   testClient,
 };
 
+const wait = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
+
 function testClient(spec) {
   if (spec.skip) return;
 
@@ -133,7 +135,7 @@ function testClient(spec) {
         p.then(smartws => {
           smartws._retryTimeoutMs = 1000;
           smartws._wss.close(); // simulate a failure by directly closing the underlying socket
-        });
+        }).catch(done);
       }).timeout(5000);
     }
 
@@ -164,6 +166,36 @@ function testClient(spec) {
       }).timeout(5000);
     }
   });
+
+  describe(spec.clientName + " all markets", () => {
+    let client;
+
+    beforeEach(() => {
+      client = spec.clientFactory();
+    });
+
+    if (spec.testAllMarketsTrades) {
+      it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
+        const markets = new Set();
+        client.on("trade", (trade, market) => {
+          markets.add(market.id);
+          if (markets.size >= spec.testAllMarketsTradesSuccess) {
+            client.close();
+            done();
+          }
+        });
+
+        spec
+          .fetchAllMarkets()
+          .then(markets => {
+            for (let market of markets) {
+              client.subscribeTrades(market);
+            }
+          })
+          .catch(done);
+      }).timeout(60000);
+    }
+  });
 }
 
 function testTickers(spec, state) {
@@ -190,10 +222,11 @@ function testTickers(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from tickers", () => {
+    it("should unsubscribe from tickers", async () => {
       for (let market of spec.markets) {
         client.unsubscribeTicker(market);
       }
+      await wait(500);
     });
 
     describe("results", () => {
@@ -273,10 +306,11 @@ function testTrades(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from trades", () => {
+    it("should unsubscribe from trades", async () => {
       for (let market of spec.markets) {
         client.unsubscribeTrades(market);
       }
+      await wait(spec.unsubWaitMs);
     });
 
     describe("results", () => {
@@ -352,10 +386,11 @@ function testCandles(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from candles", () => {
+    it("should unsubscribe from candles", async () => {
       for (let market of spec.markets) {
         client.unsubscribeCandles(market);
       }
+      await wait(spec.unsubWaitMs);
     });
 
     describe("results", () => {
@@ -405,10 +440,11 @@ function testLevel2Snapshots(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from l2snapshot", () => {
+    it("should unsubscribe from l2snapshot", async () => {
       for (let market of spec.markets) {
         client.unsubscribeLevel2Snapshots(market);
       }
+      await wait(spec.unsubWaitMs);
     });
 
     describe("results", () => {
@@ -461,10 +497,11 @@ function testLevel2Updates(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from l2update", () => {
+    it("should unsubscribe from l2update", async () => {
       for (let market of spec.markets) {
         client.unsubscribeLevel2Updates(market);
       }
+      await wait(spec.unsubWaitMs);
     });
 
     describe("results", () => {
@@ -592,10 +629,11 @@ function testLevel3Updates(spec, state) {
       .timeout(60000)
       .retries(3);
 
-    it("should unsubscribe from l3update", () => {
+    it("should unsubscribe from l3update", async () => {
       for (let market of spec.markets) {
         client.unsubscribeLevel3Updates(market);
       }
+      await wait(spec.unsubWaitMs);
     });
 
     describe("results", () => {
