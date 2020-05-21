@@ -166,6 +166,36 @@ function testClient(spec) {
       }).timeout(5000);
     }
   });
+
+  describe(spec.clientName + " all markets", () => {
+    let client;
+
+    beforeEach(() => {
+      client = spec.clientFactory();
+    });
+
+    if (spec.testAllMarketsTrades) {
+      it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
+        const markets = new Set();
+        client.on("trade", (trade, market) => {
+          markets.add(market.id);
+          if (markets.size >= spec.testAllMarketsTradesSuccess) {
+            client.close();
+            done();
+          }
+        });
+
+        spec
+          .fetchAllMarkets()
+          .then(markets => {
+            for (let market of markets) {
+              client.subscribeTrades(market);
+            }
+          })
+          .catch(done);
+      }).timeout(60000);
+    }
+  });
 }
 
 function testTickers(spec, state) {
