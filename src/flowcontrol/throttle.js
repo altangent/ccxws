@@ -18,6 +18,7 @@ class Throttle {
     this.rateMs = rateMs;
     this._args = [];
     this._handle;
+    this.add = this.add.bind(this);
   }
 
   add(...args) {
@@ -28,7 +29,7 @@ class Throttle {
 
   reset() {
     this._unschedule();
-    this._args.length = 0;
+    this._args = [];
   }
 
   _unschedule() {

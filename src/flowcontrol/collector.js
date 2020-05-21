@@ -6,8 +6,8 @@
  * @example
  * const fn = n => console.log(n, new Date());
  * const strategy = new CollectLast();
+ * const collector = new Collector(fn, strategy, waitMs);
  * const waitMs = 100;
- * const collector = new Collector(fn, waitMs, strategy);
  * collector.execute('h');
  * collector.execute('he');
  * collector.execute('hel');
@@ -15,16 +15,12 @@
  * collector.execute('hello');
  */
 class Collector {
-  constructor(fn, expiresMs, strategy) {
+  constructor(fn, strategy, waitMs = 0) {
     this.fn = fn;
-    this.debounceMs = expiresMs;
+    this.waitMs = waitMs;
     this.strategy = strategy;
-
     this._handle;
-  }
-
-  get size() {
-    return this._calls ? 1 : 0;
+    this.add = this.add.bind(this);
   }
 
   add(...args) {
@@ -43,7 +39,7 @@ class Collector {
   }
 
   _schedule() {
-    this._handle = setTimeout(this._process.bind(this), this.debounceMs);
+    this._handle = setTimeout(this._process.bind(this), this.waitMs);
     this._handle.unref();
   }
 

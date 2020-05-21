@@ -1,6 +1,3 @@
-const { EventEmitter } = require("events");
-const semaphore = require("semaphore");
-const { wait } = require("../util");
 const https = require("../https");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -8,237 +5,194 @@ const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
-const SmartWss = require("../smart-wss");
-const Watcher = require("../watcher");
+const BasicClient = require("../basic-client");
 const { CandlePeriod } = require("../enums");
 const { candlePeriod } = require("./binance-base");
+const { Throttle } = require("../flowcontrol/throttle");
+const { Collector } = require("../flowcontrol/collector");
+const { CollectBatch } = require("../flowcontrol/collect-batch");
 
-class BinanceClient extends EventEmitter {
-  constructor({ useAggTrades = true, requestSnapshot = true, reconnectIntervalMs = 300000 } = {}) {
+/**
+ * Binance now (as of Nov 2019) has the ability to perform live subscribes using
+ * a single socket. With this functionality, there is no longer a need to
+ * use the URL-mutation code and we can use a BasicClient and allow subscribing
+ * and unsubscribing.
+ *
+ * Binance allows subscribing to many streams at the same time, however there is
+ * a max payload length that cannot be exceeded. This requires the use of a
+ * subscription batching method.
+ *
+ * Binance limits the number of messages that can be sent as well so throttling
+ * of batched sends must be performed.
+ */
+class BinanceClient extends BasicClient {
+  constructor({ useAggTrades = true, requestSnapshot = true } = {}) {
     super();
-    this._name = "Binance";
-    this._tickerSubs = new Map();
-    this._tradeSubs = new Map();
-    this._candleSubs = new Map();
-    this._level2SnapshotSubs = new Map();
-    this._level2UpdateSubs = new Map();
-    this._wss = undefined;
-    this._reconnectDebounce = undefined;
 
-    this.requestSnapshot = requestSnapshot;
+    this._name = "Binance";
+    this._wssPath = "wss://stream.binance.com:9443/stream";
+
     this.useAggTrades = useAggTrades;
+    this.requestSnapshot = requestSnapshot;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
-    this.hasLevel3Snapshots = false;
-    this.hasLevel3Updates = false;
 
+    this.restThrottleMs = 1000;
+    this.socketBatchSize = 200;
+    this.socketThrottleMs = 1000;
+
+    this._messageId = 0;
+    this._tickersActive = false;
     this.candlePeriod = CandlePeriod._1m;
 
-    this._watcher = new Watcher(this, reconnectIntervalMs);
-    this._restSem = semaphore(1);
-    this.REST_REQUEST_DELAY_MS = 1000;
-  }
+    const batcherFactory = fn => {
+      return new Collector(
+        new Throttle(fn, this.socketThrottleMs).add,
+        new CollectBatch(this.socketBatchSize),
+      ); // prettier-ignore
+    };
 
-  get subCount() {
-    return (
-      this._tickerSubs.size +
-      this._tradeSubs.size +
-      this._candleSubs.size +
-      this._level2SnapshotSubs.size +
-      this._level2UpdateSubs.size
-    );
+    this._subBatcher = batcherFactory(this._sendBatchedSubcribe.bind(this));
+    this._unsubBatcher = batcherFactory(this._sendBatchedUnsubscribe.bind(this));
+
+    this._restThrottle = new Throttle(this._requestLevel2Snapshot.bind(this), this.restThrottleMs);
   }
 
   //////////////////////////////////////////////
 
-  subscribeTicker(market) {
-    this._subscribe(market, this._tickerSubs);
-  }
-
-  unsubscribeTicker(market) {
-    this._unsubscribe(market, this._tickerSubs);
-  }
-
-  subscribeTrades(market) {
-    this._subscribe(market, this._tradeSubs);
-  }
-
-  unsubscribeTrades(market) {
-    this._unsubscribe(market, this._tradeSubs);
-  }
-
-  subscribeCandles(market) {
-    this._subscribe(market, this._candleSubs);
-  }
-
-  unsubscribeCandles(market) {
-    this._unsubscribe(market, this._candleSubs);
-  }
-
-  subscribeLevel2Snapshots(market) {
-    this._subscribe(market, this._level2SnapshotSubs);
-  }
-
-  unsubscribeLevel2Snapshots(market) {
-    this._unsubscribe(market, this._level2SnapshotSubs);
-  }
-
-  subscribeLevel2Updates(market) {
-    this._subscribe(market, this._level2UpdateSubs);
-  }
-
-  unsubscribeLevel2Updates(market) {
-    this._unsubscribe(market, this._level2UpdateSubs);
-  }
-
-  reconnect() {
-    this._reconnect();
-  }
-
-  close() {
-    this._close();
-  }
-
-  ////////////////////////////////////////////
-  // PROTECTED
-
-  _subscribe(market, map) {
-    let remote_id = market.id.toLowerCase();
-    if (!map.has(remote_id)) {
-      map.set(remote_id, market);
-      this._reconnect();
-    }
-  }
-
-  _unsubscribe(market, map) {
-    let remote_id = market.id.toLowerCase();
-    if (map.has(remote_id)) {
-      map.delete(remote_id);
-      this._reconnect();
-    }
-  }
-
-  /**
-   * Reconnects the socket after a debounce period
-   * so that multiple calls don't cause connect/reconnect churn
-   */
-  _reconnect() {
-    clearTimeout(this._reconnectDebounce);
-    if (this.subCount === 0) return;
-    this._reconnectDebounce = setTimeout(() => {
-      this.emit("reconnecting");
-      if (this._wss) {
-        this._wss.once("closed", () => this._connect());
-        this._close();
-      } else {
-        this._connect();
-      }
-    }, 100);
-  }
-
-  /**
-   * Close the underlying connction, which provides a way to reset the things
-   */
-  _close() {
-    this._watcher.stop();
-    if (this._wss) {
-      this._wss.close();
-      this._wss = undefined;
-    }
-  }
-
-  /** Connect to the websocket stream by constructing a path from
-   * the subscribed markets.
-   */
-  _connect() {
-    if (!this._wss) {
-      let streams = [].concat(
-        Array.from(this._tradeSubs.keys()).map(
-          p => p + (this.useAggTrades ? "@aggTrade" : "@trade")
-        ),
-        Array.from(this._candleSubs.keys()).map(
-          p => `${p}@kline_${candlePeriod(this.candlePeriod)}`
-        ),
-        Array.from(this._level2SnapshotSubs.keys()).map(p => p + "@depth20"),
-        Array.from(this._level2UpdateSubs.keys()).map(p => p + "@depth")
-      );
-      if (this._tickerSubs.size > 0) {
-        streams.push("!ticker@arr");
-      }
-
-      let wssPath = "wss://stream.binance.com:9443/stream?streams=" + streams.join("/");
-
-      this._wss = new SmartWss(wssPath);
-      this._wss.on("error", this._onError.bind(this));
-      this._wss.on("connecting", this._onConnecting.bind(this));
-      this._wss.on("connected", this._onConnected.bind(this));
-      this._wss.on("disconnected", this._onDisconnected.bind(this));
-      this._wss.on("closing", this._onClosing.bind(this));
-      this._wss.on("closed", this._onClosed.bind(this));
-      this._wss.on("message", msg => {
-        try {
-          this._onMessage(msg);
-        } catch (ex) {
-          this._onError(ex);
-        }
-      });
-      this._wss.connect();
-    }
-  }
-
-  ////////////////////////////////////////////
-  // ABSTRACT
-
-  _onError(err) {
-    if (err.message === "Invalid WebSocket frame: invalid status code 1005") return;
-    this.emit("error", err);
-  }
-
-  _onConnecting() {
-    this.emit("connecting");
-  }
-
-  _onConnected() {
-    this._watcher.start();
-    this._requestLevel2Snapshots(); // now that we're connected...
-    this.emit("connected");
-  }
-
-  _onDisconnected() {
-    this._watcher.stop();
-    this.emit("disconnected");
-  }
-
   _onClosing() {
-    this._watcher.stop();
-    this.emit("closing");
+    this._subBatcher.reset();
+    this._unsubBatcher.reset();
+    this._restThrottle.reset();
+    super._onClosing();
   }
 
-  _onClosed() {
-    this.emit("closed");
+  _sendSubTicker() {
+    if (this._tickersActive) return;
+    this._tickersActive = true;
+    this._wss.send(
+      JSON.stringify({
+        method: "SUBSCRIBE",
+        params: ["!ticker@arr"],
+        id: ++this._messageId,
+      })
+    );
   }
+
+  _sendUnsubTicker() {
+    if (this._tickerSubs.size > 1) return;
+    this._tickersActive = false;
+    this._wss.send(
+      JSON.stringify({
+        method: "UNSUBSCRIBE",
+        params: ["!ticker@arr"],
+        id: ++this._messageId,
+      })
+    );
+  }
+
+  _sendBatchedSubcribe(args) {
+    let params = args.map(p => p[0]);
+    let id = ++this._messageId;
+    // console.log("subscribing", id, params.length);
+    this._wss.send(
+      JSON.stringify({
+        method: "SUBSCRIBE",
+        params,
+        id,
+      })
+    );
+  }
+
+  _sendBatchedUnsubscribe(args) {
+    let params = args.map(p => p[0]);
+    let id = ++this._messageId;
+    // console.log("unsubscribing", id, params.length);
+    this._wss.send(
+      JSON.stringify({
+        method: "UNSUBSCRIBE",
+        params,
+        id,
+      })
+    );
+  }
+
+  _sendSubTrades(remote_id) {
+    const stream = remote_id.toLowerCase() + (this.useAggTrades ? "@aggTrade" : "@trade");
+    this._subBatcher.add(stream);
+  }
+
+  _sendUnsubTrades(remote_id) {
+    const stream = remote_id.toLowerCase() + (this.useAggTrades ? "@aggTrade" : "@trade");
+    this._unsubBatcher.add(stream);
+  }
+
+  _sendSubCandles(remote_id) {
+    const stream = remote_id.toLowerCase() + "@kline_" + candlePeriod(this.candlePeriod);
+    this._subBatcher.add(stream);
+  }
+
+  _sendUnsubCandles(remote_id) {
+    const stream = remote_id.toLowerCase() + "@kline_" + candlePeriod(this.candlePeriod);
+    this._unsubBatcher.add(stream);
+  }
+
+  _sendSubLevel2Snapshots(remote_id) {
+    const stream = remote_id.toLowerCase() + "@depth20";
+    this._subBatcher.add(stream);
+  }
+
+  _sendUnsubLevel2Snapshots(remote_id) {
+    const stream = remote_id.toLowerCase() + "@depth20";
+    this._unsubBatcher.add(stream);
+  }
+
+  _sendSubLevel2Updates(remote_id) {
+    if (this.requestSnapshot) this._restThrottle.add(this._level2UpdateSubs.get(remote_id));
+    const stream = remote_id.toLowerCase() + "@depth";
+    this._subBatcher.add(stream);
+  }
+
+  _sendUnsubLevel2Updates(remote_id) {
+    const stream = remote_id.toLowerCase() + "@depth";
+    this._unsubBatcher.add(stream);
+  }
+
+  /////////////////////////////////////////////
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
 
+    // subscribe/unsubscribe responses
+    if (msg.result === null && msg.id) {
+      // console.log(msg);
+      return;
+    }
+
+    // errors
+    if (msg.code) {
+      this.emit("error", new Error(msg.msg));
+    }
+
     // ticker
     if (msg.stream === "!ticker@arr") {
       for (let raw of msg.data) {
-        let remote_id = raw.s.toLowerCase();
+        let remote_id = raw.s;
         let market = this._tickerSubs.get(remote_id);
         if (!market) continue;
 
         let ticker = this._constructTicker(raw, market);
         this.emit("ticker", ticker, market);
       }
+      return;
     }
 
     // trades
     if (msg.stream.toLowerCase().endsWith("trade")) {
-      let remote_id = msg.data.s.toLowerCase();
+      let remote_id = msg.data.s;
       let market = this._tradeSubs.get(remote_id);
       if (!market) return;
 
@@ -251,7 +205,7 @@ class BinanceClient extends EventEmitter {
 
     // candle
     if (msg.data.e === "kline") {
-      let remote_id = msg.data.s.toLowerCase();
+      let remote_id = msg.data.s;
       let market = this._candleSubs.get(remote_id);
       if (!market) return;
 
@@ -262,7 +216,7 @@ class BinanceClient extends EventEmitter {
 
     // l2snapshot
     if (msg.stream.endsWith("depth20")) {
-      let remote_id = msg.stream.split("@")[0];
+      let remote_id = msg.stream.split("@")[0].toUpperCase();
       let market = this._level2SnapshotSubs.get(remote_id);
       if (!market) return;
 
@@ -273,7 +227,7 @@ class BinanceClient extends EventEmitter {
 
     // l2update
     if (msg.stream.endsWith("depth")) {
-      let remote_id = msg.stream.split("@")[0];
+      let remote_id = msg.stream.split("@")[0].toUpperCase();
       let market = this._level2UpdateSubs.get(remote_id);
       if (!market) return;
 
@@ -416,42 +370,30 @@ class BinanceClient extends EventEmitter {
     });
   }
 
-  _requestLevel2Snapshots() {
-    if (this.requestSnapshot) {
-      for (let market of this._level2UpdateSubs.values()) {
-        this._requestLevel2Snapshot(market);
-      }
-    }
-  }
-
   async _requestLevel2Snapshot(market) {
-    this._restSem.take(async () => {
-      let failed = false;
-      try {
-        let remote_id = market.id;
-        let uri = `https://api.binance.com/api/v1/depth?limit=1000&symbol=${remote_id}`;
-        let raw = await https.get(uri);
-        let sequenceId = raw.lastUpdateId;
-        let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
-        let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
-        let snapshot = new Level2Snapshot({
-          exchange: "Binance",
-          base: market.base,
-          quote: market.quote,
-          sequenceId,
-          asks,
-          bids,
-        });
-        this.emit("l2snapshot", snapshot, market);
-      } catch (ex) {
-        this.emit("error", ex);
-        failed = true;
-      } finally {
-        await wait(this.REST_REQUEST_DELAY_MS);
-        this._restSem.leave();
-        if (failed) this._requestLevel2Snapshot(market);
-      }
-    });
+    let failed = false;
+    try {
+      let remote_id = market.id;
+      let uri = `https://api.binance.com/api/v1/depth?limit=1000&symbol=${remote_id}`;
+      let raw = await https.get(uri);
+      let sequenceId = raw.lastUpdateId;
+      let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
+      let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
+      let snapshot = new Level2Snapshot({
+        exchange: "Binance",
+        base: market.base,
+        quote: market.quote,
+        sequenceId,
+        asks,
+        bids,
+      });
+      this.emit("l2snapshot", snapshot, market);
+    } catch (ex) {
+      this.emit("error", ex);
+      failed = true;
+    } finally {
+      if (failed) this._restThrottle.add(market);
+    }
   }
 }
 
