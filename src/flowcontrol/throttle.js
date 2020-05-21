@@ -2,24 +2,24 @@ class Throttle {
   constructor(fn, delayMs) {
     this.fn = fn;
     this.delayMs = delayMs;
-    this._args = [];
+    this._calls = [];
     this._handle;
     this.add = this.add.bind(this);
   }
 
   add(...args) {
-    this._args.push(args);
-    this._unschedule();
-    this._schedule();
+    this._calls.push(args);
+    if (!this._handle) this._process();
   }
 
   cancel() {
     this._unschedule();
-    this._args = [];
+    this._calls = [];
   }
 
   _unschedule() {
     clearTimeout(this._handle);
+    this._handle = undefined;
   }
 
   _schedule() {
@@ -28,7 +28,8 @@ class Throttle {
   }
 
   _process() {
-    let args = this._args.shift();
+    this._handle = undefined;
+    let args = this._calls.shift();
     if (args) {
       this.fn(...args);
       this._schedule();
