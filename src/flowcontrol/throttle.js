@@ -1,21 +1,7 @@
-/**
- * Throttles the function execution to the rate limit specified. This can be
- * used "enqueue" a bunch of function executes and limit the rate at which they
- * will be called.
- *
- * @example
- * ```javascript
- * const fn = n => console.log(n, new Date());
- * const throttle = new Throttle(fn, 1000);
- * throttle.add(1);
- * throttle.add(2);
- * throttle.add(3);
- * ```
- */
 class Throttle {
-  constructor(fn, rateMs) {
+  constructor(fn, delayMs) {
     this.fn = fn;
-    this.rateMs = rateMs;
+    this.delayMs = delayMs;
     this._args = [];
     this._handle;
     this.add = this.add.bind(this);
@@ -27,7 +13,7 @@ class Throttle {
     this._schedule();
   }
 
-  reset() {
+  cancel() {
     this._unschedule();
     this._args = [];
   }
@@ -37,7 +23,7 @@ class Throttle {
   }
 
   _schedule() {
-    this._handle = setTimeout(this._process.bind(this), this.rateMs);
+    this._handle = setTimeout(this._process.bind(this), this.delayMs);
     this._handle.unref();
   }
 
@@ -50,4 +36,27 @@ class Throttle {
   }
 }
 
+/**
+ * Throttles the function execution to the rate limit specified. This can be
+ * used "enqueue" a bunch of function executes and limit the rate at which they
+ * will be called.
+ *
+ * @example
+ * ```javascript
+ * const fn = n => console.log(n, new Date());
+ * const delayMs = 1000;
+ * const throttledFn = throttle(fn, delayMs);
+ * throttledFn(1);
+ * throttledFn(2);
+ * throttledFn(3);
+ * ```
+ */
+function throttle(fn, delayMs) {
+  const inst = new Throttle(fn, delayMs);
+  const add = inst.add.bind(inst);
+  add.cancel = inst.cancel.bind(inst);
+  return add;
+}
+
 module.exports.Throttle = Throttle;
+module.exports.throttle = throttle;

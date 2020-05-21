@@ -11,6 +11,11 @@ testClient({
       base: "BTC",
       quote: "USDT",
     },
+    {
+      id: "BTCUSDC",
+      base: "BTC",
+      quote: "USDC",
+    },
   ],
 
   unsubWaitMs: 1500,

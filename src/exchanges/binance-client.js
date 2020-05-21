@@ -8,9 +8,8 @@ const Level2Snapshot = require("../level2-snapshot");
 const BasicClient = require("../basic-client");
 const { CandlePeriod } = require("../enums");
 const { candlePeriod } = require("./binance-base");
-const { Throttle } = require("../flowcontrol/throttle");
-const { Collector } = require("../flowcontrol/collector");
-const { CollectBatch } = require("../flowcontrol/collect-batch");
+const { throttle } = require("../flowcontrol/throttle");
+const { batch } = require("../flowcontrol/batch");
 
 /**
  * Binance now (as of Nov 2019) has the ability to perform live subscribes using
@@ -24,9 +23,23 @@ const { CollectBatch } = require("../flowcontrol/collect-batch");
  *
  * Binance limits the number of messages that can be sent as well so throttling
  * of batched sends must be performed.
+ *
+ * _sendSubTrades calls _batchSub
+ * _batchSub uses the `batch` flow control helper to batch all calls on the
+ *    same tick into a single call
+ * _batchSub calls _sendMessage
+ * _sendMessage uses the `throttle` flow controler helper to limit calls to
+ *    1 per second
+ *
  */
 class BinanceClient extends BasicClient {
-  constructor({ useAggTrades = true, requestSnapshot = true } = {}) {
+  constructor({
+    useAggTrades = true,
+    requestSnapshot = true,
+    socketBatchSize = 200,
+    socketThrottleMs = 1000,
+    restThrottleMs = 1000,
+  } = {}) {
     super();
 
     this._name = "Binance";
@@ -40,33 +53,24 @@ class BinanceClient extends BasicClient {
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
 
-    this.restThrottleMs = 1000;
-    this.socketBatchSize = 200;
-    this.socketThrottleMs = 1000;
-
     this._messageId = 0;
     this._tickersActive = false;
     this.candlePeriod = CandlePeriod._1m;
 
-    const batcherFactory = fn => {
-      return new Collector(
-        new Throttle(fn, this.socketThrottleMs).add,
-        new CollectBatch(this.socketBatchSize),
-      ); // prettier-ignore
-    };
+    this._batchSub = batch(this._batchSub.bind(this), socketBatchSize);
+    this._batchUnsub = batch(this._batchUnsub.bind(this), socketBatchSize);
 
-    this._subBatcher = batcherFactory(this._sendBatchedSubcribe.bind(this));
-    this._unsubBatcher = batcherFactory(this._sendBatchedUnsubscribe.bind(this));
-
-    this._restThrottle = new Throttle(this._requestLevel2Snapshot.bind(this), this.restThrottleMs);
+    this._sendMessage = throttle(this._sendMessage.bind(this), socketThrottleMs);
+    this._requestLevel2Snapshot = throttle(this._requestLevel2Snapshot.bind(this), restThrottleMs);
   }
 
   //////////////////////////////////////////////
 
   _onClosing() {
-    this._subBatcher.reset();
-    this._unsubBatcher.reset();
-    this._restThrottle.reset();
+    this._batchSub.cancel();
+    this._batchUnsub.cancel();
+    this._sendMessage.cancel();
+    this._requestLevel2Snapshot.cancel();
     super._onClosing();
   }
 
@@ -94,71 +98,71 @@ class BinanceClient extends BasicClient {
     );
   }
 
-  _sendBatchedSubcribe(args) {
-    let params = args.map(p => p[0]);
-    let id = ++this._messageId;
-    // console.log("subscribing", id, params.length);
-    this._wss.send(
-      JSON.stringify({
-        method: "SUBSCRIBE",
-        params,
-        id,
-      })
-    );
+  _batchSub(args) {
+    const params = args.map(p => p[0]);
+    const id = ++this._messageId;
+    const msg = JSON.stringify({
+      method: "SUBSCRIBE",
+      params,
+      id,
+    });
+    this._sendMessage(msg);
   }
 
-  _sendBatchedUnsubscribe(args) {
-    let params = args.map(p => p[0]);
-    let id = ++this._messageId;
-    // console.log("unsubscribing", id, params.length);
-    this._wss.send(
-      JSON.stringify({
-        method: "UNSUBSCRIBE",
-        params,
-        id,
-      })
-    );
+  _batchUnsub(args) {
+    const params = args.map(p => p[0]);
+    const id = ++this._messageId;
+    const msg = JSON.stringify({
+      method: "UNSUBSCRIBE",
+      params,
+      id,
+    });
+    this._sendMessage(msg);
+  }
+
+  _sendMessage(msg) {
+    this._wss.send(msg);
   }
 
   _sendSubTrades(remote_id) {
     const stream = remote_id.toLowerCase() + (this.useAggTrades ? "@aggTrade" : "@trade");
-    this._subBatcher.add(stream);
+    this._batchSub(stream);
   }
 
   _sendUnsubTrades(remote_id) {
     const stream = remote_id.toLowerCase() + (this.useAggTrades ? "@aggTrade" : "@trade");
-    this._unsubBatcher.add(stream);
+    this._batchUnsub(stream);
   }
 
   _sendSubCandles(remote_id) {
     const stream = remote_id.toLowerCase() + "@kline_" + candlePeriod(this.candlePeriod);
-    this._subBatcher.add(stream);
+    this._batchSub(stream);
   }
 
   _sendUnsubCandles(remote_id) {
     const stream = remote_id.toLowerCase() + "@kline_" + candlePeriod(this.candlePeriod);
-    this._unsubBatcher.add(stream);
+    this._batchUnsub(stream);
   }
 
   _sendSubLevel2Snapshots(remote_id) {
     const stream = remote_id.toLowerCase() + "@depth20";
-    this._subBatcher.add(stream);
+    this._batchSub(stream);
   }
 
   _sendUnsubLevel2Snapshots(remote_id) {
     const stream = remote_id.toLowerCase() + "@depth20";
-    this._unsubBatcher.add(stream);
+    this._batchUnsub(stream);
   }
 
   _sendSubLevel2Updates(remote_id) {
-    if (this.requestSnapshot) this._restThrottle.add(this._level2UpdateSubs.get(remote_id));
+    if (this.requestSnapshot) this._requestLevel2Snapshot(this._level2UpdateSubs.get(remote_id));
     const stream = remote_id.toLowerCase() + "@depth";
-    this._subBatcher.add(stream);
+    this._batchSub(stream);
   }
 
   _sendUnsubLevel2Updates(remote_id) {
     const stream = remote_id.toLowerCase() + "@depth";
-    this._unsubBatcher.add(stream);
+    this._batchUnsub(stream);
   }
 
   /////////////////////////////////////////////
@@ -392,7 +396,7 @@ class BinanceClient extends BasicClient {
       this.emit("error", ex);
       failed = true;
     } finally {
-      if (failed) this._restThrottle.add(market);
+      if (failed) this._requestLevel2Snapshot(market);
     }
   }
 }
