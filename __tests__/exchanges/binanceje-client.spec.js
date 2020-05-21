@@ -59,6 +59,7 @@ testClient({
   ],
 
   skip: true,
+  unsubWaitMs: 1500,
 
   testConnectEvents: true,
   testDisconnectEvents: true,
