@@ -180,8 +180,17 @@ class BinanceBase extends BasicClient {
     }
 
     // errors
-    if (msg.code) {
-      this.emit("error", new Error(msg.msg));
+    if (msg.error) {
+      const error = new Error(msg.error.msg);
+      error.msg = msg;
+      this.emit("error", error);
+    }
+
+    // All code past this point relies on msg.stream in some manner. This code
+    // acts as a guard on msg.stream and aborts prematurely if the property is
+    // not available.
+    if (!msg.stream) {
+      return;
     }
 
     // ticker
