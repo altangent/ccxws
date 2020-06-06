@@ -7,7 +7,7 @@ const Level2Snapshot = require("../level2-snapshot");
 const https = require("../https");
 const UUID = require("uuid/v4");
 const semaphore = require("semaphore");
-const { wait } = require("../util");
+const { throttle } = require("../flowcontrol/throttle");
 
 class KucoinClient extends BasicClient {
   /**
@@ -26,6 +26,11 @@ class KucoinClient extends BasicClient {
     this.hasLevel2Updates = true;
     this._pingIntervalTime = 50000;
     this._throttleMs = 100;
+    this.restRequestDelayMs = 250;
+    this._requestLevel2Snapshot = throttle(
+      this._requestLevel2Snapshot.bind(this),
+      this._throttleMs
+    );
   }
 
   _beforeConnect() {
@@ -306,8 +311,26 @@ class KucoinClient extends BasicClient {
     this.emit("ticker", ticker, market);
   }
 
+  /**
+    {
+      "data":{
+        "sequenceStart":"1584724386150",
+        "symbol":"BTC-USDT",
+        "changes":{
+          "asks":[
+            ["9642.7","0.386","1584724386150"]
+          ],
+          "bids":[]
+        },
+        "sequenceEnd":"1584724386150"
+      },
+      "subject":"trade.l2update",
+      "topic":"/market/level2:BTC-USDT",
+      "type":"message"
+    }
+   */
   _processL2Update(msg) {
-    const { symbol, changes } = msg.data;
+    const { symbol, changes, sequenceStart, sequenceEnd } = msg.data;
     let market = this._level2UpdateSubs.get(symbol);
 
     if (!market) {
@@ -320,37 +343,64 @@ class KucoinClient extends BasicClient {
       exchange: "KuCoin",
       base: market.base,
       quote: market.quote,
-      timestampMs: new Date().getTime(),
+      sequenceId: Number(sequenceStart),
+      sequenceLast: Number(sequenceEnd),
       asks,
       bids,
     });
     this.emit("l2update", l2Update, market);
   }
 
-  async _requestLevel2Snapshot(market) {
-    this._httpsem.take(async () => {
-      try {
-        let remote_id = market.id;
-        let uri = `https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=${remote_id}`;
-        let raw = await https.get(uri);
-
-        let asks = raw.data.asks.map(p => new Level2Point(p[0], p[1]));
-        let bids = raw.data.bids.map(p => new Level2Point(p[0], p[1]));
-        let snapshot = new Level2Snapshot({
-          exchange: "KuCoin",
-          base: market.base,
-          quote: market.quote,
-          asks,
-          bids,
-        });
-        this.emit("l2snapshot", snapshot);
-      } catch (ex) {
-        this._requestLevel2Snapshot(market);
-      } finally {
-        await wait(this.REST_REQUEST_DELAY_MS);
-        this._httpsem.leave();
+  /**
+   {
+      "code": "200000",
+      "data": {
+        "sequence": "1584724519811",
+        "asks": [
+          [
+            "9631.9",
+            "1.62256573"
+          ],
+          [
+            "9632",
+            "0.00000001"
+          ]
+        ],
+        "bids": [
+          [
+            "9631.8",
+            "0.19411805"
+          ],
+          [
+            "9631.6",
+            "0.00094623"
+          ]
+        ],
+        "time": 1591469595966
       }
-    });
+    }
+   */
+  async _requestLevel2Snapshot(market) {
+    try {
+      let remote_id = market.id;
+      let uri = `https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=${remote_id}`;
+      let raw = await https.get(uri);
+
+      let asks = raw.data.asks.map(p => new Level2Point(p[0], p[1]));
+      let bids = raw.data.bids.map(p => new Level2Point(p[0], p[1]));
+      let snapshot = new Level2Snapshot({
+        exchange: "KuCoin",
+        sequenceId: Number(raw.data.sequence),
+        base: market.base,
+        quote: market.quote,
+        asks,
+        bids,
+      });
+      this.emit("l2snapshot", snapshot);
+    } catch (ex) {
+      this.emit("error", ex);
+      this._requestLevel2Snapshot(market);
+    }
   }
 }
 
