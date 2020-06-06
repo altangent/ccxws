@@ -306,8 +306,26 @@ class KucoinClient extends BasicClient {
     this.emit("ticker", ticker, market);
   }
 
+  /**
+    {
+      "data":{
+        "sequenceStart":"1584724386150",
+        "symbol":"BTC-USDT",
+        "changes":{
+          "asks":[
+            ["9642.7","0.386","1584724386150"]
+          ],
+          "bids":[]
+        },
+        "sequenceEnd":"1584724386150"
+      },
+      "subject":"trade.l2update",
+      "topic":"/market/level2:BTC-USDT",
+      "type":"message"
+    }
+   */
   _processL2Update(msg) {
-    const { symbol, changes } = msg.data;
+    const { symbol, changes, sequenceStart, sequenceEnd } = msg.data;
     let market = this._level2UpdateSubs.get(symbol);
 
     if (!market) {
@@ -320,13 +338,43 @@ class KucoinClient extends BasicClient {
       exchange: "KuCoin",
       base: market.base,
       quote: market.quote,
-      timestampMs: new Date().getTime(),
+      sequenceId: Number(sequenceStart),
+      sequenceLast: Number(sequenceEnd),
       asks,
       bids,
     });
     this.emit("l2update", l2Update, market);
   }
 
+  /**
+   {
+      "code": "200000",
+      "data": {
+        "sequence": "1584724519811",
+        "asks": [
+          [
+            "9631.9",
+            "1.62256573"
+          ],
+          [
+            "9632",
+            "0.00000001"
+          ]
+        ],
+        "bids": [
+          [
+            "9631.8",
+            "0.19411805"
+          ],
+          [
+            "9631.6",
+            "0.00094623"
+          ]
+        ],
+        "time": 1591469595966
+      }
+    }
+   */
   async _requestLevel2Snapshot(market) {
     this._httpsem.take(async () => {
       try {
@@ -338,6 +386,7 @@ class KucoinClient extends BasicClient {
         let bids = raw.data.bids.map(p => new Level2Point(p[0], p[1]));
         let snapshot = new Level2Snapshot({
           exchange: "KuCoin",
+          sequenceId: Number(raw.data.sequence),
           base: market.base,
           quote: market.quote,
           asks,
