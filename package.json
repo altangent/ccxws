@@ -23,11 +23,11 @@
   "dependencies": {
     "cloudscraper": "^1.5.1",
     "decimal.js": "^10.2.0",
-    "moment": "^2.24.0",
+    "moment": "^2.26.0",
     "pusher-js": "^4.4.0",
     "semaphore": "^1.1.0",
     "signalr-client": "0.0.17",
-    "ws": "^7.2.5"
+    "ws": "^7.3.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",
@@ -35,7 +35,7 @@
     "eslint": "^5.16.0",
     "mocha": "^6.2.3",
     "mocha-parallel-tests": "^2.3.0",
-    "nyc": "^15.0.1",
+    "nyc": "^15.1.0",
     "prettier": "^1.19.1",
     "sinon": "^7.5.0"
   }
