@@ -7,7 +7,7 @@ const Level2Snapshot = require("../level2-snapshot");
 const https = require("../https");
 const UUID = require("uuid/v4");
 const semaphore = require("semaphore");
-const { wait } = require("../util");
+const { throttle } = require("../flowcontrol/throttle");
 
 class KucoinClient extends BasicClient {
   /**
@@ -26,6 +26,11 @@ class KucoinClient extends BasicClient {
     this.hasLevel2Updates = true;
     this._pingIntervalTime = 50000;
     this._throttleMs = 100;
+    this.restRequestDelayMs = 250;
+    this._requestLevel2Snapshot = throttle(
+      this._requestLevel2Snapshot.bind(this),
+      this._throttleMs
+    );
   }
 
   _beforeConnect() {
@@ -376,30 +381,26 @@ class KucoinClient extends BasicClient {
     }
    */
   async _requestLevel2Snapshot(market) {
-    this._httpsem.take(async () => {
-      try {
-        let remote_id = market.id;
-        let uri = `https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=${remote_id}`;
-        let raw = await https.get(uri);
+    try {
+      let remote_id = market.id;
+      let uri = `https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=${remote_id}`;
+      let raw = await https.get(uri);
 
-        let asks = raw.data.asks.map(p => new Level2Point(p[0], p[1]));
-        let bids = raw.data.bids.map(p => new Level2Point(p[0], p[1]));
-        let snapshot = new Level2Snapshot({
-          exchange: "KuCoin",
-          sequenceId: Number(raw.data.sequence),
-          base: market.base,
-          quote: market.quote,
-          asks,
-          bids,
-        });
-        this.emit("l2snapshot", snapshot);
-      } catch (ex) {
-        this._requestLevel2Snapshot(market);
-      } finally {
-        await wait(this.REST_REQUEST_DELAY_MS);
-        this._httpsem.leave();
-      }
-    });
+      let asks = raw.data.asks.map(p => new Level2Point(p[0], p[1]));
+      let bids = raw.data.bids.map(p => new Level2Point(p[0], p[1]));
+      let snapshot = new Level2Snapshot({
+        exchange: "KuCoin",
+        sequenceId: Number(raw.data.sequence),
+        base: market.base,
+        quote: market.quote,
+        asks,
+        bids,
+      });
+      this.emit("l2snapshot", snapshot);
+    } catch (ex) {
+      this.emit("error", ex);
+      this._requestLevel2Snapshot(market);
+    }
   }
 }
 
