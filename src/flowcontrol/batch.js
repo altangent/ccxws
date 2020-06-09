@@ -24,7 +24,9 @@ class Batch {
 
   _schedule() {
     this._handle = setTimeout(this._process.bind(this), this.collectMs);
-    this._handle.unref();
+    if (this._handle.unref) {
+      this._handle.unref();
+    }
   }
 
   _process() {
