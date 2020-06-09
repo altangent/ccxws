@@ -23,7 +23,9 @@ class Debounce {
 
   _schedule() {
     this._handle = setTimeout(this._process.bind(this), this.waitMs);
-    this._handle.unref();
+    if (this._handle.unref) {
+      this._handle.unref();
+    }
   }
 
   _process() {
