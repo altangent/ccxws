@@ -284,8 +284,8 @@ class LiquidClient extends BasicClient {
       tradeId: data.id.toFixed(),
       unix: parseInt(data.created_at) * 1000,
       side: data.taker_side == "buy" ? "buy" : "sell",
-      price: data.price.toFixed(),
-      amount: data.quantity.toFixed(),
+      price: data.price.toFixed(8),
+      amount: data.quantity.toFixed(8),
       buyOrderId: undefined,
       sellOrderId: undefined,
     });
