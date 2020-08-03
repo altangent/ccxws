@@ -38,6 +38,7 @@ class KrakenClient extends BasicClient {
     this.hasLevel2Snapshots = false;
 
     this.candlePeriod = CandlePeriod._1m;
+    this.bookDepth = 500;
 
     this.subscriptionLog = new Map();
     this.debouceTimeoutHandles = new Map();
@@ -228,7 +229,7 @@ class KrakenClient extends BasicClient {
   _sendSubLevel2Updates() {
     this._debounceSend("sub-l2updates", this._level2UpdateSubs, true, {
       name: "book",
-      depth: 1000,
+      depth: this.bookDepth,
     });
   }
 
@@ -350,12 +351,12 @@ class KrakenClient extends BasicClient {
       if (isSnapshot) {
         let l2snapshot = this._constructLevel2Snapshot(msg[1], market);
         if (l2snapshot) {
-          this.emit("l2snapshot", l2snapshot, market);
+          this.emit("l2snapshot", l2snapshot, market, msg);
         }
       } else {
-        let l2update = this._constructLevel2Update(msg[1], market);
+        let l2update = this._constructLevel2Update(msg, market);
         if (l2update) {
-          this.emit("l2update", l2update, market);
+          this.emit("l2update", l2update, market, msg);
         }
       }
     }
@@ -469,42 +470,55 @@ class KrakenClient extends BasicClient {
   }
 
   /**
-    Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
+   * Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
+   * Values will look like:
+   * [
+   *    270,
+   *    {"b":[["11260.50000","0.00000000","1596221402.104952"],["11228.70000","2.60111463","1596221103.546084","r"]],"c":"1281654047"},
+   *    "book-100",
+   *    "XBT/USD"
+   * ]
+   *
+   * [
+   *    270,
+   *    {"a":[["11277.30000","1.01949833","1596221402.163693"]]},
+   *    {"b":[["11275.30000","0.17300000","1596221402.163680"]],"c":"1036980588"},
+   *    "book-100",
+   *    "XBT/USD"
+   * ]
    */
-  _constructLevel2Update(datum, market) {
-    /*
-      [ 13, { a: [ [Array] ] }, { b: [ [Array], [Array] ] } ]
-      Array = '3361.30000', '25.49061583', '1551438551.775384'
-    */
-    let a = datum.a ? datum.a : [];
-    let b = datum.b ? datum.b : [];
-    
-    // eiliminating duplicate prices
-    let aTemp = {};
-    let bTemp = {};
-    a.map(p => {
-      
-      if (!aTemp[p[0]]) aTemp[p[0]] = p;
-      if (parseFloat(aTemp[p[0]][2]) < parseFloat(p[2])) aTemp[p[0]] = p;
-    });
-    b.map(p => {
-      
-      if (!bTemp[p[0]]) bTemp[p[0]] = p;
-      if (parseFloat(bTemp[p[0]][2]) < parseFloat(p[2])) bTemp[p[0]] = p;
-    });
-    a = Object.values(aTemp);
-    b = Object.values(bTemp);
+  _constructLevel2Update(msg, market) {
+    const asks = [];
+    const bids = [];
+    let checksum;
 
-    // collapse all timestamps into a single array
-    let timestamps = a.map(p => parseFloat(p[2])).concat(b.map(p => parseFloat(p[2])));
+    // Because some messages will send more than a single result object
+    // we need to iterate the results blocks starting at position 1 and
+    // look for ask, bid, and checksum data.
+    for (let i = 1; i < msg.length; i++) {
+      // Process ask updates
+      if (msg[i].a) {
+        for (let [price, size, timestamp] of msg[i].a) {
+          asks.push(new Level2Point(price, size, undefined, undefined, timestamp));
+        }
+      }
 
-    // then find the max value of all the timestamps
-    let timestamp = Math.max.apply(null, timestamps);
-    
-    let asks = a.map(p => new Level2Point(p[0], p[1]));
-    let bids = b.map(p => new Level2Point(p[0], p[1]));
+      // Process bid updates
+      if (msg[i].b) {
+        for (let [price, size, timestamp] of msg[i].b) {
+          bids.push(new Level2Point(price, size, undefined, undefined, timestamp));
+        }
+      }
 
-    if (!asks.length && !bids.length) return;
+      // Process checksum
+      if (msg[i].c) {
+        checksum = msg[i].c;
+      }
+    }
+
+    // Calculates the newest timestamp value to maintain backwards
+    // compatibility with the update timestamp
+    let timestamp = Math.max(...asks.concat(bids).map(p => parseFloat(p.timestamp)));
 
     return new Level2Update({
       exchange: "Kraken",
@@ -513,37 +527,42 @@ class KrakenClient extends BasicClient {
       timestampMs: parseInt(timestamp * 1000),
       asks,
       bids,
+      checksum,
     });
   }
 
   /**
-    Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
+   * Refer to https://www.kraken.com/en-us/features/websocket-api#message-book
+   *
+   *   {
+   *     as: [
+   *       [ '3361.30000', '25.57512297', '1551438550.367822' ],
+   *       [ '3363.80000', '15.81228000', '1551438539.149525' ]
+   *     ],
+   *     bs: [
+   *       [ '3361.20000', '0.07234101', '1551438547.041624' ],
+   *       [ '3357.60000', '1.75000000', '1551438516.825218' ]
+   *     ]
+   *   }
    */
   _constructLevel2Snapshot(datum, market) {
-    /*
-      {
-        as: [
-          [ '3361.30000', '25.57512297', '1551438550.367822' ],
-          [ '3363.80000', '15.81228000', '1551438539.149525' ]
-        ],
-        bs: [
-          [ '3361.20000', '0.07234101', '1551438547.041624' ],
-          [ '3357.60000', '1.75000000', '1551438516.825218' ]
-        ]
-      }
-    */
+    // Process asks
+    const as = datum.as || [];
+    const asks = [];
+    for (const [price, size, timestamp] of as) {
+      asks.push(new Level2Point(price, size, undefined, undefined, timestamp));
+    }
 
-    let as = datum.as ? datum.as : [];
-    let bs = datum.bs ? datum.bs : [];
+    // Process bids
+    const bs = datum.bs || [];
+    const bids = [];
+    for (const [price, size, timestamp] of bs) {
+      bids.push(new Level2Point(price, size, undefined, undefined, timestamp));
+    }
 
-    // collapse all timestamps into a single array
-    let timestamps = as.map(p => parseFloat(p[2])).concat(bs.map(p => parseFloat(p[2])));
-
-    // then find the max value of all the timestamps
-    let timestamp = Math.max.apply(null, timestamps);
-
-    let asks = datum.as.map(p => new Level2Point(p[0], p[1]));
-    let bids = datum.bs.map(p => new Level2Point(p[0], p[1]));
+    // Calculates the newest timestamp value to maintain backwards
+    // compatibility with the update timestamp
+    let timestamp = Math.max(...asks.concat(bids).map(p => parseFloat(p.timestamp)));
 
     return new Level2Snapshot({
       exchange: "Kraken",
