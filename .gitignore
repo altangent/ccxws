@@ -58,6 +58,7 @@ typings/
 .env
 
 test.js
+test*.js
 
 .vscode
 **/.DS_Store
