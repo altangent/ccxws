@@ -142,7 +142,7 @@ class OKExClient extends BasicClient {
       this._wss.send(
         JSON.stringify({
           op: "subscribe",
-          args: [this._marketArg("depth", market)],
+          args: [this._marketArg("depth_l2_tbt", market)],
         })
       );
     });
@@ -152,7 +152,7 @@ class OKExClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
-        args: [this._marketArg("depth", market)],
+        args: [this._marketArg("depth_l2_tbt", market)],
       })
     );
   }

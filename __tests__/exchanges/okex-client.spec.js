@@ -35,6 +35,7 @@ const assertions = {
     hasTimestampMs: true,
     hasSequenceId: false,
     hasCount: true,
+    hasChecksum: true,
   },
 
   l2update: {
@@ -42,6 +43,7 @@ const assertions = {
     hasTimestampMs: true,
     hasSequenceId: false,
     hasCount: true,
+    hasChecksum: true,
   },
 };
 
