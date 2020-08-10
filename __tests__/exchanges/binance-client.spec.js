@@ -2,6 +2,13 @@ const { testClient } = require("../test-runner");
 const BinanceClient = require("../../src/exchanges/binance-client");
 const { get } = require("../../src/https");
 
+async function fetchAllMarkets() {
+  const results = await get("https://api.binance.com/api/v1/exchangeInfo");
+  return results.symbols
+    .filter(p => p.status === "TRADING")
+    .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
+}
+
 testClient({
   clientFactory: () => new BinanceClient(),
   clientName: "BinanceClient",
@@ -19,12 +26,7 @@ testClient({
     },
   ],
 
-  async fetchAllMarkets() {
-    const results = await get("https://api.binance.com/api/v1/exchangeInfo");
-    return results.symbols
-      .filter(p => p.status === "TRADING")
-      .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
-  },
+  fetchAllMarkets,
 
   unsubWaitMs: 1500,
 

@@ -2,6 +2,13 @@ const { testClient } = require("../test-runner");
 const BinanceFuturesUsdtmClient = require("../../src/exchanges/binance-futures-usdtm-client");
 const { get } = require("../../src/https");
 
+async function fetchAllMarkets() {
+  const results = await get("https://fapi.binance.com/fapi/v1/exchangeInfo");
+  return results.symbols
+    .filter(p => p.status === "TRADING")
+    .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
+}
+
 testClient({
   clientFactory: () => new BinanceFuturesUsdtmClient(),
   clientName: "BinanceFuturesUsdtmClient",
@@ -19,12 +26,7 @@ testClient({
     },
   ],
 
-  async fetchAllMarkets() {
-    const results = await get("https://fapi.binance.com/fapi/v1/exchangeInfo");
-    return results.symbols
-      .filter(p => p.status === "TRADING")
-      .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
-  },
+  fetchAllMarkets,
 
   unsubWaitMs: 1500,
 
