@@ -1,5 +1,7 @@
 const bibox = require("./exchanges/bibox-client");
 const binance = require("./exchanges/binance-client");
+const BinanceFuturesUsdtm = require("./exchanges/binance-futures-usdtm-client");
+const BinanceFuturesCoinm = require("./exchanges/binance-futures-coinm-client");
 const binanceje = require("./exchanges/binanceje-client");
 const binanceus = require("./exchanges/binanceus-client");
 const bitfinex = require("./exchanges/bitfinex-client");
@@ -25,7 +27,7 @@ const upbit = require("./exchanges/upbit-client");
 const zb = require("./exchanges/zb-client");
 
 module.exports = {
-  // export all exchanges
+  // export all legacy exchange names
   bibox,
   binance,
   binanceje,
@@ -55,24 +57,34 @@ module.exports = {
   upbit,
   zb,
 
-  // export all legacy exchange names
+  // export all exchanges
   Bibox: bibox,
   Binance: binance,
+  BinanceFuturesCoinm,
+  BinanceFuturesUsdtm,
+  BinanceJe: binanceje,
+  BinanceUs: binanceus,
   Bitfinex: bitfinex,
   Bitflyer: bitflyer,
   BitMEX: bitmex,
   Bitstamp: bitstamp,
   Bittrex: bittrex,
+  Cex: cex,
+  CoinbasePro: coinbasepro,
+  Coinex: coinex,
   Ethfinex: ethfinex,
+  Ftx: ftx,
   Gateio: gateio,
   Gemini: gemini,
   HitBTC: hitbtc,
   Huobi: huobi,
+  Kucoin: kucoin,
   Kraken: kraken,
+  Liquid: liquid,
   OKEx: okex,
-
   Poloniex: poloniex,
   Upbit: upbit,
+  Zb: zb,
 
   // export all types
   Auction: require("./auction"),

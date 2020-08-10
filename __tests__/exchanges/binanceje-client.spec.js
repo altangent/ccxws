@@ -1,62 +1,20 @@
 const { testClient } = require("../test-runner");
 const BinanceJeClient = require("../../src/exchanges/binanceje-client");
+const { get } = require("../../src/https");
+
+async function fetchAllMarkets() {
+  const results = await get("https://api.binance.je/api/v1/exchangeInfo");
+  return results.symbols
+    .filter(p => p.status === "TRADING")
+    .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
+}
 
 testClient({
   clientFactory: () => new BinanceJeClient(),
   clientName: "BinanceJeClient",
   exchangeName: "BinanceJe",
-  markets: [
-    {
-      id: "BTCEUR",
-      base: "BTC",
-      quote: "EUR",
-    },
-    {
-      id: "BTCGBP",
-      base: "BTC",
-      quote: "GBP",
-    },
-    {
-      id: "ETHGBP",
-      base: "ETH",
-      quote: "GBP",
-    },
-    {
-      id: "BNBGBP",
-      base: "BNB",
-      quote: "GBP",
-    },
-    {
-      id: "BNBEUR",
-      base: "BNB",
-      quote: "EUR",
-    },
-    {
-      id: "LTCEUR",
-      base: "LTC",
-      quote: "EUR",
-    },
-    {
-      id: "LTCEUR",
-      base: "LTC",
-      quote: "EUR",
-    },
-    {
-      id: "BCHEUR",
-      base: "BCH",
-      quote: "EUR",
-    },
-    {
-      id: "BCHGBP",
-      base: "BCH",
-      quote: "GBP",
-    },
-    {
-      id: "BGBPGBP",
-      base: "BGBP",
-      quote: "GBP",
-    },
-  ],
+
+  fetchMarkets: fetchAllMarkets,
 
   skip: false,
   unsubWaitMs: 1500,

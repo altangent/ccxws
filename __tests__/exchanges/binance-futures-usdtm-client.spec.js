@@ -1,28 +1,42 @@
 const { testClient } = require("../test-runner");
-const BinanceUSClient = require("../../src/exchanges/binanceus-client");
+const BinanceFuturesUsdtmClient = require("../../src/exchanges/binance-futures-usdtm-client");
 const { get } = require("../../src/https");
 
 async function fetchAllMarkets() {
-  const results = await get("https://api.binance.us/api/v1/exchangeInfo");
+  const results = await get("https://fapi.binance.com/fapi/v1/exchangeInfo");
   return results.symbols
     .filter(p => p.status === "TRADING")
     .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
 }
 
 testClient({
-  clientFactory: () => new BinanceUSClient(),
-  clientName: "BinanceUSClient",
-  exchangeName: "BinanceUS",
+  clientFactory: () => new BinanceFuturesUsdtmClient(),
+  clientName: "BinanceFuturesUsdtmClient",
+  exchangeName: "Binance Futures USDT-M",
+  markets: [
+    {
+      id: "BTCUSDT",
+      base: "BTC",
+      quote: "USDT",
+    },
+    {
+      id: "ETHUSDT",
+      base: "ETH",
+      quote: "USDT",
+    },
+  ],
 
-  fetchMarkets: fetchAllMarkets,
+  fetchAllMarkets,
 
-  skip: false,
   unsubWaitMs: 1500,
 
   testConnectEvents: true,
   testDisconnectEvents: true,
   testReconnectionEvents: true,
   testCloseEvents: true,
+
+  testAllMarketsTrades: true,
+  testAllMarketsTradesSuccess: 20,
 
   hasTickers: true,
   hasTrades: true,
@@ -42,10 +56,10 @@ testClient({
     hasQuoteVolume: true,
     hasChange: true,
     hasChangePercent: true,
-    hasBid: true,
-    hasBidVolume: true,
-    hasAsk: true,
-    hasAskVolume: true,
+    hasBid: false, // deviation from spot
+    hasBidVolume: false, // deviation from spot
+    hasAsk: false, // deviation from spot
+    hasAskVolume: false, // deviation from spot
   },
 
   trade: {

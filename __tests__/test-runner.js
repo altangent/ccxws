@@ -12,8 +12,17 @@ function testClient(spec) {
   describe(spec.clientName, () => {
     let state = {};
 
-    before(() => {
+    before(async () => {
       state.client = spec.clientFactory();
+
+      if (spec.fetchMarkets) {
+        spec.markets = await spec.fetchMarkets();
+      }
+
+      if (spec.fetchAllMarkets) {
+        spec.allMarkets = await spec.fetchAllMarkets();
+      }
+
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
@@ -185,14 +194,9 @@ function testClient(spec) {
           }
         });
 
-        spec
-          .fetchAllMarkets()
-          .then(markets => {
-            for (let market of markets) {
-              client.subscribeTrades(market);
-            }
-          })
-          .catch(done);
+        for (let market of spec.allMarkets) {
+          client.subscribeTrades(market);
+        }
       }).timeout(60000);
     }
   });
