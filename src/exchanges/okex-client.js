@@ -362,7 +362,9 @@ class OKExClient extends BasicClient {
     let {
       last,
       best_bid,
+      best_bid_size,
       best_ask,
+      best_ask_size,
       open_24h,
       high_24h,
       low_24h,
@@ -387,7 +389,9 @@ class OKExClient extends BasicClient {
       change: change.toFixed(8),
       changePercent: changePercent.toFixed(2),
       bid: best_bid || "0",
+      bidVolume: best_bid_size || "0",
       ask: best_ask || "0",
+      askVolume: best_ask_size || "0",
     });
   }
 

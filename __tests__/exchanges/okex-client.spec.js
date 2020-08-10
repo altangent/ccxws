@@ -23,8 +23,8 @@ const assertions = {
     hasChangePercent: true,
     hasAsk: true,
     hasBid: true,
-    hasAskVolume: false,
-    hasBidVolume: false,
+    hasAskVolume: true,
+    hasBidVolume: true,
   },
 
   trade: {
