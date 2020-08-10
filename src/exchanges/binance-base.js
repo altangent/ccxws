@@ -41,6 +41,8 @@ class BinanceBase extends BasicClient {
     socketBatchSize = 200,
     socketThrottleMs = 1000,
     restThrottleMs = 1000,
+    l2updateSpeed = "",
+    l2snapshotSpeed = "",
   } = {}) {
     super();
 
@@ -49,6 +51,8 @@ class BinanceBase extends BasicClient {
     this._restL2SnapshotPath = restL2SnapshotPath;
 
     this.useAggTrades = useAggTrades;
+    this.l2updateSpeed = l2updateSpeed;
+    this.l2snapshotSpeed = l2snapshotSpeed;
     this.requestSnapshot = requestSnapshot;
     this.hasTickers = true;
     this.hasTrades = true;
@@ -148,23 +152,31 @@ class BinanceBase extends BasicClient {
   }
 
   _sendSubLevel2Snapshots(remote_id) {
-    const stream = remote_id.toLowerCase() + "@depth20";
+    const stream =
+      remote_id.toLowerCase() +
+      "@depth20" +
+      (this.l2snapshotSpeed ? `@${this.l2snapshotSpeed}` : "");
     this._batchSub(stream);
   }
 
   _sendUnsubLevel2Snapshots(remote_id) {
-    const stream = remote_id.toLowerCase() + "@depth20";
+    const stream =
+      remote_id.toLowerCase() +
+      "@depth20" +
+      (this.l2snapshotSpeed ? `@${this.l2snapshotSpeed}` : "");
     this._batchUnsub(stream);
   }
 
   _sendSubLevel2Updates(remote_id) {
     if (this.requestSnapshot) this._requestLevel2Snapshot(this._level2UpdateSubs.get(remote_id));
-    const stream = remote_id.toLowerCase() + "@depth";
+    const stream =
+      remote_id.toLowerCase() + "@depth" + (this.l2updateSpeed ? `@${this.l2updateSpeed}` : "");
     this._batchSub(stream);
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-    const stream = remote_id.toLowerCase() + "@depth";
+    const stream =
+      remote_id.toLowerCase() + "@depth" + (this.l2updateSpeed ? `@${this.l2updateSpeed}` : "");
     this._batchUnsub(stream);
   }
 
@@ -231,7 +243,7 @@ class BinanceBase extends BasicClient {
     }
 
     // l2snapshot
-    if (msg.stream.endsWith("depth20")) {
+    if (msg.stream.match(/@depth20/)) {
       let remote_id = msg.stream.split("@")[0].toUpperCase();
       let market = this._level2SnapshotSubs.get(remote_id);
       if (!market) return;
@@ -242,7 +254,7 @@ class BinanceBase extends BasicClient {
     }
 
     // l2update
-    if (msg.stream.endsWith("depth")) {
+    if (msg.stream.match(/@depth/)) {
       let remote_id = msg.stream.split("@")[0].toUpperCase();
       let market = this._level2UpdateSubs.get(remote_id);
       if (!market) return;
