@@ -465,8 +465,8 @@ class OKExClient extends BasicClient {
       checksum: 680530848 }
    */
   _constructLevel2Update(datum, market) {
-    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
-    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
+    let asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[3]));
+    let bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[3]));
     let ts = moment.utc(datum.timestamp).valueOf();
     let checksum = datum.checksum;
     return new Level2Update({
