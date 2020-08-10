@@ -64,6 +64,7 @@ describe("BasicClient", () => {
       instance._wss.mockEmit("connected");
       expect(instance._sendSubTrades.callCount).to.equal(1);
       expect(instance._sendSubTrades.args[0][0]).to.equal("BTCUSD");
+      expect(instance._sendSubTrades.args[0][1]).to.be.an("object");
     });
     it("should start the watcher", () => {
       expect(instance._watcher.start.callCount).to.equal(1);
@@ -78,6 +79,7 @@ describe("BasicClient", () => {
     it("should send subscribe to the socket", () => {
       expect(instance._sendSubTrades.callCount).to.equal(2);
       expect(instance._sendSubTrades.args[1][0]).to.equal("LTCBTC");
+      expect(instance._sendSubTrades.args[1][1]).to.be.an("object");
     });
   });
 
@@ -102,7 +104,9 @@ describe("BasicClient", () => {
       instance._wss.mockEmit("connected");
       expect(instance._sendSubTrades.callCount).to.equal(4);
       expect(instance._sendSubTrades.args[2][0]).to.equal("BTCUSD");
+      expect(instance._sendSubTrades.args[2][1]).to.be.an("object");
       expect(instance._sendSubTrades.args[3][0]).to.equal("LTCBTC");
+      expect(instance._sendSubTrades.args[3][1]).to.be.an("object");
     });
   });
 
@@ -111,6 +115,7 @@ describe("BasicClient", () => {
       instance.unsubscribeTrades({ id: "LTCBTC" });
       expect(instance._sendUnsubTrades.callCount).to.equal(1);
       expect(instance._sendUnsubTrades.args[0][0]).to.equal("LTCBTC");
+      expect(instance._sendUnsubTrades.args[0][1]).to.be.an("object");
     });
   });
 
@@ -219,6 +224,7 @@ describe("BasicClient", () => {
         instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel2Snapshots.callCount).to.equal(1);
         expect(instance._sendSubLevel2Snapshots.args[0][0]).to.equal("BTCUSD");
+        expect(instance._sendSubLevel2Snapshots.args[0][1]).to.be.an("object");
       });
       it("should start the reconnectChecker", () => {
         expect(instance._watcher.start.callCount).to.equal(1);
@@ -233,6 +239,7 @@ describe("BasicClient", () => {
       it("should send subscribe to the socket", () => {
         expect(instance._sendSubLevel2Snapshots.callCount).to.equal(2);
         expect(instance._sendSubLevel2Snapshots.args[1][0]).to.equal("LTCBTC");
+        expect(instance._sendSubLevel2Snapshots.args[1][1]).to.be.an("object");
       });
     });
 
@@ -241,6 +248,7 @@ describe("BasicClient", () => {
         instance.unsubscribeLevel2Snapshots({ id: "LTCBTC" });
         expect(instance._sendUnsubLevel2Snapshots.callCount).to.equal(1);
         expect(instance._sendUnsubLevel2Snapshots.args[0][0]).to.equal("LTCBTC");
+        expect(instance._sendUnsubLevel2Snapshots.args[0][1]).to.be.an("object");
       });
     });
   });
@@ -263,6 +271,7 @@ describe("BasicClient", () => {
         instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel2Updates.callCount).to.equal(1);
         expect(instance._sendSubLevel2Updates.args[0][0]).to.equal("BTCUSD");
+        expect(instance._sendSubLevel2Updates.args[0][1]).to.be.an("object");
       });
       it("should start the reconnectChecker", () => {
         expect(instance._watcher.start.callCount).to.equal(1);
@@ -277,6 +286,7 @@ describe("BasicClient", () => {
       it("should send subscribe to the socket", () => {
         expect(instance._sendSubLevel2Updates.callCount).to.equal(2);
         expect(instance._sendSubLevel2Updates.args[1][0]).to.equal("LTCBTC");
+        expect(instance._sendSubLevel2Updates.args[1][1]).to.be.an("object");
       });
     });
 
@@ -307,6 +317,7 @@ describe("BasicClient", () => {
         instance._wss.mockEmit("connected");
         expect(instance._sendSubLevel3Updates.callCount).to.equal(1);
         expect(instance._sendSubLevel3Updates.args[0][0]).to.equal("BTCUSD");
+        expect(instance._sendSubLevel3Updates.args[0][1]).to.be.an("object");
       });
       it("should start the reconnectChecker", () => {
         expect(instance._watcher.start.callCount).to.equal(1);
@@ -321,6 +332,7 @@ describe("BasicClient", () => {
       it("should send subscribe to the socket", () => {
         expect(instance._sendSubLevel3Updates.callCount).to.equal(2);
         expect(instance._sendSubLevel3Updates.args[1][0]).to.equal("LTCBTC");
+        expect(instance._sendSubLevel3Updates.args[1][1]).to.be.an("object");
       });
     });
 
@@ -351,6 +363,7 @@ describe("BasicClient", () => {
         instance._wss.mockEmit("connected");
         expect(instance._sendSubTicker.callCount).to.equal(1);
         expect(instance._sendSubTicker.args[0][0]).to.equal("BTCUSD");
+        expect(instance._sendSubTicker.args[0][1]).to.be.an("object");
       });
       it("should start the reconnectChecker", () => {
         expect(instance._watcher.start.callCount).to.equal(1);
@@ -365,6 +378,7 @@ describe("BasicClient", () => {
       it("should send subscribe to the socket", () => {
         expect(instance._sendSubTicker.callCount).to.equal(2);
         expect(instance._sendSubTicker.args[1][0]).to.equal("LTCBTC");
+        expect(instance._sendSubTicker.args[1][1]).to.be.an("object");
       });
     });
 
@@ -395,6 +409,7 @@ describe("BasicClient", () => {
         instance._wss.mockEmit("connected");
         expect(instance._sendSubCandles.callCount).to.equal(1);
         expect(instance._sendSubCandles.args[0][0]).to.equal("BTCUSD");
+        expect(instance._sendSubCandles.args[0][1]).to.be.an("object");
       });
       it("should start the reconnectChecker", () => {
         expect(instance._watcher.start.callCount).to.equal(1);
@@ -409,6 +424,7 @@ describe("BasicClient", () => {
       it("should send subscribe to the socket", () => {
         expect(instance._sendSubCandles.callCount).to.equal(2);
         expect(instance._sendSubCandles.args[1][0]).to.equal("LTCBTC");
+        expect(instance._sendSubCandles.args[1][1]).to.be.an("object");
       });
     });
 

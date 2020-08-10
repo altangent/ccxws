@@ -141,7 +141,7 @@ class BasicTradeClient extends EventEmitter {
       // and if not, then we'll reply on the _onConnected event
       // to send the signal to our server!
       if (this._wss && this._wss.isConnected) {
-        sendFn(remote_id);
+        sendFn(remote_id, market);
       }
       return true;
     }
@@ -163,7 +163,7 @@ class BasicTradeClient extends EventEmitter {
       map.delete(remote_id);
 
       if (this._wss.isConnected) {
-        sendFn(remote_id);
+        sendFn(remote_id, market);
       }
     }
   }
@@ -219,23 +219,23 @@ class BasicTradeClient extends EventEmitter {
    */
   _onConnected() {
     this.emit("connected");
-    for (let marketSymbol of this._tickerSubs.keys()) {
-      this._sendSubTicker(marketSymbol);
+    for (let [marketSymbol, market] of this._tickerSubs) {
+      this._sendSubTicker(marketSymbol, market);
     }
-    for (let marketSymbol of this._candleSubs.keys()) {
-      this._sendSubCandles(marketSymbol);
+    for (let [marketSymbol, market] of this._candleSubs) {
+      this._sendSubCandles(marketSymbol, market);
     }
-    for (let marketSymbol of this._tradeSubs.keys()) {
-      this._sendSubTrades(marketSymbol);
+    for (let [marketSymbol, market] of this._tradeSubs) {
+      this._sendSubTrades(marketSymbol, market);
     }
-    for (let marketSymbol of this._level2SnapshotSubs.keys()) {
-      this._sendSubLevel2Snapshots(marketSymbol);
+    for (let [marketSymbol, market] of this._level2SnapshotSubs) {
+      this._sendSubLevel2Snapshots(marketSymbol, market);
     }
-    for (let marketSymbol of this._level2UpdateSubs.keys()) {
-      this._sendSubLevel2Updates(marketSymbol);
+    for (let [marketSymbol, market] of this._level2UpdateSubs) {
+      this._sendSubLevel2Updates(marketSymbol, market);
     }
-    for (let marketSymbol of this._level3UpdateSubs.keys()) {
-      this._sendSubLevel3Updates(marketSymbol);
+    for (let [marketSymbol, market] of this._level3UpdateSubs) {
+      this._sendSubLevel3Updates(marketSymbol, market);
     }
     this._watcher.start();
   }
