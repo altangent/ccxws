@@ -66,84 +66,93 @@ class OKExClient extends BasicClient {
     }
   }
 
-  _sendSubTicker(remote_id) {
+  /**
+   * Constructs a market argument in a backwards compatible manner where
+   * the default is a spot market.
+   * @param {string} method
+   * @param {Market} market
+   */
+  _marketArg(method, market) {
+    let type = (market.type || "spot").toLowerCase();
+    return `${type.toLowerCase()}/${method}:${market.id}`;
+  }
+
+  _sendSubTicker(remote_id, market) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
           op: "subscribe",
-          args: [`spot/ticker:${remote_id}`],
+          args: [this._marketArg("ticker", market)],
         })
       );
     });
   }
 
-  _sendUnsubTicker(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "unsubscribe",
-          args: [`spot/ticker:${remote_id}`],
-        })
-      );
-    });
-  }
-
-  _sendSubTrades(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [`spot/trade:${remote_id}`],
-        })
-      );
-    });
-  }
-
-  _sendUnsubTrades(remote_id) {
+  _sendUnsubTicker(remote_id, market) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
-        args: [`spot/trade:${remote_id}`],
+        args: [this._marketArg("ticker", market)],
       })
     );
   }
 
-  _sendSubLevel2Snapshots(remote_id) {
+  _sendSubTrades(remote_id, market) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
           op: "subscribe",
-          args: [`spot/depth5:${remote_id}`],
+          args: [this._marketArg("trade", market)],
         })
       );
     });
   }
 
-  _sendUnsubLevel2Snapshots(remote_id) {
+  _sendUnsubTrades(remote_id, market) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
-        args: [`spot/depth5:${remote_id}`],
+        args: [this._marketArg("trade", market)],
       })
     );
   }
 
-  _sendSubLevel2Updates(remote_id) {
+  _sendSubLevel2Snapshots(remote_id, market) {
     this._sem.take(() => {
       this._wss.send(
         JSON.stringify({
           op: "subscribe",
-          args: [`spot/depth:${remote_id}`],
+          args: [this._marketArg("depth5", market)],
         })
       );
     });
   }
 
-  _sendUnsubLevel2Updates(remote_id) {
+  _sendUnsubLevel2Snapshots(remote_id, market) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
-        args: [`spot/depth:${remote_id}`],
+        args: [this._marketArg("depth5", market)],
+      })
+    );
+  }
+
+  _sendSubLevel2Updates(remote_id, market) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          args: [this._marketArg("depth", market)],
+        })
+      );
+    });
+  }
+
+  _sendUnsubLevel2Updates(remote_id, market) {
+    this._wss.send(
+      JSON.stringify({
+        op: "unsubscribe",
+        args: [this._marketArg("depth", market)],
       })
     );
   }
@@ -184,30 +193,31 @@ class OKExClient extends BasicClient {
 
     // prevent failed messages from
     if (!msg.data) {
+      // eslint-disable-next-line no-console
       console.warn("warn: failure response", JSON.stringify(msg));
       return;
     }
 
     // tickers
-    if (msg.table === "spot/ticker") {
+    if (msg.table.match(/ticker/)) {
       this._processTicker(msg);
       return;
     }
 
     // trades
-    if (msg.table === "spot/trade") {
+    if (msg.table.match(/trade/)) {
       this._processTrades(msg);
       return;
     }
 
     // l2 snapshots
-    if (msg.table === "spot/depth5") {
+    if (msg.table.match(/depth5/)) {
       this._processLevel2Snapshot(msg);
       return;
     }
 
     // l2 updates
-    if (msg.table === "spot/depth") {
+    if (msg.table.match(/depth/)) {
       this._processLevel2Update(msg);
       return;
     }
@@ -329,6 +339,7 @@ class OKExClient extends BasicClient {
         let update = this._constructLevel2Update(datum, market);
         this.emit("l2update", update, market);
       } else {
+        // eslint-disable-next-line no-console
         console.error("Unknown action type", msg);
       }
     }
@@ -356,6 +367,7 @@ class OKExClient extends BasicClient {
       high_24h,
       low_24h,
       base_volume_24h,
+      volume_24h, // found in futures
       timestamp,
     } = data;
 
@@ -371,7 +383,7 @@ class OKExClient extends BasicClient {
       open: open_24h,
       high: high_24h,
       low: low_24h,
-      volume: base_volume_24h,
+      volume: base_volume_24h || volume_24h,
       change: change.toFixed(8),
       changePercent: changePercent.toFixed(2),
       bid: best_bid,
@@ -389,7 +401,7 @@ class OKExClient extends BasicClient {
       trade_id: '776370532' }
     */
   _constructTrade(datum, market) {
-    let { price, side, size, timestamp, trade_id } = datum;
+    let { price, side, size, timestamp, trade_id, qty } = datum;
     let ts = moment.utc(timestamp).valueOf();
 
     return new Trade({
@@ -400,7 +412,7 @@ class OKExClient extends BasicClient {
       side,
       unix: ts,
       price,
-      amount: size,
+      amount: size || qty,
     });
   }
 
