@@ -5,7 +5,7 @@ const { get } = require("../../src/https");
 const assertions = {
   hasTickers: true,
   hasTrades: true,
-  hasCandles: false,
+  hasCandles: true,
   hasLevel2Snapshots: true,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
@@ -30,6 +30,8 @@ const assertions = {
   trade: {
     hasTradeId: true,
   },
+
+  candle: {},
 
   l2snapshot: {
     hasTimestampMs: true,

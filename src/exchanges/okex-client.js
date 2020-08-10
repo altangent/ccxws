@@ -1,9 +1,11 @@
 const zlib = require("../zlib");
 const semaphore = require("semaphore");
+const { CandlePeriod } = require("../enums");
 const moment = require("moment");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
@@ -33,8 +35,10 @@ class OKExClient extends BasicClient {
    */
   constructor() {
     super("wss://real.okex.com:8443/ws/v3", "OKEx");
+    this.candlePeriod = CandlePeriod._1m;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
   }
@@ -77,6 +81,39 @@ class OKExClient extends BasicClient {
     return `${type.toLowerCase()}/${method}:${market.id}`;
   }
 
+  /**
+   * Gets the exchanges interpretation of the candle period
+   * @param {CandlePeriod} period
+   */
+  _candlePeriod(period) {
+    switch (period) {
+      case CandlePeriod._1m:
+        return "60s";
+      case CandlePeriod._3m:
+        return "180s";
+      case CandlePeriod._5m:
+        return "300s";
+      case CandlePeriod._15m:
+        return "900s";
+      case CandlePeriod._30m:
+        return "1800s";
+      case CandlePeriod._1h:
+        return "3600s";
+      case CandlePeriod._2h:
+        return "7200s";
+      case CandlePeriod._4h:
+        return "14400s";
+      case CandlePeriod._6h:
+        return "21600s";
+      case CandlePeriod._12h:
+        return "43200s";
+      case CandlePeriod._1d:
+        return "86400s";
+      case CandlePeriod._1w:
+        return "604800s";
+    }
+  }
+
   _sendSubTicker(remote_id, market) {
     this._sem.take(() => {
       this._wss.send(
@@ -113,6 +150,26 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("trade", market)],
+      })
+    );
+  }
+
+  _sendSubCandles(remote_id, market) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          op: "subscribe",
+          args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
+        })
+      );
+    });
+  }
+
+  _sendUnsubCandles(remote_id, market) {
+    this._wss.send(
+      JSON.stringify({
+        op: "unsubscribe",
+        args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
       })
     );
   }
@@ -210,6 +267,12 @@ class OKExClient extends BasicClient {
       return;
     }
 
+    // candles
+    if (msg.table.match(/candle/)) {
+      this._processCandles(msg);
+      return;
+    }
+
     // l2 snapshots
     if (msg.table.match(/depth5/)) {
       this._processLevel2Snapshot(msg);
@@ -272,6 +335,38 @@ class OKExClient extends BasicClient {
       // construct and emit trade
       let trade = this._constructTrade(datum, market);
       this.emit("trade", trade, market);
+    }
+  }
+
+  /**
+   * Processes a candle message
+    {
+      "table": "spot/candle60s",
+      "data": [
+        {
+          "candle": [
+            "2020-08-10T20:42:00.000Z",
+            "0.03332",
+            "0.03332",
+            "0.03331",
+            "0.03332",
+            "44.058532"
+          ],
+          "instrument_id": "ETH-BTC"
+        }
+      ]
+    }
+   */
+  _processCandles(msg) {
+    for (let datum of msg.data) {
+      // ensure market
+      let remoteId = datum.instrument_id;
+      let market = this._candleSubs.get(remoteId);
+      if (!market) continue;
+
+      // construct and emit candle
+      let candle = this._constructCandle(datum, market);
+      this.emit("candle", candle, market);
     }
   }
 
@@ -418,6 +513,27 @@ class OKExClient extends BasicClient {
       price,
       amount: size || qty,
     });
+  }
+
+  /**
+   * Constructs a candle for the market
+      {
+        "candle": [
+          "2020-08-10T20:42:00.000Z",
+          "0.03332",
+          "0.03332",
+          "0.03331",
+          "0.03332",
+          "44.058532"
+        ],
+        "instrument_id": "ETH-BTC"
+      }
+   * @param {*} datum
+   */
+  _constructCandle(datum) {
+    let [datetime, open, high, low, close, volume] = datum.candle;
+    let ts = moment.utc(datetime).valueOf();
+    return new Candle(ts, open, high, low, close, volume);
   }
 
   /**
