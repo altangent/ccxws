@@ -2,18 +2,6 @@ const { testClient } = require("../test-runner");
 const OKExClient = require("../../src/exchanges/okex-client");
 const { get } = require("../../src/https");
 
-async function fetchFuturesMarkets() {
-  const results = await get("https://www.okex.com/api/futures/v3/instruments");
-  return results
-    .filter(p => p.base_currency === "BTC")
-    .map(p => ({
-      id: p.instrument_id,
-      base: p.base_currency,
-      quote: p.quote_currency,
-      type: "futures",
-    }));
-}
-
 const assertions = {
   hasTickers: true,
   hasTrades: true,
@@ -86,6 +74,34 @@ testClient({
   clientFactory: () => new OKExClient(),
   exchangeName: "OKEx",
   clientName: "OKExClient - Futures",
-  fetchMarkets: fetchFuturesMarkets,
+  fetchMarkets: async () => {
+    const results = await get("https://www.okex.com/api/futures/v3/instruments");
+    return results
+      .filter(p => p.base_currency === "BTC")
+      .map(p => ({
+        id: p.instrument_id,
+        base: p.base_currency,
+        quote: p.quote_currency,
+        type: "futures",
+      }));
+  },
+  ...assertions,
+});
+
+testClient({
+  clientFactory: () => new OKExClient(),
+  exchangeName: "OKEx",
+  clientName: "OKExClient - Swap",
+  fetchMarkets: async () => {
+    const results = await get("https://www.okex.com/api/swap/v3/instruments");
+    return results
+      .filter(p => ["BTC", "ETH", "LTC"].includes(p.base_currency))
+      .map(p => ({
+        id: p.instrument_id,
+        base: p.base_currency,
+        quote: p.quote_currency,
+        type: "swap",
+      }));
+  },
   ...assertions,
 });
