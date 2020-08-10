@@ -1,37 +1,20 @@
 const { testClient } = require("../test-runner");
 const BinanceUSClient = require("../../src/exchanges/binanceus-client");
+const { get } = require("../../src/https");
+
+async function fetchAllMarkets() {
+  const results = await get("https://api.binance.us/api/v1/exchangeInfo");
+  return results.symbols
+    .filter(p => p.status === "TRADING")
+    .map(p => ({ id: p.symbol, base: p.baseAsset, quote: p.quoteAsset }));
+}
 
 testClient({
   clientFactory: () => new BinanceUSClient(),
   clientName: "BinanceUSClient",
   exchangeName: "BinanceUS",
-  markets: [
-    {
-      id: "BTCUSD",
-      base: "BTC",
-      quote: "USD",
-    },
-    {
-      id: "ETHUSD",
-      base: "ETH",
-      quote: "USD",
-    },
-    {
-      id: "XRPUSD",
-      base: "XRP",
-      quote: "USD",
-    },
-    {
-      id: "BCHUSD",
-      base: "BCH",
-      quote: "USD",
-    },
-    {
-      id: "LTCUSD",
-      base: "LTC",
-      quote: "USD",
-    },
-  ],
+
+  fetchMarkets: fetchAllMarkets,
 
   skip: false,
   unsubWaitMs: 1500,
