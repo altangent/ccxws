@@ -88,4 +88,4 @@ describe("Watcher", () => {
       expect(client.reconnect.callCount).to.equal(1);
     });
   });
-});
+}).retries(3);
