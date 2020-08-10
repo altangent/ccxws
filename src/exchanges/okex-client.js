@@ -386,8 +386,8 @@ class OKExClient extends BasicClient {
       volume: base_volume_24h || volume_24h,
       change: change.toFixed(8),
       changePercent: changePercent.toFixed(2),
-      bid: best_bid,
-      ask: best_ask,
+      bid: best_bid || "0",
+      ask: best_ask || "0",
     });
   }
 

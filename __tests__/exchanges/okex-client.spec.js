@@ -105,3 +105,22 @@ testClient({
   },
   ...assertions,
 });
+
+testClient({
+  clientFactory: () => new OKExClient(),
+  exchangeName: "OKEx",
+  clientName: "OKExClient - Options",
+  fetchMarkets: async () => {
+    const results = await get("https://www.okex.com/api/option/v3/instruments/BTC-USD");
+    return results
+      .map(p => ({
+        id: p.instrument_id,
+        base: p.base_currency,
+        quote: p.quote_currency,
+        type: "option",
+      }))
+      .filter(p => p.id.endsWith("-C"))
+      .slice(0, 20);
+  },
+  ...assertions,
+});
