@@ -1,5 +1,5 @@
 const moment = require("moment");
-const semaphore = require("semaphore");
+const { throttle } = require("../flowcontrol/throttle");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -8,41 +8,38 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
 class HitBTCClient extends BasicClient {
-  constructor() {
+  constructor({ throttleMs = 25 } = {}) {
     super("wss://api.hitbtc.com/api/2/ws", "HitBTC");
     this._id = 0;
 
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;
-    this.throttleMs = 100;
-    this.on("connected", this._resetSemaphore.bind(this));
+    this._send = throttle(this._send.bind(this), throttleMs);
   }
 
-  _resetSemaphore() {
-    // We use semaphores to throttle connectivity. Upon taking the
-    // semaphore, we release it within 100ms, which should
-    // be long enough to ensure that the connection was created
-    this._sem = semaphore(4);
+  _beforeClose() {
+    this._send.cancel();
+  }
+
+  _send(msg) {
+    this._wss.send(msg);
   }
 
   _sendSubTicker(remote_id) {
-    this._sem.take(() => {
-      setTimeout(() => this._sem.leave(), this.throttleMs);
-      this._wss.send(
-        JSON.stringify({
-          method: "subscribeTicker",
-          params: {
-            symbol: remote_id,
-          },
-          id: ++this._id,
-        })
-      );
-    });
+    this._send(
+      JSON.stringify({
+        method: "subscribeTicker",
+        params: {
+          symbol: remote_id,
+        },
+        id: ++this._id,
+      })
+    );
   }
 
   _sendUnsubTicker(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         method: "unsubscribeTicker",
         params: {
@@ -53,22 +50,19 @@ class HitBTCClient extends BasicClient {
   }
 
   _sendSubTrades(remote_id) {
-    this._sem.take(() => {
-      setTimeout(() => this._sem.leave(), this.throttleMs);
-      this._wss.send(
-        JSON.stringify({
-          method: "subscribeTrades",
-          params: {
-            symbol: remote_id,
-          },
-          id: ++this._id,
-        })
-      );
-    });
+    this._send(
+      JSON.stringify({
+        method: "subscribeTrades",
+        params: {
+          symbol: remote_id,
+        },
+        id: ++this._id,
+      })
+    );
   }
 
   _sendUnsubTrades(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         method: "unsubscribeTrades",
         params: {
@@ -79,22 +73,19 @@ class HitBTCClient extends BasicClient {
   }
 
   _sendSubLevel2Updates(remote_id) {
-    this._sem.take(() => {
-      setTimeout(() => this._sem.leave(), this.throttleMs);
-      this._wss.send(
-        JSON.stringify({
-          method: "subscribeOrderbook",
-          params: {
-            symbol: remote_id,
-          },
-          id: ++this._id,
-        })
-      );
-    });
+    this._send(
+      JSON.stringify({
+        method: "subscribeOrderbook",
+        params: {
+          symbol: remote_id,
+        },
+        id: ++this._id,
+      })
+    );
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         method: "unsubscribeOrderbook",
         params: {
@@ -110,7 +101,11 @@ class HitBTCClient extends BasicClient {
     // The payload for a subscribe confirm will include the id that
     // was attached in the JSON-RPC call creation.  For example:
     // { jsonrpc: '2.0', result: true, id: 7 }
-    //
+    if (msg.result === true && msg.id) {
+      // console.log(msg);
+      // return;
+    }
+
     // For unsubscribe calls, we are not including an id
     // so we can ignore messages that do not can an id value:
     // { jsonrpc: '2.0', result: true, id: null }
