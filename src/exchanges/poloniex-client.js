@@ -43,6 +43,7 @@ class PoloniexClient extends BasicClient {
 
   _resetSubCount() {
     this._subCount = {};
+    this._subbedToTickers = false;
   }
 
   _sendSubTicker() {
