@@ -74,6 +74,7 @@ class BinanceBase extends BasicClient {
   //////////////////////////////////////////////
 
   _onClosing() {
+    this._tickersActive = false;
     this._batchSub.cancel();
     this._batchUnsub.cancel();
     this._sendMessage.cancel();
