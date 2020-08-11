@@ -1,25 +1,30 @@
 const BasicClient = require("../basic-client");
+const https = require("../https");
 const Trade = require("../trade");
 const Level3Point = require("../level3-point");
 const Level3Update = require("../level3-update");
+const Level3Snapshot = require("../level3-snapshot");
 
 /**
  * LedgerX is defined in https://docs.ledgerx.com/reference#market-data-feed
  */
 class LedgerXClient extends BasicClient {
   constructor(token) {
-    super("wss://trade.ledgerx.com/api/ws?token=" + token, "LegderX");
+    super("wss://trade.ledgerx.com/api/ws?token=" + token, "LedgerX");
 
     this.hasTrades = true;
     this.hasLevel3Updates = true;
     this._runId = 0;
+    this._token = token;
   }
 
   _sendSubTrades() {}
 
   _sendUnsubTrades() {}
 
-  _sendSubLevel3Updates() {}
+  _sendSubLevel3Updates(remote_id, market) {
+    this._requestLevel3Snapshot(market);
+  }
 
   _sendUnSubLevel3Updates() {}
 
@@ -93,6 +98,39 @@ class LedgerXClient extends BasicClient {
     // console.log(json);
   }
 
+  async _requestLevel3Snapshot(market) {
+    let failed = false;
+    try {
+      let uri = `https://trade.ledgerx.com/api/book-states/${market.id}?token=${this._token}`;
+      let { data } = await https.get(uri);
+      let sequenceId = data.clock;
+      let asks = [];
+      let bids = [];
+      for (let row of data.book_states) {
+        let orderId = row.mid;
+        let price = (row.price / 100).toFixed(8);
+        let size = (row.size / 100).toFixed(8);
+        let point = new Level3Point(orderId, price, size);
+        if (row.is_ask) asks.push(point);
+        else bids.push(point);
+      }
+      let snapshot = new Level3Snapshot({
+        exchange: this._name,
+        base: market.base,
+        quote: market.quote,
+        sequenceId,
+        asks,
+        bids,
+      });
+      this.emit("l3snapshot", snapshot, market);
+    } catch (ex) {
+      this.emit("error", ex);
+      failed = true;
+    } finally {
+      if (failed) this._requestLevel3Snapshot(market);
+    }
+  }
+
   /**
    {
       mid: 'f4c34b09de0b4064a33b7b46f8180022',
@@ -145,7 +183,7 @@ class LedgerXClient extends BasicClient {
    */
   _constructTrade(msg, market) {
     return new Trade({
-      exchange: "LedgerX",
+      exchange: this._name,
       base: market.base,
       quote: market.quote,
       tradeId: msg.mid,
@@ -198,7 +236,7 @@ class LedgerXClient extends BasicClient {
     else bids.push(point);
 
     return new Level3Update({
-      exchange: "LedgerX",
+      exchange: this._name,
       base: market.base,
       quote: market.quote,
       sequenceId: msg.clock,
@@ -250,7 +288,7 @@ class LedgerXClient extends BasicClient {
     else bids.push(point);
 
     return new Level3Update({
-      exchange: "LedgerX",
+      exchange: this._name,
       base: market.base,
       quote: market.quote,
       sequenceId: msg.clock,
@@ -302,7 +340,7 @@ class LedgerXClient extends BasicClient {
     else bids.push(point);
 
     return new Level3Update({
-      exchange: "LedgerX",
+      exchange: this._name,
       base: market.base,
       quote: market.quote,
       sequenceId: msg.clock,
@@ -314,7 +352,7 @@ class LedgerXClient extends BasicClient {
 
   _constructL3Reset(msg, market) {
     return new Level3Update({
-      exchange: "LedgerX",
+      exchange: this._name,
       base: market.base,
       quote: market.quote,
       reset: true,
