@@ -1,5 +1,6 @@
 const { testClient } = require("../test-runner");
 const HitBTCClient = require("../../src/exchanges/hitbtc-client");
+const { get } = require("../../src/https");
 
 testClient({
   clientFactory: () => new HitBTCClient(),
@@ -11,7 +12,20 @@ testClient({
       base: "ETH",
       quote: "BTC",
     },
+    {
+      id: "BTCUSDT",
+      base: "BTC",
+      quote: "USDT",
+    },
   ],
+
+  fetchAllMarkets: async () => {
+    let results = await get("https://api.hitbtc.com/api/2/public/symbol");
+    return results.map(p => ({ id: p.id, base: p.baseCurrency, quote: p.quoteCurrency }));
+  },
+
+  testAllMarketsTrades: true,
+  testAllMarketsTradesSuccess: 50,
 
   testConnectEvents: true,
   testDisconnectEvents: true,

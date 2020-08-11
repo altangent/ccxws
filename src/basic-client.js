@@ -37,6 +37,9 @@ class BasicTradeClient extends EventEmitter {
   //////////////////////////////////////////////
 
   close() {
+    if (this._beforeClose) {
+      this._beforeClose();
+    }
     this._watcher.stop();
     if (this._wss) {
       this._wss.close();
