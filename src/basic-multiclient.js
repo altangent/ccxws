@@ -59,7 +59,7 @@ class BasicMultiClient extends EventEmitter {
   async unsubscribeCandles(market) {
     if (!this.hasCandles) return;
     if (this._clients.has(market.id)) {
-      (await this._clients.get(market.id)).unsubscribeCandle(market);
+      (await this._clients.get(market.id)).unsubscribeCandles(market);
     }
   }
 
