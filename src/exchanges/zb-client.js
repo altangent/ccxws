@@ -4,7 +4,7 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 
-class HuobiClient extends BasicClient {
+class ZbClient extends BasicClient {
   constructor() {
     super("wss://api.zb.cn/websocket ", "ZB");
     this.hasTickers = true;
@@ -166,4 +166,4 @@ class HuobiClient extends BasicClient {
   }
 }
 
-module.exports = HuobiClient;
+module.exports = ZbClient;
