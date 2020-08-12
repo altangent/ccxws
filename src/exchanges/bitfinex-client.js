@@ -252,11 +252,11 @@ class BitfinexClient extends BasicClient {
   _onLevel3Snapshot(msg, market) {
     let bids = [];
     let asks = [];
-    msg[1].forEach(p => {
+    for (let p of msg[1]) {
       let point = new Level3Point(p[0].toFixed(), p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
       if (p[2] > 0) bids.push(point);
       else asks.push(point);
-    });
+    }
     let result = new Level3Snapshot({
       exchange: "Bitfinex",
       base: market.base,

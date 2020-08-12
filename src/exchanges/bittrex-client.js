@@ -251,20 +251,20 @@ class BittrexClient extends EventEmitter {
 
       for (let msg of raw.M) {
         if (msg.M === "updateExchangeState") {
-          msg.A.forEach(data => {
+          for (let data of msg.A) {
             if (this._tradeSubs.has(data.MarketName)) {
               let market = this._tradeSubs.get(data.MarketName);
-              data.Fills.forEach(fill => {
+              for (let fill of data.Fills) {
                 let trade = this._constructTradeFromMessage(fill, market);
                 this.emit("trade", trade, market);
-              });
+              }
             }
             if (this._level2UpdateSubs.has(data.MarketName)) {
               let market = this._level2UpdateSubs.get(data.MarketName);
               let l2update = this._constructLevel2Update(data, market);
               this.emit("l2update", l2update, market);
             }
-          });
+          }
         }
         if (msg.M === "updateSummaryState") {
           for (let raw of msg.A[0].Deltas) {

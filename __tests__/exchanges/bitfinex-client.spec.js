@@ -11,6 +11,16 @@ testClient({
       base: "BTC",
       quote: "USDT",
     },
+    {
+      id: "ETHUSD",
+      base: "ETH",
+      quote: "USD",
+    },
+    {
+      id: "ETHBTC",
+      base: "ETH",
+      quote: "BTC",
+    },
   ],
 
   testConnectEvents: true,

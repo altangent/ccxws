@@ -202,11 +202,11 @@ class CoinbaseProClient extends BasicClient {
     let { changes } = msg;
     let asks = [];
     let bids = [];
-    changes.forEach(([side, price, size]) => {
+    for (let [side, price, size] of changes) {
       let point = new Level2Point(price, size);
       if (side === "buy") bids.push(point);
       else asks.push(point);
-    });
+    }
 
     return new Level2Update({
       exchange: "CoinbasePro",
