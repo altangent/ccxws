@@ -195,6 +195,7 @@ function testClient(spec) {
         client.on("trade", (trade, market) => {
           markets.add(market.id);
           if (markets.size >= spec.testAllMarketsTradesSuccess) {
+            client.removeAllListeners("trade");
             client.close();
             done();
           }

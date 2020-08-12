@@ -1,5 +1,6 @@
 const { testClient } = require("../test-runner");
 const BiboxClient = require("../../src/exchanges/bibox-client");
+const https = require("../../src/https");
 
 testClient({
   clientFactory: () => new BiboxClient(),
@@ -12,15 +13,32 @@ testClient({
       quote: "USDT",
     },
     {
+      id: "ETH_USDT",
+      base: "ETH",
+      quote: "USDT",
+    },
+    {
       id: "ETH_BTC",
       base: "ETH",
       quote: "BTC",
     },
   ],
 
+  async fetchAllMarkets() {
+    const res = await https.get("https://api.bibox.com/v1/mdata?cmd=pairList");
+    return res.result.map(p => ({
+      id: p.pair,
+      base: p.pair.split("_")[0],
+      quote: p.pair.split("_")[1],
+    }));
+  },
+
   getEventingSocket(client) {
     return client._clients[0]._wss;
   },
+
+  testAllMarketsTrades: true,
+  testAllMarketsTradesSuccess: 50,
 
   testConnectEvents: true,
   testDisconnectEvents: true,
@@ -29,7 +47,7 @@ testClient({
 
   hasTickers: true,
   hasTrades: true,
-  hasCandles: false,
+  hasCandles: true,
   hasLevel2Snapshots: true,
   hasLevel2Updates: false,
   hasLevel3Snapshots: false,
@@ -54,6 +72,8 @@ testClient({
   trade: {
     hasTradeId: false,
   },
+
+  candle: {},
 
   l2snapshot: {
     hasTimestampMs: true,

@@ -6,8 +6,9 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
-const { MarketObjectTypes } = require("../enums");
-const semaphore = require("semaphore");
+const Candle = require("../candle");
+const { MarketObjectTypes, CandlePeriod } = require("../enums");
+const { throttle } = require("../flowcontrol/throttle");
 const { wait } = require("../util");
 
 class BiboxClient extends EventEmitter {
@@ -37,18 +38,19 @@ class BiboxClient extends EventEmitter {
 
     this.hasTickers = true;
     this.hasTrades = true;
-    this.hasCandles = false;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = false;
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
     this.subsPerClient = 20;
     this.throttleMs = 200;
-    this._throttle = semaphore(1);
+    this._subscribe = throttle(this._subscribe.bind(this), this.throttleMs);
+    this.candlePeriod = CandlePeriod._1m;
   }
 
   subscribeTicker(market) {
-    this._throttleSubscribe(market, MarketObjectTypes.ticker);
+    this._subscribe(market, MarketObjectTypes.ticker);
   }
 
   unsubscribeTicker(market) {
@@ -56,15 +58,23 @@ class BiboxClient extends EventEmitter {
   }
 
   subscribeTrades(market) {
-    this._throttleSubscribe(market, MarketObjectTypes.trade);
+    this._subscribe(market, MarketObjectTypes.trade);
   }
 
   unsubscribeTrades(market) {
     this._unsubscribe(market, MarketObjectTypes.trade);
   }
 
+  subscribeCandles(market) {
+    this._subscribe(market, MarketObjectTypes.candle);
+  }
+
+  unsubscribeCandles(market) {
+    this._unsubscribe(market, MarketObjectTypes.candle);
+  }
+
   subscribeLevel2Snapshots(market) {
-    this._throttleSubscribe(market, MarketObjectTypes.level2snapshot);
+    this._subscribe(market, MarketObjectTypes.level2snapshot);
   }
 
   unsubscribeLevel2Snapshots(market) {
@@ -72,6 +82,8 @@ class BiboxClient extends EventEmitter {
   }
 
   close() {
+    this._subscribe.cancel();
+
     for (let client of this._clients) {
       client.close();
     }
@@ -82,23 +94,6 @@ class BiboxClient extends EventEmitter {
       client.reconnect();
       await wait(this.timeoutMs);
     }
-  }
-
-  /**
-    This method wraps a call to subscribe with a semaphore that is realeased
-    after a timeout period. This ensures that only so many subscribe methods
-    are called with a certain time period.
-    @param {*} market
-    @param {*} marketObjectType
-   */
-  _throttleSubscribe(market, marketObjectType) {
-    this._throttle.take(() => {
-      // perform the subscribe method
-      this._subscribe(market, marketObjectType);
-
-      // release semaphore after throttle timeout
-      setTimeout(() => this._throttle.leave(), this.throttleMs);
-    });
   }
 
   _subscribe(market, marketObjectType) {
@@ -125,6 +120,9 @@ class BiboxClient extends EventEmitter {
       // construct a new client
       client = new BiboxBasicClient();
 
+      // set properties
+      client.parent = this;
+
       // wire up the events to pass through
       client.on("connecting", () => this.emit("connecting", market, marketObjectType));
       client.on("connected", () => this.emit("connected", market, marketObjectType));
@@ -134,6 +132,7 @@ class BiboxClient extends EventEmitter {
       client.on("closed", () => this.emit("closed", market, marketObjectType));
       client.on("ticker", (ticker, market) => this.emit("ticker", ticker, market));
       client.on("trade", (trade, market) => this.emit("trade", trade, market));
+      client.on("candle", (candle, market) => this.emit("candle", candle, market));
       client.on("l2snapshot", (l2snapshot, market) => this.emit("l2snapshot", l2snapshot, market));
       client.on("error", err => this.emit("error", err));
 
@@ -152,6 +151,9 @@ class BiboxClient extends EventEmitter {
         break;
       case MarketObjectTypes.trade:
         client.subscribeTrades(market);
+        break;
+      case MarketObjectTypes.candle:
+        client.subscribeCandles(market);
         break;
       case MarketObjectTypes.level2snapshot:
         client.subscribeLevel2Snapshots(market);
@@ -178,6 +180,9 @@ class BiboxClient extends EventEmitter {
       case MarketObjectTypes.trade:
         client.unsubscribeTrades(market);
         break;
+      case MarketObjectTypes.candle:
+        client.unsubscribeCandles(market);
+        break;
       case MarketObjectTypes.level2snapshot:
         client.unsubscribeLevel2Snapshots(market);
         break;
@@ -202,8 +207,13 @@ class BiboxBasicClient extends BasicClient {
     this._watcher = new Watcher(this, 10 * 60 * 1000); // change to 10 minutes
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.subCount = 0;
+  }
+
+  get candlePeriod() {
+    return this.parent.candlePeriod;
   }
 
   /**
@@ -252,6 +262,26 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `bibox_sub_spot_${remote_id}_deals`,
+      })
+    );
+  }
+
+  _sendSubCandles(remote_id) {
+    this.subCount++;
+    this._wss.send(
+      JSON.stringify({
+        event: "addChannel",
+        channel: `bibox_sub_spot_${remote_id}_kline_${candlePeriod(this.candlePeriod)}`,
+      })
+    );
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this.subCount--;
+    this._wss.send(
+      JSON.stringify({
+        event: "removeChannel",
+        channel: `bibox_sub_spot_${remote_id}_kline_${candlePeriod(this.candlePeriod)}`,
       })
     );
   }
@@ -360,6 +390,22 @@ class BiboxBasicClient extends BasicClient {
       this.emit("l2snapshot", snapshot, market);
       return;
     }
+
+    // candle
+    if (msg.channel.endsWith(`kline_${candlePeriod(this.candlePeriod)}`)) {
+      // bibox_sub_spot_BTC_USDT_kline_1min
+      let remote_id = msg.channel
+        .replace("bibox_sub_spot_", "")
+        .replace(`_kline_${candlePeriod(this.candlePeriod)}`, "");
+
+      let market = this._candleSubs.get(remote_id);
+      if (!market) return;
+
+      for (let datum of msg.data) {
+        let candle = this._constructCandle(datum, market);
+        this.emit("candle", candle, market);
+      }
+    }
   }
 
   /*
@@ -440,6 +486,35 @@ class BiboxBasicClient extends BasicClient {
     });
   }
 
+  /**
+   {
+      channel: 'bibox_sub_spot_BTC_USDT_kline_1min',
+      binary: 1,
+      data_type: 1,
+      data: [
+        {
+          time: 1597259460000,
+          open: '11521.38000000',
+          high: '11540.58990000',
+          low: '11521.28990000',
+          close: '11540.56990000',
+          vol: '11.24330000'
+        },
+        {
+          time: 1597259520000,
+          open: '11540.55990000',
+          high: '11540.58990000',
+          low: '11533.13000000',
+          close: '11536.83990000',
+          vol: '10.88200000'
+        }
+      ]
+    }
+   */
+  _constructCandle(datum) {
+    return new Candle(datum.time, datum.open, datum.high, datum.low, datum.close, datum.vol);
+  }
+
   /* Converts from a raw message
     {
         "binary": 0,
@@ -472,6 +547,33 @@ class BiboxBasicClient extends BasicClient {
       asks,
       bids,
     });
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1min";
+    case CandlePeriod._5m:
+      return "5min";
+    case CandlePeriod._15min:
+      return "15min";
+    case CandlePeriod._30min:
+      return "30min";
+    case CandlePeriod._1h:
+      return "1hour";
+    case CandlePeriod._2h:
+      return "2hour";
+    case CandlePeriod._4h:
+      return "4hour";
+    case CandlePeriod._6h:
+      return "6hour";
+    case CandlePeriod._12h:
+      return "12hour";
+    case CandlePeriod._1d:
+      return "day";
+    case CandlePeriod._1w:
+      return "week";
   }
 }
 
