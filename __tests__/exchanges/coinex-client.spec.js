@@ -12,14 +12,14 @@ testClient({
       quote: "USDT",
     },
     {
-      id: "LTCBTC",
-      base: "LTC",
-      quote: "BTC",
-    },
-    {
       id: "ETHBTC",
       base: "ETH",
       quote: "BTC",
+    },
+    {
+      id: "ETHUSDT",
+      base: "ETH",
+      quote: "USDT",
     },
   ],
 
@@ -34,7 +34,7 @@ testClient({
 
   hasTickers: true,
   hasTrades: true,
-  hasCandles: false,
+  hasCandles: true,
   hasLevel2Snapshots: false,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
@@ -59,6 +59,8 @@ testClient({
   trade: {
     hasTradeId: true,
   },
+
+  candle: {},
 
   l2snapshot: {
     hasTimestampMs: false,

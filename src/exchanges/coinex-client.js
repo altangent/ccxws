@@ -4,37 +4,45 @@ const BasicMultiClient = require("../basic-multiclient");
 const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
-const { MarketObjectTypes } = require("../enums");
+const { MarketObjectTypes, CandlePeriod } = require("../enums");
 
 class CoinexClient extends BasicMultiClient {
   constructor() {
     super();
-
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Updates = true;
+    this.candlePeriod = CandlePeriod._1m;
   }
 
   _createBasicClient() {
-    return new CoinexSingleClient();
+    return new CoinexSingleClient(this);
   }
 }
 
 class CoinexSingleClient extends BasicClient {
-  constructor() {
+  constructor(parent) {
     super("wss://socket.coinex.com/", "Coinex");
     this._watcher = new Watcher(this, 15 * 60 * 1000);
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = false;
     this.retryErrorTimeout = 15000;
     this._id = 0;
     this._idSubMap = new Map();
+    this.parent = parent;
+  }
+
+  get candlePeriod() {
+    return this.parent.candlePeriod;
   }
 
   _beforeConnect() {
@@ -128,6 +136,26 @@ class CoinexSingleClient extends BasicClient {
     );
   }
 
+  _sendSubCandles(remote_id) {
+    let id = this._id++;
+    this._idSubMap.set(id, { remote_id, type: MarketObjectTypes.trade });
+    this._wss.send(
+      JSON.stringify({
+        method: "kline.subscribe",
+        params: [remote_id, candlePeriod(this.candlePeriod)],
+        id,
+      })
+    );
+  }
+
+  _sendUnsubCandles() {
+    this._wss.send(
+      JSON.stringify({
+        method: "kline.unsubscribe",
+      })
+    );
+  }
+
   _sendSubLevel2Updates(remote_id) {
     let id = this._id++;
     this._idSubMap.set(id, { remote_id, type: MarketObjectTypes.level2update });
@@ -182,6 +210,18 @@ class CoinexSingleClient extends BasicClient {
       for (let t of params[1].reverse()) {
         let trade = this._constructTrade(t, market);
         this.emit("trade", trade, market);
+      }
+      return;
+    }
+
+    if (method === "kline.update") {
+      for (let d of params) {
+        let marketId = d[7];
+        let market = this._candleSubs.get(marketId);
+        if (!market) continue;
+
+        let candle = this._constructCandle(d);
+        this.emit("candle", candle, market);
       }
       return;
     }
@@ -243,6 +283,10 @@ class CoinexSingleClient extends BasicClient {
     });
   }
 
+  _constructCandle(data) {
+    return new Candle(data[0] * 1000, data[1], data[3], data[4], data[2], data[5]);
+  }
+
   _constructLevel2Snapshot(rawUpdate, market) {
     let { bids, asks } = rawUpdate,
       structuredBids = bids ? bids.map(([price, size]) => new Level2Point(price, size)) : [],
@@ -269,6 +313,35 @@ class CoinexSingleClient extends BasicClient {
       bids: structuredBids,
       asks: structuredAsks,
     });
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return 60;
+    case CandlePeriod._3m:
+      return 180;
+    case CandlePeriod._5m:
+      return 300;
+    case CandlePeriod._15m:
+      return 900;
+    case CandlePeriod._30m:
+      return 1800;
+    case CandlePeriod._1h:
+      return 3600;
+    case CandlePeriod._2h:
+      return 7200;
+    case CandlePeriod._4h:
+      return 14400;
+    case CandlePeriod._12h:
+      return 43200;
+    case CandlePeriod._1d:
+      return 86400;
+    case CandlePeriod._3d:
+      return 259200;
+    case CandlePeriod._1w:
+      return 604800;
   }
 }
 
