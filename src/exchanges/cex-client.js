@@ -1,11 +1,13 @@
 const crypto = require("crypto");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const BasicMultiClient = require("../basic-multiclient");
 const BasicClient = require("../basic-client");
 const Watcher = require("../watcher");
+const { CandlePeriod } = require("../enums");
 
 function createSignature(timestamp, apiKey, apiSecret) {
   var hmac = crypto.createHmac("sha256", apiSecret);
@@ -66,11 +68,13 @@ class CexClient extends BasicMultiClient {
     this.auth = auth;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
+    this.candlePeriod = CandlePeriod._1m;
   }
 
   _createBasicClient(clientArgs) {
-    return new SingleCexClient({ auth: this.auth, market: clientArgs.market });
+    return new SingleCexClient({ auth: this.auth, market: clientArgs.market, parent: this });
   }
 }
 
@@ -82,8 +86,14 @@ class SingleCexClient extends BasicClient {
     this.market = args.market;
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.authorized = false;
+    this.parent = args.parent;
+  }
+
+  get candlePeriod() {
+    return this.parent.candlePeriod;
   }
 
   /**
@@ -145,6 +155,19 @@ class SingleCexClient extends BasicClient {
   }
 
   _sendUnsubTrades() {}
+
+  _sendSubCandles(remote_id) {
+    if (!this.authorized) return;
+    this._wss.send(
+      JSON.stringify({
+        e: "init-ohlcv",
+        i: candlePeriod(this.candlePeriod),
+        rooms: [`pair-${remote_id.replace("/", "-")}`],
+      })
+    );
+  }
+
+  _sendUnsubCandles() {}
 
   _sendSubLevel2Snapshots(remote_id) {
     if (!this.authorized) return;
@@ -228,6 +251,17 @@ class SingleCexClient extends BasicClient {
         return;
       }
     }
+
+    // ohlcv{period} - why the F*** are there three styles of candles???
+    if (e === `ohlcv${candlePeriod(this.candlePeriod)}`) {
+      let marketId = message.data.pair.replace(":", "/");
+      let market = this._candleSubs.get(marketId);
+      if (!market) return;
+
+      let candle = this._constructCandle(message.data, market);
+      this.emit("candle", candle, market);
+      return;
+    }
   }
 
   _constructTicker(data, market) {
@@ -280,6 +314,57 @@ class SingleCexClient extends BasicClient {
       amount: formatAmount(amount, market.base),
       rawAmount: amount,
     });
+  }
+
+  /**
+   {
+      e: 'ohlcv1m',
+      data: {
+        pair: 'BTC:USD',
+        time: '1597261140',
+        o: '11566.8',
+        h: '11566.8',
+        l: '11566.8',
+        c: '11566.8',
+        v: 664142,
+        d: 664142
+      }
+    }
+   */
+  _constructCandle(data) {
+    const ms = Number(data.time) * 1000;
+    return new Candle(ms, data.o, data.h, data.l, data.c, data.v.toFixed(8));
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1m";
+    case CandlePeriod._3m:
+      return "3m";
+    case CandlePeriod._5m:
+      return "5m";
+    case CandlePeriod._15m:
+      return "15m";
+    case CandlePeriod._30m:
+      return "30m";
+    case CandlePeriod._1h:
+      return "1h";
+    case CandlePeriod._2h:
+      return "2h";
+    case CandlePeriod._4h:
+      return "4h";
+    case CandlePeriod._6h:
+      return "6h";
+    case CandlePeriod._12h:
+      return "12h";
+    case CandlePeriod._1d:
+      return "1d";
+    case CandlePeriod._3d:
+      return "3d";
+    case CandlePeriod._1w:
+      return "1w";
   }
 }
 
