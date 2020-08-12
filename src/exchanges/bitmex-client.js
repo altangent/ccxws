@@ -4,7 +4,9 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const Ticker = require("../ticker");
+const { CandlePeriod } = require("../enums");
 const moment = require("moment");
+const Candle = require("../candle");
 
 class BitmexClient extends BasicClient {
   /**
@@ -13,9 +15,11 @@ class BitmexClient extends BasicClient {
    */
   constructor() {
     super("wss://www.bitmex.com/realtime", "BitMEX");
-    this.hasTrades = true;
     this.hasTickers = true;
+    this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Updates = true;
+    this.candlePeriod = CandlePeriod._1m;
     this.constructL2Price = true;
     this.l2PriceMap = new Map();
 
@@ -66,20 +70,38 @@ class BitmexClient extends BasicClient {
     );
   }
 
-  _sendSubLevel2Updates(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        op: "subscribe",
-        args: [`orderBookL2:${remote_id}`],
-      })
-    );
-  }
-
   _sendUnsubTrades(remote_id) {
     this._wss.send(
       JSON.stringify({
         op: "unsubscribe",
         args: [`trade:${remote_id}`],
+      })
+    );
+  }
+
+  _sendSubCandles(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "subscribe",
+        args: [`tradeBin${candlePeriod(this.candlePeriod)}:${remote_id}`],
+      })
+    );
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "unsubscribe",
+        args: [`tradeBin${candlePeriod(this.candlePeriod)}:${remote_id}`],
+      })
+    );
+  }
+
+  _sendSubLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        op: "subscribe",
+        args: [`orderBookL2:${remote_id}`],
       })
     );
   }
@@ -123,6 +145,19 @@ class BitmexClient extends BasicClient {
             this.emit("ticker", ticker, market);
           }
         }
+      }
+      return;
+    }
+
+    // candles
+    if (table && table.startsWith("tradeBin")) {
+      for (let datum of message.data) {
+        let remote_id = datum.symbol;
+        let market = this._candleSubs.get(remote_id);
+        if (!market) continue;
+
+        const candle = this._constructCandle(datum);
+        this.emit("candle", candle, market);
       }
       return;
     }
@@ -172,6 +207,41 @@ class BitmexClient extends BasicClient {
       amount: size.toFixed(8),
       raw: datum, // attach the raw data incase it is needed in raw format
     });
+  }
+
+  /**
+   {
+      table: 'tradeBin1m',
+      action: 'insert',
+      data: [
+        {
+          timestamp: '2020-08-12T20:33:00.000Z',
+          symbol: 'XBTUSD',
+          open: 11563,
+          high: 11563,
+          low: 11560,
+          close: 11560.5,
+          trades: 158,
+          volume: 157334,
+          vwap: 11562.0303,
+          lastSize: 4000,
+          turnover: 1360824337,
+          homeNotional: 13.60824337,
+          foreignNotional: 157334
+        }
+      ]
+    }
+   */
+  _constructCandle(datum) {
+    let ts = moment(datum.timestamp).valueOf();
+    return new Candle(
+      ts,
+      datum.open.toFixed(8),
+      datum.high.toFixed(8),
+      datum.low.toFixed(8),
+      datum.close.toFixed(8),
+      datum.volume.toFixed(8)
+    );
   }
 
   /**
@@ -462,6 +532,19 @@ class BitmexClient extends BasicClient {
    */
   _isTickerReady(ticker) {
     return ticker.last && ticker.bid && ticker.ask;
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1m";
+    case CandlePeriod._5m:
+      return "5m";
+    case CandlePeriod._1h:
+      return "1h";
+    case CandlePeriod._1d:
+      return "1d";
   }
 }
 
