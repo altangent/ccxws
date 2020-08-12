@@ -7,6 +7,8 @@ const Level3Snapshot = require("../level3-snapshot");
 
 /**
  * LedgerX is defined in https://docs.ledgerx.com/reference#market-data-feed
+ * This socket uses a unified stream for ALL market data. So we will leverage
+ * subscription filtering to only reply with values that of are of interest.
  */
 class LedgerXClient extends BasicClient {
   constructor(token) {
@@ -56,7 +58,6 @@ class LedgerXClient extends BasicClient {
     if (json.type === "action_report") {
       // insert event
       if (json.status_type === 200) {
-        // console.log(json);
         const market = this._level3UpdateSubs.get(json.contract_id.toFixed());
         if (!market) return;
 
@@ -98,6 +99,9 @@ class LedgerXClient extends BasicClient {
     // console.log(json);
   }
 
+  /**
+   * Obtains the orderbook via REST
+   */
   async _requestLevel3Snapshot(market) {
     let failed = false;
     try {
@@ -108,8 +112,8 @@ class LedgerXClient extends BasicClient {
       let bids = [];
       for (let row of data.book_states) {
         let orderId = row.mid;
-        let price = (row.price / 100).toFixed(8);
-        let size = (row.size / 100).toFixed(8);
+        let price = (row.price / 100).toFixed(2);
+        let size = row.size.toFixed();
         let point = new Level3Point(orderId, price, size);
         if (row.is_ask) asks.push(point);
         else bids.push(point);
@@ -222,11 +226,25 @@ class LedgerXClient extends BasicClient {
    */
   _constructL3Insert(msg, market) {
     let price = (msg.price / 100).toFixed(8);
-    let size = (msg.inserted_size / 100).toFixed(8);
+    let size = msg.inserted_size.toFixed(8);
     let point = new Level3Point(msg.mid, price, size, {
       order_type: msg.order_type,
       status_type: msg.status_type,
       status_reason: msg.status_reason,
+      is_volatile: msg.is_volatile,
+      timestamp: msg.timestamp,
+      ticks: msg.ticks,
+      inserted_time: msg.inserted_time,
+      updated_time: msg.updated_time,
+      original_price: msg.original_price,
+      original_size: msg.original_size,
+      inserted_price: msg.inserted_price,
+      inserted_size: msg.inserted_size,
+      filled_price: msg.filled_price,
+      filled_size: msg.filled_size,
+      price: msg.price,
+      size: msg.size,
+      vwap: msg.vwap,
     });
 
     let asks = [];
@@ -274,11 +292,25 @@ class LedgerXClient extends BasicClient {
   */
   _constructL3Trade(msg, market) {
     let price = (msg.original_price / 100).toFixed(8);
-    let size = ((msg.original_size - msg.filled_size) / 100).toFixed(8);
+    let size = (msg.original_size - msg.filled_size).toFixed(8);
     let point = new Level3Point(msg.mid, price, size, {
       order_type: msg.order_type,
       status_type: msg.status_type,
       status_reason: msg.status_reason,
+      is_volatile: msg.is_volatile,
+      timestamp: msg.timestamp,
+      ticks: msg.ticks,
+      inserted_time: msg.inserted_time,
+      updated_time: msg.updated_time,
+      original_price: msg.original_price,
+      original_size: msg.original_size,
+      inserted_price: msg.inserted_price,
+      inserted_size: msg.inserted_size,
+      filled_price: msg.filled_price,
+      filled_size: msg.filled_size,
+      price: msg.price,
+      size: msg.size,
+      vwap: msg.vwap,
     });
 
     let asks = [];
@@ -331,6 +363,20 @@ class LedgerXClient extends BasicClient {
       order_type: msg.order_type,
       status_type: msg.status_type,
       status_reason: msg.status_reason,
+      is_volatile: msg.is_volatile,
+      timestamp: msg.timestamp,
+      ticks: msg.ticks,
+      inserted_time: msg.inserted_time,
+      updated_time: msg.updated_time,
+      original_price: msg.original_price,
+      original_size: msg.original_size,
+      inserted_price: msg.inserted_price,
+      inserted_size: msg.inserted_size,
+      filled_price: msg.filled_price,
+      filled_size: msg.filled_size,
+      price: msg.price,
+      size: msg.size,
+      vwap: msg.vwap,
     });
 
     let asks = [];
@@ -350,6 +396,10 @@ class LedgerXClient extends BasicClient {
     });
   }
 
+  /**
+   * Signals an orderbook reset must be performed. This is detected
+   * when the heartbeat changes its run identifier.
+   */
   _constructL3Reset(msg, market) {
     return new Level3Update({
       exchange: this._name,
