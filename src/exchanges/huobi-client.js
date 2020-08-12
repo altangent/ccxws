@@ -4,13 +4,17 @@ const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
+const { CandlePeriod } = require("../enums");
+const Candle = require("../candle");
 
 class HuobiClient extends BasicClient {
   constructor() {
     super("wss://api.huobi.pro/ws", "Huobi");
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = true;
+    this.candlePeriod = CandlePeriod._1m;
   }
 
   _sendPong(ts) {
@@ -50,6 +54,24 @@ class HuobiClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         unsub: `market.${remote_id}.trade.detail`,
+        id: remote_id,
+      })
+    );
+  }
+
+  _sendSubCandles(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        sub: `market.${remote_id}.kline.${candlePeriod(this.candlePeriod)}`,
+        id: remote_id,
+      })
+    );
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        unsub: `market.${remote_id}.kline.${candlePeriod(this.candlePeriod)}`,
         id: remote_id,
       })
     );
@@ -102,6 +124,16 @@ class HuobiClient extends BasicClient {
           this.emit("trade", trade, market);
         }
         return;
+      }
+
+      // candles
+      if (msgs.ch.includes("kline")) {
+        let remoteId = msgs.ch.split(".")[1]; //market.ethbtc.kline.1min
+        let market = this._candleSubs.get(remoteId);
+        if (!market) return;
+
+        let candle = this._constructCandle(msgs);
+        this.emit("candle", candle, market);
       }
 
       // tickers
@@ -163,6 +195,19 @@ class HuobiClient extends BasicClient {
     });
   }
 
+  _constructCandle(msg) {
+    let tick = msg.tick;
+    let ms = tick.id * 1000;
+    return new Candle(
+      ms,
+      tick.open.toFixed(8),
+      tick.high.toFixed(8),
+      tick.low.toFixed(8),
+      tick.close.toFixed(8),
+      tick.vol.toFixed(8)
+    );
+  }
+
   _constructLevel2Snapshot(msg, market) {
     let { tick } = msg;
     let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(10), p[1].toFixed(8)));
@@ -177,6 +222,29 @@ class HuobiClient extends BasicClient {
       asks,
       bids,
     });
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1min";
+    case CandlePeriod._5m:
+      return "5min";
+    case CandlePeriod._15m:
+      return "15min";
+    case CandlePeriod._30m:
+      return "30min";
+    case CandlePeriod._1h:
+      return "60min";
+    case CandlePeriod._4h:
+      return "4hour";
+    case CandlePeriod._1d:
+      return "1day";
+    case CandlePeriod._1w:
+      return "1week";
+    case CandlePeriod._1M:
+      return "1mon";
   }
 }
 

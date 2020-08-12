@@ -20,7 +20,7 @@ testClient({
 
   hasTickers: true,
   hasTrades: true,
-  hasCandles: false,
+  hasCandles: true,
   hasLevel2Snapshots: true,
   hasLevel2Updates: false,
   hasLevel3Snapshots: false,
@@ -46,6 +46,8 @@ testClient({
     hasTradeId: true,
     tradeIdPattern: /[0-9]+/,
   },
+
+  candle: {},
 
   l2snapshot: {
     hasTimestampMs: true,
