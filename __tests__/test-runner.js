@@ -19,6 +19,12 @@ function testClient(spec) {
         spec.markets = await spec.fetchMarkets();
       }
 
+      if (spec.fetchTradeMarkets) {
+        spec.tradeMarkets = await spec.fetchTradeMarkets();
+      } else if (!spec.tradeMarkets) {
+        spec.tradeMarkets = spec.markets;
+      }
+
       if (spec.fetchAllMarkets) {
         spec.allMarkets = await spec.fetchAllMarkets();
       }
@@ -296,7 +302,7 @@ function testTrades(spec, state) {
     });
 
     it("should subscribe and emit a trade", done => {
-      for (let market of spec.markets) {
+      for (let market of spec.tradeMarkets) {
         client.subscribeTrades(market);
       }
       client.on("trade", (trade, market) => {
@@ -311,7 +317,7 @@ function testTrades(spec, state) {
       .retries(3);
 
     it("should unsubscribe from trades", async () => {
-      for (let market of spec.markets) {
+      for (let market of spec.tradeMarkets) {
         client.unsubscribeTrades(market);
       }
       await wait(spec.unsubWaitMs);
@@ -323,7 +329,7 @@ function testTrades(spec, state) {
       });
 
       it("market should be the subscribing market", () => {
-        expect(result.market).to.be.oneOf(spec.markets);
+        expect(result.market).to.be.oneOf(spec.tradeMarkets);
       });
 
       it("trade.exchange should be the exchange name", () => {
