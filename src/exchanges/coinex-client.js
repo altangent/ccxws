@@ -179,10 +179,10 @@ class CoinexSingleClient extends BasicClient {
       let market = this._tradeSubs.get(marketId);
       if (!market) return;
 
-      params[1].reverse().forEach(t => {
+      for (let t of params[1].reverse()) {
         let trade = this._constructTrade(t, market);
         this.emit("trade", trade, market);
-      });
+      }
       return;
     }
 

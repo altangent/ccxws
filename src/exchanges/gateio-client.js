@@ -147,10 +147,10 @@ class GateioClient extends BasicClient {
         this._tradeSubs.get(marketId.toUpperCase()) || this._tradeSubs.get(marketId.toLowerCase());
       if (!market) return;
 
-      params[1].reverse().forEach(t => {
+      for (let t of params[1].reverse()) {
         let trade = this._constructTrade(t, market);
         this.emit("trade", trade, market);
-      });
+      }
       return;
     }
 

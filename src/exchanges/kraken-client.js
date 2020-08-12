@@ -320,12 +320,12 @@ class KrakenClient extends BasicClient {
         let market = this._tradeSubs.get(remote_id);
         if (!market) return;
 
-        msg[1].forEach(t => {
+        for (let t of msg[1]) {
           let trade = this._constructTrade(t, market);
           if (trade) {
             this.emit("trade", trade, market);
           }
-        });
+        }
       }
       return;
     }
