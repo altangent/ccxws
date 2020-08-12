@@ -6,6 +6,8 @@ const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
+const { CandlePeriod } = require("../enums");
+const Candle = require("../candle");
 
 class HitBTCClient extends BasicClient {
   constructor({ throttleMs = 25 } = {}) {
@@ -14,7 +16,9 @@ class HitBTCClient extends BasicClient {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Updates = true;
+    this.candlePeriod = CandlePeriod._1m;
     this._send = throttle(this._send.bind(this), throttleMs);
   }
 
@@ -67,6 +71,31 @@ class HitBTCClient extends BasicClient {
         method: "unsubscribeTrades",
         params: {
           symbol: remote_id,
+        },
+      })
+    );
+  }
+
+  _sendSubCandles(remote_id) {
+    this._send(
+      JSON.stringify({
+        method: "subscribeCandles",
+        params: {
+          symbol: remote_id,
+          period: candlePeriod(this.candlPeriod),
+        },
+        id: ++this._id,
+      })
+    );
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this._send(
+      JSON.stringify({
+        method: "unsubscribeCandles",
+        params: {
+          symbol: remote_id,
+          period: candlePeriod(this.candlPeriod),
         },
       })
     );
@@ -134,6 +163,16 @@ class HitBTCClient extends BasicClient {
       return;
     }
 
+    if (msg.method === "updateCandles") {
+      let market = this._candleSubs.get(remote_id);
+      if (!market) return;
+
+      for (let datum of msg.params.data) {
+        let candle = this._constructCandle(datum, market);
+        this.emit("candle", candle, market);
+      }
+    }
+
     if (msg.method === "snapshotOrderbook") {
       let market = this._level2UpdateSubs.get(remote_id); // coming from l2update sub
       if (!market) return;
@@ -194,6 +233,11 @@ class HitBTCClient extends BasicClient {
     });
   }
 
+  _constructCandle(datum) {
+    let unix = moment(datum.timestamp).valueOf();
+    return new Candle(unix, datum.open, datum.max, datum.min, datum.close, datum.volume);
+  }
+
   _constructLevel2Snapshot(data, market) {
     let { ask, bid, sequence } = data;
     let asks = ask.map(p => new Level2Point(p.price, p.size));
@@ -220,6 +264,31 @@ class HitBTCClient extends BasicClient {
       asks,
       bids,
     });
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "M1";
+    case CandlePeriod._3m:
+      return "M3";
+    case CandlePeriod._5m:
+      return "M5";
+    case CandlePeriod._15m:
+      return "M15";
+    case CandlePeriod._30m:
+      return "M30";
+    case CandlePeriod._1h:
+      return "H1";
+    case CandlePeriod._4h:
+      return "H4";
+    case CandlePeriod._1d:
+      return "D1";
+    case CandlePeriod._1w:
+      return "D7";
+    case CandlePeriod._1M:
+      return "1M";
   }
 }
 
