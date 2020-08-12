@@ -72,6 +72,7 @@ module.exports = {
   Cex: cex,
   CoinbasePro: coinbasepro,
   Coinex: coinex,
+  Deribit: require("./exchanges/deribit-client"),
   Ethfinex: ethfinex,
   Ftx: ftx,
   Gateio: gateio,
