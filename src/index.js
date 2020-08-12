@@ -80,6 +80,7 @@ module.exports = {
   Huobi: huobi,
   Kucoin: kucoin,
   Kraken: kraken,
+  LedgerX: require("./exchanges/ledgerx-client"),
   Liquid: liquid,
   OKEx: okex,
   Poloniex: poloniex,
