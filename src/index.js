@@ -81,6 +81,7 @@ module.exports = {
   HitBTC: hitbtc,
   Huobi: huobi,
   HuobiFutures: require("./exchanges/huobi-futures-client"),
+  HuobiKorea: require("./exchanges/huobi-korea-client"),
   HuobiSwaps: require("./exchanges/huobi-swaps-client"),
   Kucoin: kucoin,
   Kraken: kraken,
