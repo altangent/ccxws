@@ -80,6 +80,7 @@ module.exports = {
   Gemini: gemini,
   HitBTC: hitbtc,
   Huobi: huobi,
+  HuobiFutures: require("./exchanges/huobi-futures-client"),
   Kucoin: kucoin,
   Kraken: kraken,
   LedgerX: require("./exchanges/ledgerx-client"),
