@@ -1,29 +1,19 @@
 const { testClient } = require("../test-runner");
-const HuobiFuturesClient = require("../../src/exchanges/huobi-futures-client");
+const HuobiSwapsClient = require("../../src/exchanges/huobi-swaps-client");
 
 testClient({
-  clientFactory: () => new HuobiFuturesClient(),
-  clientName: "HuobiFuturesClient",
-  exchangeName: "Huobi Futures",
+  clientFactory: () => new HuobiSwapsClient(),
+  clientName: "HuobiSwapsClient",
+  exchangeName: "Huobi Swaps",
   markets: [
     {
-      id: "BTC_CW",
+      id: "BTC-USD",
       base: "BTC",
       quote: "USD",
     },
     {
-      id: "BTC_NW",
-      base: "BTC",
-      quote: "USD",
-    },
-    {
-      id: "BTC_CQ",
-      base: "BTC",
-      quote: "USD",
-    },
-    {
-      id: "BTC_NQ",
-      base: "BTC",
+      id: "ETH-USD",
+      base: "ETH",
       quote: "USD",
     },
   ],
