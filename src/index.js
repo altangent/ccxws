@@ -66,6 +66,7 @@ module.exports = {
   BinanceUs: binanceus,
   Bitfinex: bitfinex,
   Bitflyer: bitflyer,
+  Bithumb: require("./exchanges/bithumb-client"),
   BitMEX: bitmex,
   Bitstamp: bitstamp,
   Bittrex: bittrex,
