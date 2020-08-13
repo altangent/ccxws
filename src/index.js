@@ -75,6 +75,7 @@ module.exports = {
   Deribit: require("./exchanges/deribit-client"),
   Ethfinex: ethfinex,
   Ftx: ftx,
+  FtxUs: require("./exchanges/ftx-us-client"),
   Gateio: gateio,
   Gemini: gemini,
   HitBTC: hitbtc,
