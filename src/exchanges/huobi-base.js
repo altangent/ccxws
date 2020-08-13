@@ -2,10 +2,11 @@ const BasicClient = require("../basic-client");
 const zlib = require("../zlib");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
+const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const { CandlePeriod } = require("../enums");
-const Candle = require("../candle");
 
 class HuobiBase extends BasicClient {
   constructor({ name, wssPath }) {
@@ -14,6 +15,7 @@ class HuobiBase extends BasicClient {
     this.hasTrades = true;
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
+    this.hasLevel2Updates = false;
     this.candlePeriod = CandlePeriod._1m;
   }
 
@@ -73,6 +75,26 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         unsub: `market.${remote_id}.kline.${candlePeriod(this.candlePeriod)}`,
         id: remote_id,
+      })
+    );
+  }
+
+  _sendSubLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        sub: `market.${remote_id}.depth.size_150.high_freq`,
+        data_type: "incremental",
+        id: "depth_update_" + remote_id,
+      })
+    );
+  }
+
+  _sendUnsubLevel2Updates(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        unsub: `market.${remote_id}.depth.size_150.high_freq`,
+        data_type: "incremental",
+        id: "depth_update_" + remote_id,
       })
     );
   }
@@ -147,14 +169,30 @@ class HuobiBase extends BasicClient {
         return;
       }
 
-      // level2updates
+      // l2update
+      if (msgs.ch.endsWith("depth.size_150.high_freq")) {
+        let remoteId = msgs.ch.split(".")[1];
+        let market = this._level2UpdateSubs.get(remoteId);
+        if (!market) return;
+
+        if (msgs.tick.event === "snapshot") {
+          const snapshot = this._constructL2UpdateSnapshot(msgs, market);
+          this.emit("l2snapshot", snapshot, market);
+        } else {
+          const update = this._constructL2Update(msgs, market);
+          this.emit("l2update", update, market);
+        }
+        return;
+      }
+
+      // l2snapshot
       if (msgs.ch.endsWith("depth.step0")) {
         let remoteId = msgs.ch.split(".")[1];
         let market = this._level2SnapshotSubs.get(remoteId);
         if (!market) return;
 
-        let update = this._constructLevel2Snapshot(msgs, market);
-        this.emit("l2snapshot", update, market);
+        let snapshot = this._constructLevel2Snapshot(msgs, market);
+        this.emit("l2snapshot", snapshot, market);
         return;
       }
     });
@@ -206,6 +244,87 @@ class HuobiBase extends BasicClient {
       tick.close.toFixed(8),
       tick.vol.toFixed(8)
     );
+  }
+
+  /**
+   {
+      "ch": "market.BTC_CQ.depth.size_150.high_freq",
+      "tick": {
+        "asks": [
+          [11756.82, 1966],
+          [11756.91, 3],
+          [11756.93, 936]
+        ],
+        "bids": [
+          [11756.81, 2639],
+          [11755.13, 73],
+          [11754.93, 1]
+        ],
+        "ch": "market.BTC_CQ.depth.size_150.high_freq",
+        "event": "snapshot",
+        "id": 91435179848,
+        "mrid": 91435179848,
+        "ts": 1597347675927,
+        "version": 279029079
+      },
+      "ts": 1597347675927
+    }
+   */
+  _constructL2UpdateSnapshot(msg, market) {
+    let { tick } = msg;
+
+    let asks = tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+    let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+
+    return new Level2Snapshot({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: tick.version,
+      timestampMs: tick.ts,
+      asks,
+      bids,
+      id: tick.id,
+      mrid: tick.mrid,
+    });
+  }
+
+  /**
+   {
+      "ch": "market.BTC_CQ.depth.size_150.high_freq",
+      "tick": {
+        "asks": [],
+        "bids": [
+          [11750.4, 0],
+          [11742.49, 44]
+        ],
+        "ch": "market.BTC_CQ.depth.size_150.high_freq",
+        "event": "update",
+        "id": 91435179926,
+        "mrid": 91435179926,
+        "ts": 1597347675971,
+        "version": 279029080
+      },
+      "ts": 1597347675971
+    }
+   */
+  _constructL2Update(msg, market) {
+    let { tick } = msg;
+
+    let asks = tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+    let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+
+    return new Level2Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: tick.version,
+      timestampMs: tick.ts,
+      asks,
+      bids,
+      id: tick.id,
+      mrid: tick.mrid,
+    });
   }
 
   _constructLevel2Snapshot(msg, market) {
