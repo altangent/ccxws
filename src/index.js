@@ -82,6 +82,7 @@ module.exports = {
   Huobi: huobi,
   HuobiFutures: require("./exchanges/huobi-futures-client"),
   HuobiSwaps: require("./exchanges/huobi-swaps-client"),
+  HuobiJapan: require("./exchanges/huobi-japan-client"),
   HuobiKorea: require("./exchanges/huobi-korea-client"),
   HuobiRussia: require("./exchanges/huobi-russia-client"),
   Kucoin: kucoin,

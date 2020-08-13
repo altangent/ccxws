@@ -75,7 +75,9 @@ binance.subscribeLevel2Snapshots(market);
 | Huobi Global           | 1   | Huobi               | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 | Huobi Global Futures   | 1   | HuobiFutures        | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
 | Huobi Global Swaps     | 1   | HuobiSwaps          | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
+| Huobi Japan            | 1   | HuobiJapan          | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 | Huobi Korea            | 1   | HuobiKorea          | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
+| Huobi Russia           | 1   | HuobiRussia         | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 | KuCoin                 | 2   | Kucoin              | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  |                   |
 | Kraken                 | 0   | Kraken              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
 | LedgerX                | 1   | LedgerX             | -        | &#10003; | -        | -                  | -                 | -                  | &#10003;\*        |
