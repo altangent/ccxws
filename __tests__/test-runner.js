@@ -185,6 +185,12 @@ function testClient(spec) {
   describe(spec.clientName + " all markets", () => {
     let client;
 
+    before(async () => {
+      if (spec.fetchAllMarkets && !spec.allMar) {
+        spec.allMarkets = await spec.fetchAllMarkets();
+      }
+    });
+
     beforeEach(() => {
       client = spec.clientFactory();
     });
