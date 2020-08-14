@@ -55,3 +55,7 @@ and patterns, we will be implementing full support for other exchanges.
 
 This depends on the exchange. Some exchanges will provide periodic ticker updates including top
 of book updates others will only update the ticker with each tick of the market.
+
+#### Are you going to add private feeds?
+
+Yes, we would like to add common functionality for for private feeds.
