@@ -2,6 +2,7 @@ const zlib = require("zlib");
 
 module.exports = {
   unzip,
+  inflate,
   inflateRaw,
 };
 
@@ -22,7 +23,20 @@ function unzip(data, cb) {
 }
 
 /**
- * Serialized inflateRaw using async zlib.unzip method. This function is a helper to
+ * Serialized inflate using async zlib.inflate method. This function is a helper to
+ * address issues with memory fragmentation issues as documented here:
+ * https://nodejs.org/api/zlib.html#zlib_threadpool_usage_and_performance_considerations
+ *
+ * @param {Buffer} data
+ * @param {(err:Error, result:Buffer) => void} cb
+ */
+function inflate(data, cb) {
+  queue.push(["inflate", data, cb]);
+  serialExecute();
+}
+
+/**
+ * Serialized inflateRaw using async zlib.inflateRaw method. This function is a helper to
  * address issues with memory fragmentation issues as documented here:
  * https://nodejs.org/api/zlib.html#zlib_threadpool_usage_and_performance_considerations
  *
