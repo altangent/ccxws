@@ -32,7 +32,7 @@ function testClient(spec) {
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
-    });
+    }, 30000); // increase timeout for async fetches
 
     describe("capabilities", () => {
       it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
