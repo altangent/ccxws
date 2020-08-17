@@ -1,4 +1,5 @@
 const zlib = require("../zlib");
+const https = require("../https");
 const { EventEmitter } = require("events");
 const moment = require("moment");
 const turdr = require("signalr-client");
@@ -134,20 +135,15 @@ class BittrexClient extends EventEmitter {
     }
   }
 
-  _unsubscribe(market, map) {
+  _unsubscribe(market, map, unsubFn) {
     let remote_id = market.id;
     if (map.has(remote_id)) {
       map.delete(remote_id);
 
       if (this._isConnected) {
-        this._sendUnsub(remote_id);
+        unsubFn(remote_id, market);
       }
     }
-  }
-
-  _sendUnsub(remote_id) {
-    // decrement market count
-    this._subCount[remote_id] -= 1;
   }
 
   _sendSubTickers() {
@@ -169,7 +165,9 @@ class BittrexClient extends EventEmitter {
   }
 
   _sendUnsubTrades(remote_id) {
-    // no-op
+    this._wss.call("c3", "Unsubscribe", [`trade_${remote_id}`]).done(err => {
+      if (err) return this.emit("error", err);
+    });
   }
 
   _sendSubCandles(remote_id) {
@@ -181,15 +179,20 @@ class BittrexClient extends EventEmitter {
   }
 
   _sendUnsubCandles(remote_id) {
-    // no-op
+    this._wss
+      .call("c3", "Unsubscribe", [`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`])
+      .done(err => {
+        if (err) return this.emit("error", err);
+      });
   }
 
-  _sendSubLevel2Updates(remote_id) {
+  _sendSubLevel2Updates(remote_id, market) {
+    this._requestLevel2Snapshot(market);
     this._wss.call("c3", "Subscribe", [`orderbook_${remote_id}_${this.orderBookDepth}`]);
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-    // no-op
+    this._wss.call("c3", "Unsubscribe", [`orderbook_${remote_id}_${this.orderBookDepth}`]);
   }
 
   async _connect() {
@@ -495,6 +498,30 @@ class BittrexClient extends EventEmitter {
       asks,
       bids,
     });
+  }
+
+  async _requestLevel2Snapshot(market) {
+    let failed = false;
+    try {
+      let remote_id = market.id;
+      let uri = `https://api.bittrex.com/v3/markets/${remote_id}/orderbook?depth=${this.orderBookDepth}`;
+      let raw = await https.get(uri);
+      let asks = raw.ask.map(p => new Level2Point(p.rate, p.quantity));
+      let bids = raw.bid.map(p => new Level2Point(p.rate, p.quantity));
+      let snapshot = new Level2Snapshot({
+        exchange: this._name,
+        base: market.base,
+        quote: market.quote,
+        asks,
+        bids,
+      });
+      this.emit("l2snapshot", snapshot, market);
+    } catch (ex) {
+      this.emit("error", ex);
+      failed = true;
+    } finally {
+      if (failed) this._requestLevel2Snapshot(market);
+    }
   }
 }
 
