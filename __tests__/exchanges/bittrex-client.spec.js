@@ -7,22 +7,22 @@ testClient({
   exchangeName: "Bittrex",
   markets: [
     {
-      id: "USDT-BTC",
+      id: "BTC-USDT",
       base: "BTC",
-      quote: "USD",
+      quote: "USDT",
     },
     {
-      id: "BTC-ETH",
+      id: "ETH-BTC",
       base: "ETH",
       quote: "BTC",
     },
     {
-      id: "BTC-LTC",
+      id: "LTC-BTC",
       base: "LTC",
       quote: "BTC",
     },
     {
-      id: "BTC-XRP",
+      id: "XRP-BTC",
       base: "XRP",
       quote: "BTC",
     },
@@ -35,7 +35,7 @@ testClient({
 
   hasTickers: true,
   hasTrades: true,
-  hasCandles: false,
+  hasCandles: true,
   hasLevel2Snapshots: false,
   hasLevel2Updates: true,
   hasLevel3Snapshots: false,
@@ -43,17 +43,17 @@ testClient({
 
   ticker: {
     hasTimestamp: true,
-    hasLast: true,
-    hasOpen: true,
+    hasLast: false,
+    hasOpen: false,
     hasHigh: true,
     hasLow: true,
     hasVolume: true,
     hasQuoteVolume: true,
-    hasChange: true,
+    hasChange: false,
     hasChangePercent: true,
-    hasBid: true,
+    hasBid: false,
     hasBidVolume: false,
-    hasAsk: true,
+    hasAsk: false,
     hasAskVolume: false,
   },
 
@@ -63,7 +63,7 @@ testClient({
 
   l2snapshot: {
     hasTimestampMs: false,
-    hasSequenceId: true,
+    hasSequenceId: false,
     hasCount: false,
   },
 
