@@ -415,12 +415,14 @@ class KucoinClient extends BasicClient {
 
     let asks = changes.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = changes.bids.map(p => new Level2Point(p[0], p[1]));
+    let lastSequenceId = Number(sequenceEnd);
     let l2Update = new Level2Update({
       exchange: "KuCoin",
       base: market.base,
       quote: market.quote,
       sequenceId: Number(sequenceStart),
-      sequenceLast: Number(sequenceEnd),
+      sequenceLast: lastSequenceId, // deprecated, to be removed
+      lastSequenceId,
       asks,
       bids,
     });

@@ -575,6 +575,10 @@ function testLevel2Result(spec, result, type) {
     testUndefined(result, `${type}.sequenceId`);
   }
 
+  if (spec[`l2${type}`].hasLastSequenceId) {
+    testPositiveNumber(result, `${type}.lastSequenceId`);
+  }
+
   it(`${type}.bid/ask.price should be a string`, () => {
     let actual = (result[type].bids[0] || result[type].asks[0]).price;
     expect(actual).to.be.a("string");
