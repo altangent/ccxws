@@ -472,7 +472,7 @@ class KucoinClient extends BasicClient {
         asks,
         bids,
       });
-      this.emit("l2snapshot", snapshot);
+      this.emit("l2snapshot", snapshot, market);
     } catch (ex) {
       this.emit("error", ex);
       this._requestLevel2Snapshot(market);

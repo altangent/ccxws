@@ -494,11 +494,11 @@ function testLevel2Updates(spec, state) {
       client.on("l2snapshot", (snapshot, market) => {
         result.ready = true;
         result.snapshot = snapshot;
-        result.market = market;
+        result.snapMarket = market;
       });
       client.on("l2update", (update, market) => {
         result.update = update;
-        result.market = market;
+        result.updateMarket = market;
         if (
           // check if done override method exists method in spec
           (!spec.l2update.done || spec.l2update.done(spec, result, update, market)) &&
@@ -529,13 +529,17 @@ function testLevel2Updates(spec, state) {
         }
       });
 
-      it("market should be the subscribing market", () => {
-        expect(result.market).to.be.oneOf(spec.markets);
-      });
-
       if (spec.l2update.hasSnapshot) {
+        it("snapshot market should be the subscribing market", () => {
+          expect(result.snapMarket).to.be.oneOf(spec.markets);
+        });
+
         testLevel2Result(spec, result, "snapshot");
       }
+
+      it("update market should be the subscribing market", () => {
+        expect(result.updateMarket).to.be.oneOf(spec.markets);
+      });
 
       testLevel2Result(spec, result, "update");
 
