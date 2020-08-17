@@ -78,6 +78,7 @@ testClient({
     hasSnapshot: true,
     hasTimestampMs: false,
     hasSequenceId: true,
+    hasLastSequenceId: true,
     hasCount: false,
   },
 });

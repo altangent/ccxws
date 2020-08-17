@@ -32,7 +32,7 @@ function testClient(spec) {
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
-    });
+    }, 30000); // increase timeout for async fetches
 
     describe("capabilities", () => {
       it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
@@ -494,11 +494,11 @@ function testLevel2Updates(spec, state) {
       client.on("l2snapshot", (snapshot, market) => {
         result.ready = true;
         result.snapshot = snapshot;
-        result.market = market;
+        result.snapMarket = market;
       });
       client.on("l2update", (update, market) => {
         result.update = update;
-        result.market = market;
+        result.updateMarket = market;
         if (
           // check if done override method exists method in spec
           (!spec.l2update.done || spec.l2update.done(spec, result, update, market)) &&
@@ -529,13 +529,17 @@ function testLevel2Updates(spec, state) {
         }
       });
 
-      it("market should be the subscribing market", () => {
-        expect(result.market).to.be.oneOf(spec.markets);
-      });
-
       if (spec.l2update.hasSnapshot) {
+        it("snapshot market should be the subscribing market", () => {
+          expect(result.snapMarket).to.be.oneOf(spec.markets);
+        });
+
         testLevel2Result(spec, result, "snapshot");
       }
+
+      it("update market should be the subscribing market", () => {
+        expect(result.updateMarket).to.be.oneOf(spec.markets);
+      });
 
       testLevel2Result(spec, result, "update");
 
@@ -569,6 +573,10 @@ function testLevel2Result(spec, result, type) {
     testPositiveNumber(result, `${type}.sequenceId`);
   } else {
     testUndefined(result, `${type}.sequenceId`);
+  }
+
+  if (spec[`l2${type}`].hasLastSequenceId) {
+    testPositiveNumber(result, `${type}.lastSequenceId`);
   }
 
   it(`${type}.bid/ask.price should be a string`, () => {
@@ -631,15 +639,20 @@ function testLevel3Updates(spec, state) {
       client.on("l3update", (update, market) => {
         result.update = update;
         result.market = market;
-        if (
-          // check if done override method exists method in spec
-          (!spec.l3update.done || spec.l3update.done(spec, result, update, market)) &&
-          // check if we require a snapshot
-          (!spec.l3update.hasSnapshot || result.snapshot)
-        ) {
-          result.ready = true;
+        try {
+          if (
+            // check if done override method exists method in spec
+            (!spec.l3update.done || spec.l3update.done(spec, result, update, market)) &&
+            // check if we require a snapshot
+            (!spec.l3update.hasSnapshot || result.snapshot)
+          ) {
+            result.ready = true;
+            client.removeAllListeners("l3update");
+            done();
+          }
+        } catch (ex) {
           client.removeAllListeners("l3update");
-          done();
+          done(ex);
         }
       });
     })

@@ -1,13 +1,18 @@
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
+const Level3Update = require("../level3-update");
+const Level3Snapshot = require("../level3-snapshot");
 const https = require("../https");
 const UUID = require("uuid/v4");
+const { CandlePeriod } = require("../enums");
 const semaphore = require("semaphore");
 const { throttle } = require("../flowcontrol/throttle");
+const Level3Point = require("../level3-point");
 
 class KucoinClient extends BasicClient {
   /**
@@ -22,8 +27,11 @@ class KucoinClient extends BasicClient {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
+    this.hasLevel3Updates = true;
+    this.candlePeriod = CandlePeriod._1m;
     this._pingIntervalTime = 50000;
     this._throttleMs = 100;
     this.restRequestDelayMs = 250;
@@ -165,6 +173,34 @@ class KucoinClient extends BasicClient {
     });
   }
 
+  _sendSubCandles(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
+  }
+
   _sendSubLevel2Updates(remote_id) {
     this._sem.take(() => {
       let market = this._level2UpdateSubs.get(remote_id);
@@ -188,6 +224,35 @@ class KucoinClient extends BasicClient {
           id: new Date().getTime(),
           type: "unsubscribe",
           topic: "/market/level2:" + remote_id,
+          response: true,
+        })
+      );
+    });
+  }
+
+  _sendSubLevel3Updates(remote_id) {
+    this._sem.take(() => {
+      let market = this._level3UpdateSubs.get(remote_id);
+      this._requestLevel3Snapshot(market);
+
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: "/spotMarket/level3:" + remote_id,
+          response: true,
+        })
+      );
+    });
+  }
+
+  _sendUnsubLevel3Updates(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: "/spotMarket/level3:" + remote_id,
           response: true,
         })
       );
@@ -229,6 +294,12 @@ class KucoinClient extends BasicClient {
       return;
     }
 
+    // candles
+    if (msg.subject === "trade.candles.update") {
+      this._processCandles(msg);
+      return;
+    }
+
     // tickers
     if (msg.subject === "trade.snapshot") {
       this._processTicker(msg);
@@ -238,6 +309,36 @@ class KucoinClient extends BasicClient {
     // l2 updates
     if (msg.subject === "trade.l2update") {
       this._processL2Update(msg);
+      return;
+    }
+
+    // l3 received
+    if (msg.subject === "received") {
+      this._processL3UpdateReceived(msg);
+      return;
+    }
+
+    // l3 open
+    if (msg.subject === "open") {
+      this._processL3UpdateOpen(msg);
+      return;
+    }
+
+    // l3 done
+    if (msg.subject === "done") {
+      this._processL3UpdateDone(msg);
+      return;
+    }
+
+    // l3 match
+    if (msg.subject === "match") {
+      this._processL3UpdateMatch(msg);
+      return;
+    }
+
+    // l3 change
+    if (msg.subject === "update") {
+      this._processL3UpdateUpdate(msg);
       return;
     }
   }
@@ -267,6 +368,44 @@ class KucoinClient extends BasicClient {
     });
 
     this.emit("trade", trade, market);
+  }
+
+  /**
+    {
+        "type":"message",
+        "topic":"/market/candles:BTC-USDT_1hour",
+        "subject":"trade.candles.update",
+        "data":{
+
+            "symbol":"BTC-USDT",    // symbol
+            "candles":[
+
+                "1589968800",   // Start time of the candle cycle
+                "9786.9",       // open price
+                "9740.8",       // close price
+                "9806.1",       // high price
+                "9732",         // low price
+                "27.45649579",  // Transaction volume
+                "268280.09830877"   // Transaction amount
+            ],
+            "time":1589970010253893337  // now（us）
+        }
+    }
+   */
+  _processCandles(msg) {
+    let { symbol, candles } = msg.data;
+    let market = this._candleSubs.get(symbol);
+    if (!market) return;
+
+    const result = new Candle(
+      Number(candles[0] * 1000),
+      candles[1],
+      candles[3],
+      candles[4],
+      candles[2],
+      candles[5]
+    );
+    this.emit("candle", result, market);
   }
 
   _processTicker(msg) {
@@ -339,12 +478,14 @@ class KucoinClient extends BasicClient {
 
     let asks = changes.asks.map(p => new Level2Point(p[0], p[1]));
     let bids = changes.bids.map(p => new Level2Point(p[0], p[1]));
+    let lastSequenceId = Number(sequenceEnd);
     let l2Update = new Level2Update({
       exchange: "KuCoin",
       base: market.base,
       quote: market.quote,
       sequenceId: Number(sequenceStart),
-      sequenceLast: Number(sequenceEnd),
+      sequenceLast: lastSequenceId, // deprecated, to be removed
+      lastSequenceId,
       asks,
       bids,
     });
@@ -396,11 +537,307 @@ class KucoinClient extends BasicClient {
         asks,
         bids,
       });
-      this.emit("l2snapshot", snapshot);
+      this.emit("l2snapshot", snapshot, market);
     } catch (ex) {
       this.emit("error", ex);
       this._requestLevel2Snapshot(market);
     }
+  }
+
+  /**
+   RECEIVED - This message type is really for informational purposes and
+   does not include a side or price. Similar to the done message below
+   we will include a psuedo-point with zeroedp price and amount to
+   maintain consistency with other implementations.
+   {
+      "data": {
+        "symbol": "BTC-USDT",
+        "sequence": "1594781753800",
+        "orderId": "5f3aa0c724d57500070d36e7",
+        "clientOid": "cef1156e5f928d0e046a67891cdb780d",
+        "ts": "1597677767948119917"
+      },
+      "subject": "received",
+      "topic": "/spotMarket/level3:BTC-USDT",
+      "type": "message"
+    }
+  */
+  _processL3UpdateReceived(msg) {
+    const { symbol, sequence, orderId, clientOid, ts } = msg.data;
+
+    let market = this._level3UpdateSubs.get(symbol);
+    if (!market) return;
+
+    let point = new Level3Point(orderId, "0", "0", { type: msg.subject, clientOid, ts });
+
+    let update = new Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      timestampMs: Math.trunc(Number(ts) / 1e6),
+      sequenceId: Number(sequence),
+      asks: [point],
+      bids: [point],
+    });
+    this.emit("l3update", update, market);
+  }
+
+  /**
+    OPEN
+    {
+      "data": {
+        "symbol": "BTC-USDT",
+        "sequence": "1594781800484",
+        "side": "buy",
+        "orderTime": "1597678002842139731",
+        "size": "0.65898942",
+        "orderId": "5f3aa1b2b6aeb200072bd6d8",
+        "price": "12139.8",
+        "ts": "1597678002842139731"
+      },
+      "subject": "open",
+      "topic": "/spotMarket/level3:BTC-USDT",
+      "type": "message"
+    }
+   */
+  _processL3UpdateOpen(msg) {
+    const { symbol, sequence, side, orderTime, size, orderId, price, ts } = msg.data;
+
+    let market = this._level3UpdateSubs.get(symbol);
+    if (!market) return;
+
+    let asks = [];
+    let bids = [];
+
+    let point = new Level3Point(orderId, price, size, { type: msg.subject, orderTime, ts });
+    if (side === "buy") bids.push(point);
+    else asks.push(point);
+
+    let update = new Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: Number(sequence),
+      timestampMs: Math.trunc(Number(ts) / 1e6),
+      asks,
+      bids,
+    });
+    this.emit("l3update", update, market);
+  }
+
+  /**
+    DONE - because done does not include price,size, or side of book,
+    we will create a zeroed point on both sides of the book. This keeps
+    consistency with other order books that always have a point.
+
+    {
+      "data": {
+        "symbol": "BTC-USDT",
+        "reason": "canceled",
+        "sequence": "1594781816444",
+        "orderId": "5f3aa1f3b640150007baf5d6",
+        "ts": "1597678072795057282"
+      },
+      "subject": "done",
+      "topic": "/spotMarket/level3:BTC-USDT",
+      "type": "message"
+    }
+   */
+  _processL3UpdateDone(msg) {
+    const { symbol, sequence, orderId, reason, ts } = msg.data;
+
+    let market = this._level3UpdateSubs.get(symbol);
+    if (!market) return;
+
+    let point = new Level3Point(orderId, "0", "0", { type: msg.subject, reason, ts });
+
+    let update = new Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: Number(sequence),
+      timestampMs: Math.trunc(Number(ts) / 1e6),
+      asks: [point],
+      bids: [point],
+    });
+    this.emit("l3update", update, market);
+  }
+
+  /**
+   MATCH - for the sake of the update, we will follow with the
+   information that is updated in the orderbook, that is the maker. In
+   this case, the remainSize is the value that should be adjusted
+   for the maker's order.
+   {
+      "data": {
+        "symbol": "BTC-USDT",
+        "sequence": "1594781824886",
+        "side": "sell",
+        "size": "0.04541835",
+        "price": "12161.1",
+        "takerOrderId": "5f3aa220be5dd1000815506e",
+        "makerOrderId": "5f3aa21db6aeb200072ce502",
+        "tradeId": "5f3aa22078577835017d3de2",
+        "remainSize": "1.44964657",
+        "ts": "1597678112828040864"
+      },
+      "subject": "match",
+      "topic": "/spotMarket/level3:BTC-USDT",
+      "type": "message"
+    }
+   */
+  _processL3UpdateMatch(msg) {
+    const {
+      symbol,
+      sequence,
+      side,
+      price,
+      size,
+      remainSize,
+      takerOrderId,
+      makerOrderId,
+      tradeId,
+      ts,
+    } = msg.data;
+
+    let market = this._level3UpdateSubs.get(symbol);
+    if (!market) return;
+
+    let asks = [];
+    let bids = [];
+
+    let point = new Level3Point(makerOrderId, "0", remainSize, {
+      type: msg.subject,
+      remainSize,
+      takerOrderId,
+      makerOrderId,
+      tradeId,
+      tradePrice: price,
+      tradeSize: size,
+      ts,
+    });
+
+    // The update is from the perspective of the maker. The side is side
+    // of the taker, so we need to reverse it. That is a buy should
+    // put the update on the ask side and a sell should put the update
+    // on the bid side.
+    if (side === "buy") asks.push(point);
+    else bids.push(point);
+
+    let update = new Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: Number(sequence),
+      timestampMs: Math.trunc(Number(ts) / 1e6),
+      asks,
+      bids,
+    });
+
+    this.emit("l3update", update, market);
+  }
+
+  /**
+   CHANGE - because change does not include the side, we again duplicate
+   points in the asks and bids. The price is also not inclued and is
+   zeroed to maintain consistency with the remainder of the library
+   {
+      "data": {
+        "symbol": "BTC-USDT",
+        "sequence": "1594781878279",
+        "size": "0.0087306",
+        "orderId": "5f3aa2d2d5f3da0007802966",
+        "ts": "1597678290249785626"
+      },
+      "subject": "update",
+      "topic": "/spotMarket/level3:BTC-USDT",
+      "type": "message"
+    }
+   */
+  _processL3UpdateUpdate(msg) {
+    let { symbol, sequence, orderId, size, ts } = msg;
+    let market = this._level3UpdateSubs.get(symbol);
+    if (!market) return;
+
+    let point = new Level3Point(orderId, "0", size, { type: msg.subject, ts });
+    let update = Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: Number(sequence),
+      timestampMs: Math.trunc(Number(ts) / 1e6),
+      asks: [point],
+      bids: [point],
+    });
+    this.emit("l3update", update, market);
+  }
+
+  async _requestLevel3Snapshot(market) {
+    try {
+      let remote_id = market.id;
+      let uri = `https://api.kucoin.com/api/v1/market/orderbook/level3?symbol=${remote_id}`;
+      let raw = await https.get(uri);
+
+      let timestampMs = raw.data.time;
+      let sequenceId = Number(raw.data.sequence);
+
+      let asks = raw.data.asks.map(
+        p =>
+          new Level3Point(p[0], p[1], p[2], {
+            orderTime: p[3],
+            timestampMs: Math.trunc(Number(p[3]) / 1e6),
+          })
+      );
+      let bids = raw.data.bids.map(
+        p =>
+          new Level3Point(p[0], p[1], p[2], {
+            orderTime: p[3],
+            timestampMs: Math.trunc(Number(p[3]) / 1e6),
+          })
+      );
+      let snapshot = new Level3Snapshot({
+        exchange: this._name,
+        base: market.base,
+        quote: market.quote,
+        sequenceId,
+        timestampMs,
+        asks,
+        bids,
+      });
+      this.emit("l3snapshot", snapshot, market);
+    } catch (ex) {
+      this.emit("error", ex);
+      this._requestLevel3Snapshot(market);
+    }
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1min";
+    case CandlePeriod._3m:
+      return "3min";
+    case CandlePeriod._15m:
+      return "15min";
+    case CandlePeriod._30m:
+      return "30min";
+    case CandlePeriod._1h:
+      return "1hour";
+    case CandlePeriod._2h:
+      return "2hour";
+    case CandlePeriod._4h:
+      return "4hour";
+    case CandlePeriod._6h:
+      return "6hour";
+    case CandlePeriod._8h:
+      return "8hour";
+    case CandlePeriod._12h:
+      return "12hour";
+    case CandlePeriod._1d:
+      return "1day";
+    case CandlePeriod._1w:
+      return "1week";
   }
 }
 
