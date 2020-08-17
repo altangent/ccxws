@@ -639,15 +639,20 @@ function testLevel3Updates(spec, state) {
       client.on("l3update", (update, market) => {
         result.update = update;
         result.market = market;
-        if (
-          // check if done override method exists method in spec
-          (!spec.l3update.done || spec.l3update.done(spec, result, update, market)) &&
-          // check if we require a snapshot
-          (!spec.l3update.hasSnapshot || result.snapshot)
-        ) {
-          result.ready = true;
+        try {
+          if (
+            // check if done override method exists method in spec
+            (!spec.l3update.done || spec.l3update.done(spec, result, update, market)) &&
+            // check if we require a snapshot
+            (!spec.l3update.hasSnapshot || result.snapshot)
+          ) {
+            result.ready = true;
+            client.removeAllListeners("l3update");
+            done();
+          }
+        } catch (ex) {
           client.removeAllListeners("l3update");
-          done();
+          done(ex);
         }
       });
     })
