@@ -1,11 +1,13 @@
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
+const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 const https = require("../https");
 const UUID = require("uuid/v4");
+const { CandlePeriod } = require("../enums");
 const semaphore = require("semaphore");
 const { throttle } = require("../flowcontrol/throttle");
 
@@ -22,8 +24,10 @@ class KucoinClient extends BasicClient {
 
     this.hasTickers = true;
     this.hasTrades = true;
+    this.hasCandles = true;
     this.hasLevel2Snapshots = false;
     this.hasLevel2Updates = true;
+    this.candlePeriod = CandlePeriod._1m;
     this._pingIntervalTime = 50000;
     this._throttleMs = 100;
     this.restRequestDelayMs = 250;
@@ -165,6 +169,34 @@ class KucoinClient extends BasicClient {
     });
   }
 
+  _sendSubCandles(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "subscribe",
+          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
+  }
+
+  _sendUnsubCandles(remote_id) {
+    this._sem.take(() => {
+      this._wss.send(
+        JSON.stringify({
+          id: new Date().getTime(),
+          type: "unsubscribe",
+          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
+          privateChannel: false,
+          response: true,
+        })
+      );
+    });
+  }
+
   _sendSubLevel2Updates(remote_id) {
     this._sem.take(() => {
       let market = this._level2UpdateSubs.get(remote_id);
@@ -229,6 +261,12 @@ class KucoinClient extends BasicClient {
       return;
     }
 
+    // candles
+    if (msg.subject === "trade.candles.update") {
+      this._processCandles(msg);
+      return;
+    }
+
     // tickers
     if (msg.subject === "trade.snapshot") {
       this._processTicker(msg);
@@ -267,6 +305,44 @@ class KucoinClient extends BasicClient {
     });
 
     this.emit("trade", trade, market);
+  }
+
+  /**
+    {
+        "type":"message",
+        "topic":"/market/candles:BTC-USDT_1hour",
+        "subject":"trade.candles.update",
+        "data":{
+
+            "symbol":"BTC-USDT",    // symbol
+            "candles":[
+
+                "1589968800",   // Start time of the candle cycle
+                "9786.9",       // open price
+                "9740.8",       // close price
+                "9806.1",       // high price
+                "9732",         // low price
+                "27.45649579",  // Transaction volume
+                "268280.09830877"   // Transaction amount
+            ],
+            "time":1589970010253893337  // now（us）
+        }
+    }
+   */
+  _processCandles(msg) {
+    let { symbol, candles } = msg.data;
+    let market = this._candleSubs.get(symbol);
+    if (!market) return;
+
+    const result = new Candle(
+      Number(candles[0] * 1000),
+      candles[1],
+      candles[3],
+      candles[4],
+      candles[2],
+      candles[5]
+    );
+    this.emit("candle", result, market);
   }
 
   _processTicker(msg) {
@@ -401,6 +477,35 @@ class KucoinClient extends BasicClient {
       this.emit("error", ex);
       this._requestLevel2Snapshot(market);
     }
+  }
+}
+
+function candlePeriod(period) {
+  switch (period) {
+    case CandlePeriod._1m:
+      return "1min";
+    case CandlePeriod._3m:
+      return "3min";
+    case CandlePeriod._15m:
+      return "15min";
+    case CandlePeriod._30m:
+      return "30min";
+    case CandlePeriod._1h:
+      return "1hour";
+    case CandlePeriod._2h:
+      return "2hour";
+    case CandlePeriod._4h:
+      return "4hour";
+    case CandlePeriod._6h:
+      return "6hour";
+    case CandlePeriod._8h:
+      return "8hour";
+    case CandlePeriod._12h:
+      return "12hour";
+    case CandlePeriod._1d:
+      return "1day";
+    case CandlePeriod._1w:
+      return "1week";
   }
 }
 
