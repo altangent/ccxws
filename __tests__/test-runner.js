@@ -198,6 +198,14 @@ function testClient(spec) {
     if (spec.testAllMarketsTrades) {
       it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
         const markets = new Set();
+
+        client.on("error", err => {
+          client.removeAllListeners("trade");
+          client.removeAllListeners("error");
+          client.close();
+          done(err);
+        });
+
         client.on("trade", (trade, market) => {
           markets.add(market.id);
           if (markets.size >= spec.testAllMarketsTradesSuccess) {

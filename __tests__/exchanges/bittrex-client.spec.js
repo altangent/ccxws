@@ -1,5 +1,6 @@
 const { testClient } = require("../test-runner");
 const BittrexClient = require("../../src/exchanges/bittrex-client");
+const https = require("../../src/https");
 
 testClient({
   clientFactory: () => new BittrexClient(),
@@ -28,10 +29,22 @@ testClient({
     },
   ],
 
+  async fetchAllMarkets() {
+    let res = await https.get("https://api.bittrex.com/v3/markets");
+    return res.map(p => ({
+      id: p.symbol,
+      base: p.baseCurrencySymbol,
+      quote: p.quoteCurrencySymbol,
+    }));
+  },
+
   testConnectEvents: false,
   testDisconnectEvents: false,
   testReconnectionEvents: false,
   testCloseEvents: false,
+
+  testAllMarketsTrades: true,
+  testAllMarketsTradesSuccess: 30,
 
   hasTickers: true,
   hasTrades: true,

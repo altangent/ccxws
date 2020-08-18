@@ -189,8 +189,18 @@ class BittrexClient extends BasicClient {
     try {
       const fullMsg = JSON.parse(raw);
 
-      if (!fullMsg.M) return;
+      // Handle responses
+      // {"R":[{"Success":true,"ErrorCode":null},{"Success":true,"ErrorCode":null}],"I":1}
+      if (fullMsg.R) {
+        for (let msg of fullMsg.R) {
+          if (!msg.Success) {
+            this.emit("error", new Error("Subscription failed with error " + msg.ErrorCode));
+          }
+        }
+      }
 
+      // Handle messages
+      if (!fullMsg.M) return;
       for (let msg of fullMsg.M) {
         if (msg.M === "heartbeat") {
           this._watcher.markAlive();
