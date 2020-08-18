@@ -38,7 +38,7 @@ class LedgerXClient extends BasicClient {
     }
 
     if (json.type === "heartbeat") {
-      this._watcher._markAlive();
+      this._watcher.markAlive();
 
       // initialize the runId
       if (this._runId === 0) {

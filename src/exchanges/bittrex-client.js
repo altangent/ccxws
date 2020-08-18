@@ -21,8 +21,8 @@ const { CandlePeriod } = require("../enums");
  * standard client.
  */
 class BittrexClient extends BasicClient {
-  constructor() {
-    super(undefined, "Bittrex");
+  constructor({ watcherMs = 15000 } = {}) {
+    super(undefined, "Bittrex", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -45,8 +45,23 @@ class BittrexClient extends BasicClient {
   ////////////////////////////////////
   // PROTECTED
 
+  _beforeConnect() {
+    this._wss.on("connected", () => this._sendHeartbeat());
+  }
+
   _beforeClose() {
     this._subbedTickers = false;
+  }
+
+  _sendHeartbeat() {
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [["heartbeat"]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendSubTicker() {
@@ -163,6 +178,7 @@ class BittrexClient extends BasicClient {
       wss.on("closing", () => this.emit("closing"));
       wss.on("closed", () => this.emit("closed"));
       wss.on("message", this._onMessage.bind(this));
+      if (this._beforeConnect) this._beforeConnect();
       wss.connect();
     } catch (ex) {
       this._onError(ex);
@@ -176,6 +192,10 @@ class BittrexClient extends BasicClient {
       if (!fullMsg.M) return;
 
       for (let msg of fullMsg.M) {
+        if (msg.M === "heartbeat") {
+          this._watcher.markAlive();
+        }
+
         if (msg.M === "marketSummaries") {
           for (let a of msg.A) {
             zlib.inflateRaw(Buffer.from(a, "base64"), this._processTickers);
