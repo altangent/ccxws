@@ -5,8 +5,8 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 
 class ZbClient extends BasicClient {
-  constructor() {
-    super("wss://api.zb.cn/websocket ", "ZB");
+  constructor({ wssPath = "wss://api.zb.cn/websocket", watcherMs } = {}) {
+    super(wssPath, "ZB", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;

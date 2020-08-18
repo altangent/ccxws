@@ -11,13 +11,13 @@ const Level3Snapshot = require("../level3-snapshot");
  * subscription filtering to only reply with values that of are of interest.
  */
 class LedgerXClient extends BasicClient {
-  constructor(token) {
-    super("wss://trade.ledgerx.com/api/ws?token=" + token, "LedgerX");
+  constructor({ wssPath = "wss://trade.ledgerx.com/api/ws?token=", apiKey, watcherMs } = {}) {
+    super(wssPath + apiKey, "LedgerX", undefined, watcherMs);
 
     this.hasTrades = true;
     this.hasLevel3Updates = true;
     this._runId = 0;
-    this._token = token;
+    this.apiKey = apiKey;
   }
 
   _sendSubTrades() {}
@@ -105,7 +105,7 @@ class LedgerXClient extends BasicClient {
   async _requestLevel3Snapshot(market) {
     let failed = false;
     try {
-      let uri = `https://trade.ledgerx.com/api/book-states/${market.id}?token=${this._token}`;
+      let uri = `https://trade.ledgerx.com/api/book-states/${market.id}?token=${this.apiKey}`;
       let { data } = await https.get(uri);
       let sequenceId = data.clock;
       let asks = [];

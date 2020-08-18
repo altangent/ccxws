@@ -10,8 +10,8 @@ const { debounce } = require("../flowcontrol/debounce");
 const { throttle } = require("../flowcontrol/throttle");
 
 class BithumbClient extends BasicClient {
-  constructor() {
-    super("wss://pubwss.bithumb.com/pub/ws", "Bithumb");
+  constructor({ wssPath = "wss://pubwss.bithumb.com/pub/ws", watcherMs } = {}) {
+    super(wssPath, "Bithumb", undefined, watcherMs);
     this._restL2SnapshotPath = "https://api.bithumb.com/public/orderbook";
     this.hasTickers = true;
     this.hasTrades = true;

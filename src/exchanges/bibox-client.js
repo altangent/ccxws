@@ -20,7 +20,7 @@ class BiboxClient extends EventEmitter {
     This makes like hard and we need to batch connections, which
     is why we can't use the BasicMultiClient.
    */
-  constructor() {
+  constructor(options) {
     super();
 
     /**
@@ -36,6 +36,7 @@ class BiboxClient extends EventEmitter {
        */
     this._clients = [];
 
+    this.options = options;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
@@ -118,7 +119,7 @@ class BiboxClient extends EventEmitter {
     // to create a new client.
     if (!client) {
       // construct a new client
-      client = new BiboxBasicClient();
+      client = new BiboxBasicClient(this.options);
 
       // set properties
       client.parent = this;
@@ -202,9 +203,9 @@ class BiboxBasicClient extends BasicClient {
     Manages connections for a single market. A single
     socket is only allowed to work for 20 markets.
    */
-  constructor() {
-    super("wss://push.bibox.com", "Bibox");
-    this._watcher = new Watcher(this, 10 * 60 * 1000); // change to 10 minutes
+  constructor({ wssPath = "wss://push.bibox.com", watcherMs = 600 * 1000 } = {}) {
+    super(wssPath, "Bibox");
+    this._watcher = new Watcher(this, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;

@@ -7,6 +7,7 @@ class BinanceJeClient extends BinanceBase {
     socketBatchSize = 200,
     socketThrottleMs = 1000,
     restThrottleMs = 1000,
+    watcherMs,
   } = {}) {
     super({
       name: "BinanceJe",
@@ -17,6 +18,7 @@ class BinanceJeClient extends BinanceBase {
       socketBatchSize,
       socketThrottleMs,
       restThrottleMs,
+      watcherMs,
     });
   }
 }

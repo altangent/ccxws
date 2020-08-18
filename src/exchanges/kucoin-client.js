@@ -22,8 +22,8 @@ class KucoinClient extends BasicClient {
    * To work around this will require creating multiple clients if you makem ore than 100
    * subscriptions.
    */
-  constructor() {
-    super(undefined, "KuCoin");
+  constructor({ wssPath, watcherMs } = {}) {
+    super(wssPath, "KuCoin", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -82,7 +82,8 @@ class KucoinClient extends BasicClient {
   _connect() {
     if (!this._wss) {
       this._wss = { status: "connecting" };
-      this._connectAsync();
+      if (this.wssPath) super._connect();
+      else this._connectAsync();
     }
   }
 

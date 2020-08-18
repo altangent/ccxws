@@ -10,8 +10,8 @@ const Level2Snapshot = require("../level2-snapshot");
 const moment = require("moment");
 
 class BitFlyerClient extends BasicClient {
-  constructor() {
-    super("wss://ws.lightstream.bitflyer.com/json-rpc", "BitFlyer");
+  constructor({ wssPath = "wss://ws.lightstream.bitflyer.com/json-rpc", watcherMs } = {}) {
+    super(wssPath, "BitFlyer", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;

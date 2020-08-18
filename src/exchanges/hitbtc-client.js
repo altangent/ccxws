@@ -10,8 +10,8 @@ const { CandlePeriod } = require("../enums");
 const Candle = require("../candle");
 
 class HitBTCClient extends BasicClient {
-  constructor({ throttleMs = 25 } = {}) {
-    super("wss://api.hitbtc.com/api/2/ws", "HitBTC");
+  constructor({ wssPath = "wss://api.hitbtc.com/api/2/ws", throttleMs = 25, watcherMs } = {}) {
+    super(wssPath, "HitBTC", undefined, watcherMs);
     this._id = 0;
 
     this.hasTickers = true;

@@ -1,5 +1,5 @@
 const { testClient } = require("../test-runner");
-const BinanceFuturesUsdtmClient = require("../../src/exchanges/binance-futures-usdtm-client");
+const BinanceFuturesUsdtMClient = require("../../src/exchanges/binance-futures-usdtm-client");
 const { get } = require("../../src/https");
 
 async function fetchAllMarkets() {
@@ -10,8 +10,8 @@ async function fetchAllMarkets() {
 }
 
 testClient({
-  clientFactory: () => new BinanceFuturesUsdtmClient(),
-  clientName: "BinanceFuturesUsdtmClient",
+  clientFactory: () => new BinanceFuturesUsdtMClient(),
+  clientName: "BinanceFuturesUsdtMClient",
   exchangeName: "Binance Futures USDT-M",
   markets: [
     {

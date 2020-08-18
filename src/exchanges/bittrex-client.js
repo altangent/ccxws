@@ -21,8 +21,8 @@ const { CandlePeriod } = require("../enums");
  * standard client.
  */
 class BittrexClient extends BasicClient {
-  constructor({ watcherMs = 15000 } = {}) {
-    super(undefined, "Bittrex", undefined, watcherMs);
+  constructor({ wssPath, watcherMs = 15000 } = {}) {
+    super(wssPath, "Bittrex", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -161,12 +161,16 @@ class BittrexClient extends BasicClient {
 
   async _connectAsync() {
     try {
-      let data = JSON.stringify([{ name: "c3" }]);
-      let negotiations = await https.get(
-        `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
-      );
-      let token = encodeURIComponent(negotiations.ConnectionToken);
-      let wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
+      let wssPath = this.wssPath;
+
+      if (!wssPath) {
+        let data = JSON.stringify([{ name: "c3" }]);
+        let negotiations = await https.get(
+          `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
+        );
+        let token = encodeURIComponent(negotiations.ConnectionToken);
+        wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
+      }
 
       let wss = new SmartWss(wssPath);
       this._wss = wss;

@@ -9,8 +9,8 @@ const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 
 class BitfinexClient extends BasicClient {
-  constructor() {
-    super("wss://api.bitfinex.com/ws", "Bitfinex");
+  constructor({ wssPath = "wss://api.bitfinex.com/ws", watcherMs } = {}) {
+    super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
 
     this.hasTickers = true;
