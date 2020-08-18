@@ -26,7 +26,6 @@
     "moment": "^2.26.0",
     "pusher-js": "^4.4.0",
     "semaphore": "^1.1.0",
-    "signalr-client": "0.0.20",
     "ws": "^7.3.0"
   },
   "devDependencies": {

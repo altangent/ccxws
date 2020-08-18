@@ -2,7 +2,7 @@ const zlib = require("../zlib");
 const https = require("../https");
 const { EventEmitter } = require("events");
 const moment = require("moment");
-const turdr = require("signalr-client");
+const SmartWss = require("../smart-wss");
 const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -41,6 +41,7 @@ class BittrexClient extends EventEmitter {
     this.candlePeriod = CandlePeriod._1m;
     this.orderBookDepth = 500;
 
+    this._messageId = 0;
     this._processTickers = this._processTickers.bind(this);
     this._processTrades = this._processTrades.bind(this);
     this._processCandles = this._processCandles.bind(this);
@@ -56,7 +57,7 @@ class BittrexClient extends EventEmitter {
     this._watcher.stop();
     if (this._wss) {
       try {
-        this._wss.end();
+        this._wss.close();
       } catch (e) {
         // ignore
       }
@@ -148,10 +149,14 @@ class BittrexClient extends EventEmitter {
 
   _sendSubTickers() {
     if (this._tickerConnected) return;
-    this._wss.call("c3", "Subscribe", ["market_summaries"]).done(err => {
-      if (err) return this.emit("error", err);
-      else this._tickerConnected = true;
-    });
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [["market_summaries"]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendUnsubTicker() {
@@ -159,65 +164,98 @@ class BittrexClient extends EventEmitter {
   }
 
   _sendSubTrades(remote_id) {
-    this._wss.call("c3", "Subscribe", [`trade_${remote_id}`]).done(err => {
-      if (err) return this.emit("error", err);
-    });
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [[`trade_${remote_id}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendUnsubTrades(remote_id) {
-    this._wss.call("c3", "Unsubscribe", [`trade_${remote_id}`]).done(err => {
-      if (err) return this.emit("error", err);
-    });
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Unsubscribe",
+        A: [[`trade_${remote_id}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendSubCandles(remote_id) {
-    this._wss
-      .call("c3", "Subscribe", [`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`])
-      .done(err => {
-        if (err) return this.emit("error", err);
-      });
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [[`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendUnsubCandles(remote_id) {
-    this._wss
-      .call("c3", "Unsubscribe", [`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`])
-      .done(err => {
-        if (err) return this.emit("error", err);
-      });
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Unsubscribe",
+        A: [[`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendSubLevel2Updates(remote_id, market) {
     this._requestLevel2Snapshot(market);
-    this._wss.call("c3", "Subscribe", [`orderbook_${remote_id}_${this.orderBookDepth}`]);
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [[`orderbook_${remote_id}_${this.orderBookDepth}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   _sendUnsubLevel2Updates(remote_id) {
-    this._wss.call("c3", "Unsubscribe", [`orderbook_${remote_id}_${this.orderBookDepth}`]);
+    this._wss.send(
+      JSON.stringify({
+        H: "c3",
+        M: "Subscribe",
+        A: [[`orderbook_${remote_id}_${this.orderBookDepth}`]],
+        I: ++this._messageId,
+      })
+    );
   }
 
   async _connect() {
     // ignore wss creation is we already are connected
     if (this._wss) return;
 
-    let wss = (this._wss = new turdr.client(
-      "wss://socket-v3.bittrex.com/signalr", // service url
-      ["c3"], // hubs
-      undefined, // disable reconnection
-      true // wait till .start() called
-    ));
+    // temporarily assign a value so we don't cause multiple leaked
+    // connections
+    this._wss = true;
 
-    wss.serviceHandlers = {
-      bindingError: err => this.emit("error", err),
-      connectFailed: () => this.emit("closed"),
-      connected: this._onConnected.bind(this),
-      connectionLost: () => this.emit("closed"),
-      disconnected: this._onDisconnected.bind(this),
-      onerror: err => this.emit("error", err),
-      messageReceived: this._onMessage.bind(this),
-      reconnecting: () => true, // disables reconnection
-    };
+    let data = JSON.stringify([{ name: "c3" }]);
+    let negotiations = await https.get(
+      `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
+    );
+    let token = encodeURIComponent(negotiations.ConnectionToken);
+    let wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
 
-    wss.start();
+    let wss = new SmartWss(wssPath);
+    this._wss = wss;
+
+    wss.on("error", err => this.emit("error", err));
+    wss.on("connecting", () => this.emit("connecting"));
+    wss.on("connected", this._onConnected.bind(this));
+    wss.on("disconnected", () => this.emit("disconnected"));
+    wss.on("closing", () => this.emit("closing"));
+    wss.on("closed", () => this.emit("closed"));
+    wss.on("message", this._onMessage.bind(this));
+    wss.connect();
   }
 
   _onConnected() {
@@ -253,13 +291,11 @@ class BittrexClient extends EventEmitter {
 
   _onMessage(raw) {
     try {
-      if (!raw.utf8Data) return;
+      const fullMsg = JSON.parse(raw);
 
-      raw = JSON.parse(raw.utf8Data);
+      if (!fullMsg.M) return;
 
-      if (!raw.M) return;
-
-      for (let msg of raw.M) {
+      for (let msg of fullMsg.M) {
         if (msg.M === "marketSummaries") {
           for (let a of msg.A) {
             zlib.inflateRaw(Buffer.from(a, "base64"), this._processTickers);

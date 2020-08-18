@@ -15,7 +15,6 @@ async function get(uri) {
       res.on("end", () => {
         results = Buffer.concat(results);
         if (res.statusCode !== 200) {
-          console.log(res.statusCode);
           return reject(new Error(results.toString()));
         } else {
           return resolve(JSON.parse(results));
@@ -39,8 +38,8 @@ async function post(uri, postData = "") {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Content-Length": postData.length
-        }
+          "Content-Length": postData.length,
+        },
       },
       res => {
         let results = [];
