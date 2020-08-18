@@ -9,8 +9,8 @@ const Level2Snapshot = require("../level2-snapshot");
 const { CandlePeriod } = require("../enums");
 
 class HuobiBase extends BasicClient {
-  constructor({ name, wssPath }) {
-    super(wssPath, name);
+  constructor({ name, wssPath, watcherMs }) {
+    super(wssPath, name, undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;

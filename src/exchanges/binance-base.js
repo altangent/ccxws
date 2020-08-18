@@ -36,6 +36,7 @@ class BinanceBase extends BasicClient {
     name,
     wssPath,
     restL2SnapshotPath,
+    watcherMs = 30000,
     useAggTrades = true,
     requestSnapshot = true,
     socketBatchSize = 200,
@@ -44,10 +45,7 @@ class BinanceBase extends BasicClient {
     l2updateSpeed = "",
     l2snapshotSpeed = "",
   } = {}) {
-    super();
-
-    this._name = name;
-    this._wssPath = wssPath;
+    super(wssPath, name, undefined, watcherMs);
     this._restL2SnapshotPath = restL2SnapshotPath;
 
     this.useAggTrades = useAggTrades;

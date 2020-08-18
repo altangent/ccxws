@@ -15,10 +15,8 @@ class BitstampClient extends BasicClient {
     Documentation for Version 2:
       https://www.bitstamp.net/websocket/v2/
    */
-  constructor() {
-    super();
-    this._name = "Bitstamp";
-    this._wssPath = "wss://ws.bitstamp.net";
+  constructor({ wssPath = "wss://ws.bitstamp.net", watcherMs } = {}) {
+    super(wssPath, "Bitstamp", undefined, watcherMs);
     this.requestSnapshot = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;

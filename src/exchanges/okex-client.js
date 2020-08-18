@@ -33,8 +33,8 @@ class OKExClient extends BasicClient {
    *
    * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
    */
-  constructor() {
-    super("wss://real.okex.com:8443/ws/v3", "OKEx");
+  constructor({ wssPath = "wss://real.okex.com:8443/ws/v3", watcherMs } = {}) {
+    super(wssPath, "OKEx", undefined, watcherMs);
     this.candlePeriod = CandlePeriod._1m;
     this.hasTickers = true;
     this.hasTrades = true;

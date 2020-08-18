@@ -12,7 +12,9 @@ function testClient(spec) {
   describe(spec.clientName, () => {
     let state = {};
 
-    before(async () => {
+    before(async function() {
+      this.timeout(30000);
+
       state.client = spec.clientFactory();
 
       if (spec.fetchMarkets) {
@@ -32,7 +34,7 @@ function testClient(spec) {
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
-    }, 30000); // increase timeout for async fetches
+    });
 
     describe("capabilities", () => {
       it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
@@ -185,7 +187,9 @@ function testClient(spec) {
   describe(spec.clientName + " all markets", () => {
     let client;
 
-    before(async () => {
+    before(async function() {
+      this.timeout(15000);
+
       if (spec.fetchAllMarkets && !spec.allMar) {
         spec.allMarkets = await spec.fetchAllMarkets();
       }
@@ -198,6 +202,14 @@ function testClient(spec) {
     if (spec.testAllMarketsTrades) {
       it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
         const markets = new Set();
+
+        client.on("error", err => {
+          client.removeAllListeners("trade");
+          client.removeAllListeners("error");
+          client.close();
+          done(err);
+        });
+
         client.on("trade", (trade, market) => {
           markets.add(market.id);
           if (markets.size >= spec.testAllMarketsTradesSuccess) {
@@ -309,6 +321,13 @@ function testTrades(spec, state) {
     });
 
     it("should subscribe and emit a trade", done => {
+      // give it 2 minutes, then just abort this test
+      let timeoutHandle = setTimeout(() => {
+        client.removeAllListeners("trade");
+        clearTimeout(timeoutHandle);
+        done();
+      }, 120000);
+
       for (let market of spec.tradeMarkets) {
         client.subscribeTrades(market);
       }
@@ -317,11 +336,10 @@ function testTrades(spec, state) {
         result.trade = trade;
         result.market = market;
         client.removeAllListeners("trade");
+        clearTimeout(timeoutHandle);
         done();
       });
-    })
-      .timeout(60000)
-      .retries(3);
+    }).timeout(122000);
 
     it("should unsubscribe from trades", async () => {
       for (let market of spec.tradeMarkets) {

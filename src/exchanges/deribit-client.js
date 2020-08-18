@@ -8,8 +8,8 @@ const { CandlePeriod } = require("../enums");
 const { throttle } = require("../flowcontrol/throttle");
 
 class DeribitClient extends BasicClient {
-  constructor() {
-    super("wss://www.deribit.com/ws/api/v2", "Deribit");
+  constructor({ wssPath = "wss://www.deribit.com/ws/api/v2", watcherMs } = {}) {
+    super(wssPath, "Deribit", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;

@@ -11,14 +11,14 @@ class Watcher {
     this._intervalHandle = undefined;
     this._lastMessage = undefined;
 
-    this._markAlive = this._markAlive.bind(this);
-    client.on("ticker", this._markAlive);
-    client.on("candle", this._markAlive);
-    client.on("trade", this._markAlive);
-    client.on("l2snapshot", this._markAlive);
-    client.on("l2update", this._markAlive);
-    client.on("l3snapshot", this._markAlive);
-    client.on("l3update", this._markAlive);
+    this.markAlive = this.markAlive.bind(this);
+    client.on("ticker", this.markAlive);
+    client.on("candle", this.markAlive);
+    client.on("trade", this.markAlive);
+    client.on("l2snapshot", this.markAlive);
+    client.on("l2update", this.markAlive);
+    client.on("l3snapshot", this.markAlive);
+    client.on("l3update", this.markAlive);
   }
 
   /**
@@ -40,7 +40,7 @@ class Watcher {
   /**
    * Marks that a message was received
    */
-  _markAlive() {
+  markAlive() {
     this._lastMessage = Date.now();
   }
 

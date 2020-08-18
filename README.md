@@ -55,8 +55,8 @@ binance.subscribeLevel2Snapshots(market);
 | ---------------------- | --- | ------------------- | -------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
 | Bibox                  | 1   | Bibox               | &#10003; | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
 | Binance                | 1   | Binance             | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Futures Coin-M | 1   | BinanceFuturesCoinm | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Futures USDT-M | 1   | BinanceFuturesUsdtm | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance Futures Coin-M | 1   | BinanceFuturesCoinM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| Binance Futures USDT-M | 1   | BinanceFuturesUsdtM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance Jersey         | 1   | BinanceJe           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance US             | 1   | BinanceUs           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Bitfinex               | 1.1 | Bitfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
@@ -64,7 +64,7 @@ binance.subscribeLevel2Snapshots(market);
 | Bithumb                | 1   | Bithumb             | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
 | BitMEX                 | 1   | BitMEX              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
 | Bitstamp               | 2   | Bitstamp            | -        | &#10003; | -        | &#10003;           | &#10003;\*\*      | -                  | -                 | - |
-| Bittrex                | 1   | Bittrex             | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
+| Bittrex                | 3   | Bittrex             | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
 | Cex.io                 | 1   | Cex                 | &#10003; | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
 | Coinbase Pro           | 1   | CoinbasePro         | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;          |
 | Coinex                 | 1   | Coinex              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
@@ -115,6 +115,7 @@ These properties are required by CCXWS.
 - `id: string` - the identifier used by the remote exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
+- `type: string` - the type of market: `spot`, `futures`, `option`, `swap`
 
 ### `Client`
 
@@ -122,14 +123,15 @@ A websocket client that connects to a specific exchange. There is an implementat
 
 ```javascript
 const binance = new ccxws.Binance();
-const gdax = new ccxws.GDAX();
+const coinbase = new ccxws.CoinbasePro();
 ```
 
-#### Properties
+Clients can be instantiated with an options object that has several properties properties:
 
-##### `reconnectIntervalMs: int` - default 90000
-
-Property that controls silent socket drop checking. This will enable a check at the reconnection interval that looks for ANY broadcast message from the server. If there has not been a message since the last check a reconnection (close, connect) operation is performed. This property must be set before the first subscription (and subsequent connection).
+- `wssPath: string` - allows customization of the web socket path. When this is configured, additional rules surrounding connection may be ignored.
+- `watcherMs: number` - allows customization of the reconnection watcher. This value is the duration of time that must pass without a message for a reconnection is peroformed. This value can be customized depending on the type and liquidity of markets that you are subscribing to.
+- `apiKey: string` - any API key needed for the exchange
+- `apiSecret: string` - any API secret needed for the exchange
 
 #### Events
 

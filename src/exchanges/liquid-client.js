@@ -10,11 +10,13 @@ const Level2Point = require("../level2-point");
  * https://developers.liquid.com/#public-channels
  */
 class LiquidClient extends BasicClient {
-  constructor({ autoloadSymbolMaps = true } = {}) {
-    super();
+  constructor({
+    wssPath = "wss://tap.liquid.com/app/LiquidTapClient",
+    autoloadSymbolMaps = true,
+    watcherMs,
+  } = {}) {
+    super(wssPath, "Liquid", undefined, watcherMs);
 
-    this._name = "Liquid";
-    this._wssPath = "wss://tap.liquid.com/app/LiquidTapClient";
     this.requestSnapshot = false;
     this.hasTrades = true;
     this.hasTickers = true;

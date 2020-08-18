@@ -5,8 +5,8 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 
 class UpbitClient extends BasicClient {
-  constructor() {
-    super("wss://api.upbit.com/websocket/v1", "Upbit");
+  constructor({ wssPath = "wss://api.upbit.com/websocket/v1", watcherMs } = {}) {
+    super(wssPath, "Upbit", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;

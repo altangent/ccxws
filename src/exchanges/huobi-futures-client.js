@@ -1,8 +1,8 @@
 const HuobiBase = require("./huobi-base");
 
 class HuobiFuturesClient extends HuobiBase {
-  constructor() {
-    super({ name: "Huobi Futures", wssPath: "wss://api.hbdm.com/ws " });
+  constructor({ wssPath = "wss://api.hbdm.com/ws", watcherMs } = {}) {
+    super({ name: "Huobi Futures", wssPath, watcherMs });
     this.hasLevel2Updates = true;
   }
 }

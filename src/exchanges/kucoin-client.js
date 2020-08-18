@@ -92,7 +92,8 @@ class KucoinClient extends BasicClient {
   _connect() {
     if (!this._wss) {
       this._wss = { status: "connecting" };
-      this._connectAsync();
+      if (this.wssPath) super._connect();
+      else this._connectAsync();
     }
   }
 

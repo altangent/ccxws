@@ -11,8 +11,8 @@ const Level2Update = require("../level2-update");
  * https://github.com/DigiFinex/api/blob/master/Websocket_API_en.md
  */
 class DigifinexClient extends BasicClient {
-  constructor() {
-    super("wss://openapi.digifinex.com/ws/v1/", "Digifinex");
+  constructor({ wssPath = "wss://openapi.digifinex.com/ws/v1/", watcherMs } = {}) {
+    super(wssPath, "Digifinex", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;

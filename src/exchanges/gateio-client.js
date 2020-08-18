@@ -1,6 +1,5 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
-const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
@@ -17,9 +16,8 @@ class GateioClient extends BasicClient {
    * or uppercase. Websockets require market_id in uppercase, however the client
    * can handle either.
    */
-  constructor() {
-    super("wss://ws.gate.io/v3", "Gateio");
-    this._watcher = new Watcher(this, 15 * 60 * 1000);
+  constructor({ wssPath = "wss://ws.gate.io/v3", watcherMs = 900 * 1000 } = {}) {
+    super(wssPath, "Gateio", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = false;

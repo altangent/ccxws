@@ -11,8 +11,9 @@ const Level2Update = require("../level2-update");
 const { MarketObjectTypes, CandlePeriod } = require("../enums");
 
 class CoinexClient extends BasicMultiClient {
-  constructor() {
+  constructor(options = {}) {
     super();
+    this.options = options;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
@@ -21,14 +22,14 @@ class CoinexClient extends BasicMultiClient {
   }
 
   _createBasicClient() {
-    return new CoinexSingleClient(this);
+    return new CoinexSingleClient({ ...this.options, parent: this });
   }
 }
 
 class CoinexSingleClient extends BasicClient {
-  constructor(parent) {
-    super("wss://socket.coinex.com/", "Coinex");
-    this._watcher = new Watcher(this, 15 * 60 * 1000);
+  constructor({ wssPath = "wss://socket.coinex.com/", watcherMs = 900 * 1000, parent }) {
+    super(wssPath, "Coinex", undefined, watcherMs);
+    this._watcher = new Watcher(this, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
