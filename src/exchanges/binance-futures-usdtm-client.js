@@ -2,7 +2,7 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const { BinanceBase } = require("./binance-base");
 
-class BinanceFuturesUsdtmClient extends BinanceBase {
+class BinanceFuturesUsdtMClient extends BinanceBase {
   constructor({
     useAggTrades = true,
     requestSnapshot = true,
@@ -130,4 +130,4 @@ class BinanceFuturesUsdtmClient extends BinanceBase {
   }
 }
 
-module.exports = BinanceFuturesUsdtmClient;
+module.exports = BinanceFuturesUsdtMClient;
