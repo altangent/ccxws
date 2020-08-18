@@ -1,9 +1,8 @@
 const zlib = require("../zlib");
 const https = require("../https");
-const { EventEmitter } = require("events");
 const moment = require("moment");
+const BasicClient = require("../basic-client");
 const SmartWss = require("../smart-wss");
-const Watcher = require("../watcher");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Candle = require("../candle");
@@ -16,20 +15,14 @@ const { CandlePeriod } = require("../enums");
  * Implements the v3 API:
  * https://bittrex.github.io/api/v3#topic-Synchronizing
  * https://bittrex.github.io/guides/v3/upgrade
+ *
+ * This client uses SignalR and requires a custom connection strategy to
+ * obtain a socket. Otherwise, things are relatively the same vs a
+ * standard client.
  */
-class BittrexClient extends EventEmitter {
+class BittrexClient extends BasicClient {
   constructor() {
-    super();
-    this._name = "Bittrex";
-    this._retryTimeoutMs = 15000;
-    this._tickerSubs = new Map();
-    this._tradeSubs = new Map();
-    this._candleSubs = new Map();
-    this._level2UpdateSubs = new Map();
-    this._watcher = new Watcher(this);
-    this._isConnected = false;
-    this._tickerConnected = false;
-    this._finalClosing = false;
+    super(undefined, "Bittrex");
 
     this.hasTickers = true;
     this.hasTrades = true;
@@ -41,6 +34,7 @@ class BittrexClient extends EventEmitter {
     this.candlePeriod = CandlePeriod._1m;
     this.orderBookDepth = 500;
 
+    this._subbedTickers = false;
     this._messageId = 0;
     this._processTickers = this._processTickers.bind(this);
     this._processTrades = this._processTrades.bind(this);
@@ -48,107 +42,16 @@ class BittrexClient extends EventEmitter {
     this._processLevel2Update = this._processLevel2Update.bind(this);
   }
 
-  close(emitEvent = true) {
-    if (emitEvent) {
-      // if user activated close, we flag this
-      // so we don't attempt to reconnect
-      this._finalClosing = true;
-    }
-    this._watcher.stop();
-    if (this._wss) {
-      try {
-        this._wss.close();
-      } catch (e) {
-        // ignore
-      }
-      this._wss = undefined;
-    }
-    if (emitEvent) this.emit("closed");
-  }
-
-  reconnect(emitEvent = true) {
-    this.close(false);
-    this._connect();
-    if (emitEvent) this.emit("reconnected");
-  }
-
-  subscribeTicker(market) {
-    let remote_id = market.id;
-    if (this._tickerSubs.has(remote_id)) return;
-
-    this._connect();
-    this._tickerSubs.set(remote_id, market);
-    if (this._isConnected) {
-      this._sendSubTickers(remote_id);
-    }
-  }
-
-  unsubscribeTicker(market) {
-    let remote_id = market.id;
-    if (!this._tickerSubs.has(remote_id)) return;
-    this._tickerSubs.delete(remote_id);
-    if (this._isConnected) {
-      this._sendUnsubTicker(remote_id);
-    }
-  }
-
-  subscribeTrades(market) {
-    this._subscribe(market, this._tradeSubs, this._sendSubTrades.bind(this));
-  }
-
-  unsubscribeTrades(market) {
-    this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
-  }
-
-  subscribeCandles(market) {
-    this._subscribe(market, this._candleSubs, this._sendSubCandles.bind(this));
-  }
-
-  unsubscribeCandles(market) {
-    this._unsubscribe(market, this._candleSubs, this._sendUnsubCandles.bind(this));
-  }
-
-  subscribeLevel2Updates(market) {
-    this._subscribe(market, this._level2UpdateSubs, this._sendSubLevel2Updates.bind(this));
-  }
-
-  unsubscribeLevel2Updates(market) {
-    this._unsubscribe(market, this._level2UpdateSubs, this._sendUnsubLevel2Updates.bind(this));
-  }
-
   ////////////////////////////////////
   // PROTECTED
 
-  _resetSubCount() {
-    this._subCount = {};
+  _beforeClose() {
+    this._subbedTickers = false;
   }
 
-  _subscribe(market, map, subFn) {
-    this._connect();
-    let remote_id = market.id;
-
-    if (!map.has(remote_id)) {
-      map.set(remote_id, market);
-
-      if (this._isConnected) {
-        subFn(remote_id, market);
-      }
-    }
-  }
-
-  _unsubscribe(market, map, unsubFn) {
-    let remote_id = market.id;
-    if (map.has(remote_id)) {
-      map.delete(remote_id);
-
-      if (this._isConnected) {
-        unsubFn(remote_id, market);
-      }
-    }
-  }
-
-  _sendSubTickers() {
-    if (this._tickerConnected) return;
+  _sendSubTicker() {
+    if (this._subbedTickers) return;
+    this._subbedTickers = true;
     this._wss.send(
       JSON.stringify({
         H: "c3",
@@ -230,62 +133,39 @@ class BittrexClient extends EventEmitter {
     );
   }
 
-  async _connect() {
-    // ignore wss creation is we already are connected
-    if (this._wss) return;
-
-    // temporarily assign a value so we don't cause multiple leaked
-    // connections
-    this._wss = true;
-
-    let data = JSON.stringify([{ name: "c3" }]);
-    let negotiations = await https.get(
-      `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
-    );
-    let token = encodeURIComponent(negotiations.ConnectionToken);
-    let wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
-
-    let wss = new SmartWss(wssPath);
-    this._wss = wss;
-
-    wss.on("error", err => this.emit("error", err));
-    wss.on("connecting", () => this.emit("connecting"));
-    wss.on("connected", this._onConnected.bind(this));
-    wss.on("disconnected", () => this.emit("disconnected"));
-    wss.on("closing", () => this.emit("closing"));
-    wss.on("closed", () => this.emit("closed"));
-    wss.on("message", this._onMessage.bind(this));
-    wss.connect();
+  /**
+   * Requires connecting to SignalR which has a whole BS negotiation
+   * to obtain a token, similar to Kucoin actually.
+   */
+  _connect() {
+    if (!this._wss) {
+      this._wss = { status: "connecting" };
+      this._connectAsync();
+    }
   }
 
-  _onConnected() {
-    clearTimeout(this._reconnectHandle);
-    this._resetSubCount();
-    this._tickerConnected = false;
-    this._isConnected = true;
-    this.emit("connected");
-    for (let [marketSymbol, market] of this._tickerSubs) {
-      this._sendSubTickers(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._tradeSubs) {
-      this._sendSubTrades(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._candleSubs) {
-      this._sendSubCandles(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._level2UpdateSubs) {
-      this._sendSubLevel2Updates(marketSymbol, market);
-    }
-    this._watcher.start();
-  }
+  async _connectAsync() {
+    try {
+      let data = JSON.stringify([{ name: "c3" }]);
+      let negotiations = await https.get(
+        `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
+      );
+      let token = encodeURIComponent(negotiations.ConnectionToken);
+      let wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
 
-  _onDisconnected() {
-    this._isConnected = false;
-    if (!this._finalClosing) {
-      clearTimeout(this._reconnectHandle);
-      this._watcher.stop();
-      this.emit("disconnected");
-      this._reconnectHandle = setTimeout(() => this.reconnect(false), this._retryTimeoutMs);
+      let wss = new SmartWss(wssPath);
+      this._wss = wss;
+
+      wss.on("error", err => this.emit("error", err));
+      wss.on("connecting", () => this.emit("connecting"));
+      wss.on("connected", this._onConnected.bind(this));
+      wss.on("disconnected", () => this.emit("disconnected"));
+      wss.on("closing", () => this.emit("closing"));
+      wss.on("closed", () => this.emit("closed"));
+      wss.on("message", this._onMessage.bind(this));
+      wss.connect();
+    } catch (ex) {
+      this._onError(ex);
     }
   }
 
