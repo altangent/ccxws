@@ -21,13 +21,11 @@
   },
   "repository": "altangent/ccxws",
   "dependencies": {
-    "cloudscraper": "^1.5.1",
     "crc": "^3.8.0",
     "decimal.js": "^10.2.0",
     "moment": "^2.26.0",
     "pusher-js": "^4.4.0",
     "semaphore": "^1.1.0",
-    "signalr-client": "0.0.17",
     "ws": "^7.3.0"
   },
   "devDependencies": {
