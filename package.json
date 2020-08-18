@@ -1,7 +1,7 @@
 {
   "name": "ccxws",
-  "version": "0.36.0",
-  "description": "Websocket client for 20+ cryptocurrency exchanges",
+  "version": "0.37.0",
+  "description": "Websocket client for 37 cryptocurrency exchanges",
   "keywords": [
     "bitmex",
     "binance",
