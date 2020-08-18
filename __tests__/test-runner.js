@@ -12,7 +12,9 @@ function testClient(spec) {
   describe(spec.clientName, () => {
     let state = {};
 
-    before(async () => {
+    before(async function() {
+      this.timeout(30000);
+
       state.client = spec.clientFactory();
 
       if (spec.fetchMarkets) {
@@ -32,7 +34,7 @@ function testClient(spec) {
       spec.marketIdList = spec.markets.map(p => p.id);
       spec.marketBaseList = spec.markets.map(p => p.base);
       spec.marketQuoteList = spec.markets.map(p => p.quote);
-    }, 30000); // increase timeout for async fetches
+    });
 
     describe("capabilities", () => {
       it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
@@ -185,11 +187,13 @@ function testClient(spec) {
   describe(spec.clientName + " all markets", () => {
     let client;
 
-    before(async () => {
+    before(async function() {
+      this.timeout(15000);
+
       if (spec.fetchAllMarkets && !spec.allMar) {
         spec.allMarkets = await spec.fetchAllMarkets();
       }
-    }, 15000);
+    });
 
     beforeEach(() => {
       client = spec.clientFactory();
