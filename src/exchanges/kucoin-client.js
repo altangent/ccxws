@@ -12,6 +12,7 @@ const UUID = require("uuid/v4");
 const { CandlePeriod } = require("../enums");
 const semaphore = require("semaphore");
 const { throttle } = require("../flowcontrol/throttle");
+const { batch } = require("../flowcontrol/batch");
 const Level3Point = require("../level3-point");
 
 class KucoinClient extends BasicClient {
@@ -22,7 +23,10 @@ class KucoinClient extends BasicClient {
    * To work around this will require creating multiple clients if you makem ore than 100
    * subscriptions.
    */
-  constructor() {
+  constructor({
+    socketBatchSize = 100,
+    socketThrottleMs = 100
+  } = {}) {
     super(undefined, "KuCoin");
 
     this.hasTickers = true;
@@ -39,6 +43,10 @@ class KucoinClient extends BasicClient {
       this._requestLevel2Snapshot.bind(this),
       this._throttleMs
     );
+
+    this._sendSubCandles = batch(this._sendSubCandles.bind(this), socketBatchSize);
+    this._sendUnsubCandles = batch(this._sendUnsubCandles.bind(this), socketBatchSize);
+    this._sendMessage = throttle(this._sendMessage.bind(this), socketThrottleMs);
   }
 
   _beforeConnect() {
@@ -84,6 +92,14 @@ class KucoinClient extends BasicClient {
       this._wss = { status: "connecting" };
       this._connectAsync();
     }
+  }
+
+  _onClosing() {
+    this._sendSubCandles.cancel();
+    this._sendUnsubCandles.cancel();
+    this._sendMessage.cancel();
+    this._requestLevel2Snapshot.cancel();
+    super._onClosing();
   }
 
   async _connectAsync() {
@@ -173,31 +189,39 @@ class KucoinClient extends BasicClient {
     });
   }
 
-  _sendSubCandles(remote_id) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          id: new Date().getTime(),
-          type: "subscribe",
-          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
-          privateChannel: false,
-          response: true,
-        })
-      );
+  _sendSubCandles(args) {
+    const pairs = args.map(remote_id => {
+      return remote_id[0] + "_" + candlePeriod(this.candlePeriod);
     });
+    this._sendMessage(
+      JSON.stringify({
+        id: new Date().getTime(),
+        type: "subscribe",
+        topic: "/market/candles:" + pairs.join(","),
+        privateChannel: false,
+        response: true,
+      })
+    );
   }
 
-  _sendUnsubCandles(remote_id) {
+  _sendUnsubCandles(args) {
+    const pairs = args.map(remote_id => {
+      return remote_id[0] + "_" + candlePeriod(this.candlePeriod);
+    });
+    this._sendMessage(
+      JSON.stringify({
+        id: new Date().getTime(),
+        type: "unsubscribe",
+        topic: "/market/candles:" + pairs.join(","),
+        privateChannel: false,
+        response: true,
+      })
+    );
+  }
+
+  _sendMessage(msg) {
     this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          id: new Date().getTime(),
-          type: "unsubscribe",
-          topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
-          privateChannel: false,
-          response: true,
-        })
-      );
+      this._wss.send(msg);
     });
   }
 
@@ -295,7 +319,7 @@ class KucoinClient extends BasicClient {
     }
 
     // candles
-    if (msg.subject === "trade.candles.update") {
+    if (msg.subject.includes("trade.candles")) { // trade.candles.update + trade.candles.add
       this._processCandles(msg);
       return;
     }
