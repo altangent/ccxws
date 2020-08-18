@@ -115,6 +115,7 @@ These properties are required by CCXWS.
 - `id: string` - the identifier used by the remote exchange
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
+- `type: string` - the type of market: `spot`, `futures`, `option`, `swap`
 
 ### `Client`
 
@@ -122,14 +123,15 @@ A websocket client that connects to a specific exchange. There is an implementat
 
 ```javascript
 const binance = new ccxws.Binance();
-const gdax = new ccxws.GDAX();
+const coinbase = new ccxws.CoinbasePro();
 ```
 
-#### Properties
+Clients can be instantiated with an options object that has several properties properties:
 
-##### `reconnectIntervalMs: int` - default 90000
-
-Property that controls silent socket drop checking. This will enable a check at the reconnection interval that looks for ANY broadcast message from the server. If there has not been a message since the last check a reconnection (close, connect) operation is performed. This property must be set before the first subscription (and subsequent connection).
+- `wssPath: string` - allows customization of the web socket path. When this is configured, additional rules surrounding connection may be ignored.
+- `watcherMs: number` - allows customization of the reconnection watcher. This value is the duration of time that must pass without a message for a reconnection is peroformed. This value can be customized depending on the type and liquidity of markets that you are subscribing to.
+- `apiKey: string` - any API key needed for the exchange
+- `apiSecret: string` - any API secret needed for the exchange
 
 #### Events
 
