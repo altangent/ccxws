@@ -24,10 +24,12 @@ class KucoinClient extends BasicClient {
    * subscriptions.
    */
   constructor({
+    wssPath,
+    watcherMs,
     socketBatchSize = 100,
     socketThrottleMs = 100
   } = {}) {
-    super(undefined, "KuCoin");
+    super(wssPath, "KuCoin", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;
