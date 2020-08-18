@@ -1,8 +1,8 @@
 const HuobiBase = require("./huobi-base");
 
 class HuobiClient extends HuobiBase {
-  constructor() {
-    super({ name: "Huobi", wssPath: "wss://api.huobi.pro/ws" });
+  constructor({ wssPath = "wss://api.huobi.pro/ws", watcherMs } = {}) {
+    super({ name: "Huobi", wssPath, watcherMs });
   }
 }
 

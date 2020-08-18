@@ -58,14 +58,14 @@ function formatAmount(amount, symbol) {
 class CexClient extends BasicMultiClient {
   /**
    * Creates a new CEX.io client using the supplied credentials
-   * @param {{ apiKey: string, apiSecret: string }} auth
+   * @param {{ apiKey: string, apiSecret: string }} options
    */
-  constructor(auth) {
+  constructor(options = {}) {
     super();
     this._clients = new Map();
 
     this._name = "CEX_MULTI";
-    this.auth = auth;
+    this.options = options;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
@@ -74,22 +74,33 @@ class CexClient extends BasicMultiClient {
   }
 
   _createBasicClient(clientArgs) {
-    return new SingleCexClient({ auth: this.auth, market: clientArgs.market, parent: this });
+    return new SingleCexClient({
+      ...this.options,
+      market: clientArgs.market,
+      parent: this,
+    });
   }
 }
 
 class SingleCexClient extends BasicClient {
-  constructor(args) {
-    super("wss://ws.cex.io/ws", "CEX");
-    this._watcher = new Watcher(this, 15 * 60 * 1000);
-    this.auth = args.auth;
-    this.market = args.market;
+  constructor({
+    wssPath = "wss://ws.cex.io/ws",
+    watcherMs = 900 * 1000,
+    apiKey,
+    apiSecret,
+    market,
+    parent,
+  }) {
+    super(wssPath, "CEX", undefined, watcherMs);
+    this._watcher = new Watcher(this, watcherMs);
+    this.auth = { apiKey, apiSecret };
+    this.market = market;
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.authorized = false;
-    this.parent = args.parent;
+    this.parent = parent;
   }
 
   get candlePeriod() {

@@ -8,8 +8,8 @@ const Level2Update = require("../level2-update");
 const Level2Snapshot = require("../level2-snapshot");
 
 class FtxBaseClient extends BasicClient {
-  constructor({ name, wssPath }) {
-    super(wssPath, name);
+  constructor({ name, wssPath, watcherMs }) {
+    super(wssPath, name, undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Updates = true;

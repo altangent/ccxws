@@ -13,8 +13,8 @@ class BitmexClient extends BasicClient {
     Documentation:
     https://www.bitmex.com/app/wsAPI
    */
-  constructor() {
-    super("wss://www.bitmex.com/realtime", "BitMEX");
+  constructor({ wssPath = "wss://www.bitmex.com/realtime", watcherMs } = {}) {
+    super(wssPath, "BitMEX", undefined, watcherMs);
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasCandles = true;
@@ -376,6 +376,7 @@ class BitmexClient extends BasicClient {
       }
 
       if (!price) {
+        // eslint-disable-next-line no-console
         console.warn("unknown price", datum);
       }
 

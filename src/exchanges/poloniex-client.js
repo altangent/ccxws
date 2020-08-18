@@ -7,8 +7,8 @@ const Level2Snapshot = require("../level2-snapshot");
 const https = require("../https");
 
 class PoloniexClient extends BasicClient {
-  constructor({ autoloadSymbolMaps = true } = {}) {
-    super("wss://api2.poloniex.com/", "Poloniex");
+  constructor({ wssPath = "wss://api2.poloniex.com/", autoloadSymbolMaps = true, watcherMs } = {}) {
+    super(wssPath, "Poloniex", undefined, watcherMs);
     this._idMap = new Map();
     this.hasTickers = true;
     this.hasTrades = true;

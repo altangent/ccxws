@@ -11,8 +11,8 @@ const Level3Snapshot = require("../level3-snapshot");
  * subscription filtering to only reply with values that of are of interest.
  */
 class LedgerXClient extends BasicClient {
-  constructor(token) {
-    super("wss://trade.ledgerx.com/api/ws?token=" + token, "LedgerX");
+  constructor({ wssPath = "wss://trade.ledgerx.com/api/ws?token=", token, watcherMs } = {}) {
+    super(wssPath + token, "LedgerX", undefined, watcherMs);
 
     this.hasTrades = true;
     this.hasLevel3Updates = true;

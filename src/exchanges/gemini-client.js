@@ -6,11 +6,12 @@ const Level2Update = require("../level2-update");
 const SmartWss = require("../smart-wss");
 const Ticker = require("../ticker");
 class GeminiClient extends EventEmitter {
-  constructor() {
+  constructor({ wssPath, watcherMs = 30000 } = {}) {
     super();
+    this.wssPath = wssPath;
     this._name = "Gemini";
     this._subscriptions = new Map();
-    this.reconnectIntervalMs = 30 * 1000;
+    this.reconnectIntervalMs = watcherMs;
     this.tickersCache = new Map(); // key-value pairs of <market_id>: Ticker
 
     this.hasTickers = true;
@@ -107,9 +108,10 @@ class GeminiClient extends EventEmitter {
    */
   _connect(remote_id) {
     let forTickers = remote_id.endsWith("-tickers");
-    let wssPath = forTickers
-      ? `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true&top_of_book=true`
-      : `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true`;
+    let wssPath =
+      this.wssPath || forTickers
+        ? `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true&top_of_book=true`
+        : `wss://api.gemini.com/v1/marketdata/${remote_id}?heartbeat=true`;
 
     let wss = new SmartWss(wssPath);
     wss.on("error", err => this._onError(remote_id, err));

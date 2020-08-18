@@ -11,6 +11,7 @@ class BinanceFuturesCoinmClient extends BinanceBase {
     restThrottleMs = 1000,
     l2snapshotSpeed = "100ms",
     l2updateSpeed = "100ms",
+    watcherMs,
   } = {}) {
     super({
       name: "Binance Futures COIN-M",
@@ -23,6 +24,7 @@ class BinanceFuturesCoinmClient extends BinanceBase {
       restThrottleMs,
       l2snapshotSpeed,
       l2updateSpeed,
+      watcherMs,
     });
   }
 
