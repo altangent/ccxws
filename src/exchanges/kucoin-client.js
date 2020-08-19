@@ -1,3 +1,4 @@
+const crypto = require("crypto");
 const BasicClient = require("../basic-client");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
@@ -8,7 +9,6 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level3Update = require("../level3-update");
 const Level3Snapshot = require("../level3-snapshot");
 const https = require("../https");
-const UUID = require("uuid/v4");
 const { CandlePeriod } = require("../enums");
 const semaphore = require("semaphore");
 const { throttle } = require("../flowcontrol/throttle");
@@ -93,7 +93,7 @@ class KucoinClient extends BasicClient {
       if (raw.data && raw.data.token) {
         const { token, instanceServers } = raw.data;
         const { endpoint, pingInterval } = instanceServers[0];
-        this._connectId = UUID();
+        this._connectId = crypto.randomBytes(24).toString("hex");
         this._pingIntervalTime = pingInterval;
         this._wssPath = `${endpoint}?token=${token}&connectId=${this._connectId}`;
         this._wss = this._wssFactory(this._wssPath);
