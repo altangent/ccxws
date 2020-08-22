@@ -242,7 +242,7 @@ class HuobiBase extends BasicClient {
       tick.high.toFixed(8),
       tick.low.toFixed(8),
       tick.close.toFixed(8),
-      tick.vol.toFixed(8)
+      tick.amount.toFixed(8)
     );
   }
 
