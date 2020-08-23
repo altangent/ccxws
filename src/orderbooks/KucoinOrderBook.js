@@ -128,10 +128,13 @@ class KucoinOrderBook {
 
     // Change - modify the amount for the order. Update will be in both
     // the asks and bids since the update message doesn't include a
-    // side.
+    // side. Change messages are sent when an order changes in size.
+    // This includes resting orders (open) as well as recieved but not
+    // yet open. In the latter case, no point will exist on the book
+    // yet.
     if (updatePoint.meta.type === "update") {
       let obPoint = this.asks.get(updatePoint.orderId) || this.bids.get(updatePoint.orderId);
-      obPoint.size = Number(updatePoint.size);
+      if (obPoint) obPoint.size = Number(updatePoint.size);
       return;
     }
 
@@ -140,7 +143,7 @@ class KucoinOrderBook {
     // have already removed the trae
     if (updatePoint.meta.type === "match") {
       let obPoint = this.asks.get(updatePoint.orderId) || this.bids.get(updatePoint.orderId);
-      obPoint.size = Number(updatePoint.size);
+      if (obPoint) obPoint.size = Number(updatePoint.size);
     }
   }
 
