@@ -756,12 +756,11 @@ class KucoinClient extends BasicClient {
     }
    */
   _processL3UpdateUpdate(msg) {
-    let { symbol, sequence, orderId, size, ts } = msg;
+    let { symbol, sequence, orderId, size, ts } = msg.data;
     let market = this._level3UpdateSubs.get(symbol);
     if (!market) return;
-
     let point = new Level3Point(orderId, "0", size, { type: msg.subject, ts });
-    let update = Level3Update({
+    let update = new Level3Update({
       exchange: this._name,
       base: market.base,
       quote: market.quote,
