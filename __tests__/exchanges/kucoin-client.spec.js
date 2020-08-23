@@ -129,11 +129,11 @@ testClient({
         case "update":
           if (!result.hasUpdate) {
             result.hasUpdate = true;
-            expect(update.sequenceId).to.be.greaterThan(0);
-            expect(update.timestampMs).to.be.greaterThan(1597679523725);
+            expect(update.sequenceId).to.be.gt(0);
+            expect(update.timestampMs).to.be.gt(1597679523725);
             expect(point.orderId).to.match(/^[a-f0-9]{24,24}/);
             expect(point.price).to.equal("0");
-            expect(point.size).to.equal("0");
+            expect(point.size).to.be.gte("0");
             expect(point.meta.ts).to.match(/[0-9]{19,}/);
           }
 
