@@ -92,6 +92,8 @@ class ZbClient extends BasicClient {
     // tickers
     if (type === "ticker") {
       let market = this._tickerSubs.get(remoteId);
+      if (!market) return;
+
       let ticker = this._constructTicker(msg, market);
       this.emit("ticker", ticker, market);
       return;
@@ -101,6 +103,8 @@ class ZbClient extends BasicClient {
     if (type === "trades") {
       for (let datum of msg.data) {
         let market = this._tradeSubs.get(remoteId);
+        if (!market) return;
+
         let trade = this._constructTradesFromMessage(datum, market);
         this.emit("trade", trade, market);
       }
@@ -110,6 +114,8 @@ class ZbClient extends BasicClient {
     // level2snapshots
     if (type === "depth") {
       let market = this._level2SnapshotSubs.get(remoteId);
+      if (!market) return;
+
       let snapshot = this._constructLevel2Snapshot(msg, market);
       this.emit("l2snapshot", snapshot, market);
       return;
