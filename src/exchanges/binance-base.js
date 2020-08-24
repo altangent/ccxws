@@ -404,6 +404,7 @@ class BinanceBase extends BasicClient {
       let uri = `${this._restL2SnapshotPath}?limit=1000&symbol=${remote_id}`;
       let raw = await https.get(uri);
       let sequenceId = raw.lastUpdateId;
+      let timestampMs = raw.E;
       let asks = raw.asks.map(p => new Level2Point(p[0], p[1]));
       let bids = raw.bids.map(p => new Level2Point(p[0], p[1]));
       let snapshot = new Level2Snapshot({
@@ -411,6 +412,7 @@ class BinanceBase extends BasicClient {
         base: market.base,
         quote: market.quote,
         sequenceId,
+        timestampMs,
         asks,
         bids,
       });

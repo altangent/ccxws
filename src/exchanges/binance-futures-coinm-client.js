@@ -56,7 +56,7 @@ class BinanceFuturesCoinMClient extends BinanceBase {
     }
    */
   _constructLevel2Update(msg, market) {
-    let timestampsMs = msg.data.T;
+    let timestampMs = msg.data.T;
     let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
     let previousLastSequenceId = msg.data.pu;
@@ -69,7 +69,7 @@ class BinanceFuturesCoinMClient extends BinanceBase {
       sequenceId,
       lastSequenceId,
       previousLastSequenceId,
-      timestampsMs,
+      timestampMs,
       asks,
       bids,
     });
@@ -113,7 +113,7 @@ class BinanceFuturesCoinMClient extends BinanceBase {
    * @param {*} market
    */
   _constructLevel2Snapshot(msg, market) {
-    let timestampsMs = msg.data.E;
+    let timestampMs = msg.data.E;
     let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
     let previousLastSequenceId = msg.data.pu;
@@ -126,7 +126,7 @@ class BinanceFuturesCoinMClient extends BinanceBase {
       sequenceId,
       lastSequenceId,
       previousLastSequenceId,
-      timestampsMs,
+      timestampMs,
       asks,
       bids,
     });
