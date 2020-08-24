@@ -103,9 +103,16 @@ class KucoinOrderBook {
     // Skip received orders
     if (updatePoint.meta.type === "received") return;
 
-    // Open - insert a new point in the appropriate side (ask, bid)
+    // Open - insert a new point in the appropriate side (ask, bid).
+    // When receiving a message with price="", size="0",
+    // it means this is a hidden order and we can ignore it.
     if (updatePoint.meta.type === "open") {
       let map = update.asks[0] ? this.asks : this.bids;
+
+      // Ignore private orders
+      if (!Number(updatePoint.price) && !Number(updatePoint.size)) {
+        return;
+      }
 
       let obPoint = new L3Point(
         updatePoint.orderId,
@@ -144,6 +151,7 @@ class KucoinOrderBook {
     if (updatePoint.meta.type === "match") {
       let obPoint = this.asks.get(updatePoint.orderId) || this.bids.get(updatePoint.orderId);
       if (obPoint) obPoint.size = Number(updatePoint.size);
+      return;
     }
   }
 
