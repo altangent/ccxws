@@ -352,10 +352,10 @@ class DeribitClient extends BasicClient {
     const sequenceId = data.change_id;
 
     const asks = data.asks.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { action: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] })
     );
     const bids = data.bids.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { action: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] })
     );
 
     return new Level2Snapshot({
@@ -399,10 +399,10 @@ class DeribitClient extends BasicClient {
     const sequenceId = data.change_id;
 
     const asks = data.asks.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { action: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] })
     );
     const bids = data.bids.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { action: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] })
     );
 
     return new Level2Snapshot({
