@@ -10,6 +10,7 @@ const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 const Level2Point = require("../level2-point");
 const { CandlePeriod } = require("../enums");
+const { throttle } = require("../flowcontrol/throttle");
 
 /**
  * Implements the v3 API:
@@ -21,7 +22,7 @@ const { CandlePeriod } = require("../enums");
  * standard client.
  */
 class BittrexClient extends BasicClient {
-  constructor({ wssPath, watcherMs = 15000 } = {}) {
+  constructor({ wssPath, watcherMs = 15000, throttleL2Snapshot = 100 } = {}) {
     super(wssPath, "Bittrex", undefined, watcherMs);
 
     this.hasTickers = true;
@@ -40,6 +41,10 @@ class BittrexClient extends BasicClient {
     this._processTrades = this._processTrades.bind(this);
     this._processCandles = this._processCandles.bind(this);
     this._processLevel2Update = this._processLevel2Update.bind(this);
+    this._requestLevel2Snapshot = throttle(
+      this._requestLevel2Snapshot.bind(this),
+      throttleL2Snapshot
+    );
   }
 
   ////////////////////////////////////
@@ -51,6 +56,7 @@ class BittrexClient extends BasicClient {
 
   _beforeClose() {
     this._subbedTickers = false;
+    this._requestLevel2Snapshot.cancel();
   }
 
   _sendHeartbeat() {
@@ -467,10 +473,15 @@ class BittrexClient extends BasicClient {
       });
       this.emit("l2snapshot", snapshot, market);
     } catch (ex) {
-      this.emit("error", ex);
-      failed = true;
+      let err = new Error("L2Snapshot failed");
+      err.inner = ex.message;
+      err.market = market;
+      this.emit("error", err);
+      failed = err;
     } finally {
-      if (failed) this._requestLevel2Snapshot(market);
+      if (failed && failed.inner.indexOf("MARKET_DOES_NOT_EXIST") === -1) {
+        this._requestLevel2Snapshot(market);
+      }
     }
   }
 }

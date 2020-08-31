@@ -46,6 +46,9 @@ testClient({
   testAllMarketsTrades: true,
   testAllMarketsTradesSuccess: 30,
 
+  testAllMarketsL2Updates: true,
+  testAllMarketsL2UpdatesSuccess: 400,
+
   hasTickers: true,
   hasTrades: true,
   hasCandles: true,
