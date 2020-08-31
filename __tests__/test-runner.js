@@ -224,6 +224,32 @@ function testClient(spec) {
         }
       }).timeout(60000);
     }
+
+    if (spec.testAllMarketsL2Updates) {
+      it(`subscribeL2Updates wait for ${spec.testAllMarketsL2UpdatesSuccess} markets`, done => {
+        const markets = new Set();
+
+        client.on("error", err => {
+          client.removeAllListeners("l2update");
+          client.removeAllListeners("error");
+          client.close();
+          done(err);
+        });
+
+        client.on("l2update", (_, market) => {
+          markets.add(market.id);
+          if (markets.size >= spec.testAllMarketsTradesSuccess) {
+            client.removeAllListeners("l2update");
+            client.close();
+            done();
+          }
+        });
+
+        for (let market of spec.allMarkets) {
+          client.subscribeLevel2Updates(market);
+        }
+      }).timeout(60000);
+    }
   });
 }
 
