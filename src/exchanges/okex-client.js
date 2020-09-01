@@ -1,5 +1,4 @@
 const zlib = require("../zlib");
-const semaphore = require("semaphore");
 const { CandlePeriod } = require("../enums");
 const moment = require("moment");
 const BasicClient = require("../basic-client");
@@ -9,6 +8,7 @@ const Candle = require("../candle");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
+const { throttle } = require("../flowcontrol/throttle");
 
 const pongBuffer = Buffer.from("pong");
 
@@ -33,7 +33,7 @@ class OKExClient extends BasicClient {
    *
    * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
    */
-  constructor({ wssPath = "wss://real.okex.com:8443/ws/v3", watcherMs } = {}) {
+  constructor({ wssPath = "wss://real.okex.com:8443/ws/v3", watcherMs, sendThrottleMs = 20 } = {}) {
     super(wssPath, "OKEx", undefined, watcherMs);
     this.candlePeriod = CandlePeriod._1m;
     this.hasTickers = true;
@@ -41,18 +41,17 @@ class OKExClient extends BasicClient {
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
+    this._sendMessage = throttle(this._sendMessage.bind(this), sendThrottleMs);
+  }
+
+  _beforeClose() {
+    this._sendMessage.cancel();
   }
 
   _beforeConnect() {
-    this._wss.prependListener("connected", this._resetSemaphore.bind(this));
     this._wss.on("connected", this._startPing.bind(this));
     this._wss.on("disconnected", this._stopPing.bind(this));
     this._wss.on("closed", this._stopPing.bind(this));
-  }
-
-  _resetSemaphore() {
-    this._sem = semaphore(5);
-    this._hasSnapshot = new Set();
   }
 
   _startPing() {
@@ -114,19 +113,21 @@ class OKExClient extends BasicClient {
     }
   }
 
+  _sendMessage(msg) {
+    this._wss.send(msg);
+  }
+
   _sendSubTicker(remote_id, market) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [this._marketArg("ticker", market)],
-        })
-      );
-    });
+    this._sendMessage(
+      JSON.stringify({
+        op: "subscribe",
+        args: [this._marketArg("ticker", market)],
+      })
+    );
   }
 
   _sendUnsubTicker(remote_id, market) {
-    this._wss.send(
+    this._sendMessage(
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("ticker", market)],
@@ -135,18 +136,16 @@ class OKExClient extends BasicClient {
   }
 
   _sendSubTrades(remote_id, market) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [this._marketArg("trade", market)],
-        })
-      );
-    });
+    this._sendMessage(
+      JSON.stringify({
+        op: "subscribe",
+        args: [this._marketArg("trade", market)],
+      })
+    );
   }
 
   _sendUnsubTrades(remote_id, market) {
-    this._wss.send(
+    this._sendMessage(
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("trade", market)],
@@ -155,18 +154,16 @@ class OKExClient extends BasicClient {
   }
 
   _sendSubCandles(remote_id, market) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
-        })
-      );
-    });
+    this._sendMessage(
+      JSON.stringify({
+        op: "subscribe",
+        args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
+      })
+    );
   }
 
   _sendUnsubCandles(remote_id, market) {
-    this._wss.send(
+    this._sendMessage(
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
@@ -175,18 +172,16 @@ class OKExClient extends BasicClient {
   }
 
   _sendSubLevel2Snapshots(remote_id, market) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [this._marketArg("depth5", market)],
-        })
-      );
-    });
+    this._sendMessage(
+      JSON.stringify({
+        op: "subscribe",
+        args: [this._marketArg("depth5", market)],
+      })
+    );
   }
 
   _sendUnsubLevel2Snapshots(remote_id, market) {
-    this._wss.send(
+    this._sendMessage(
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("depth5", market)],
@@ -195,18 +190,16 @@ class OKExClient extends BasicClient {
   }
 
   _sendSubLevel2Updates(remote_id, market) {
-    this._sem.take(() => {
-      this._wss.send(
-        JSON.stringify({
-          op: "subscribe",
-          args: [this._marketArg("depth_l2_tbt", market)],
-        })
-      );
-    });
+    this._sendMessage(
+      JSON.stringify({
+        op: "subscribe",
+        args: [this._marketArg("depth_l2_tbt", market)],
+      })
+    );
   }
 
   _sendUnsubLevel2Updates(remote_id, market) {
-    this._wss.send(
+    this._sendMessage(
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("depth_l2_tbt", market)],
@@ -239,7 +232,6 @@ class OKExClient extends BasicClient {
   _processsMessage(msg) {
     // clear semaphore on subscription event reply
     if (msg.event === "subscribe") {
-      this._sem.leave();
       return;
     }
 
