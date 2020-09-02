@@ -13,6 +13,7 @@ const { CandlePeriod } = require("../enums");
 const semaphore = require("semaphore");
 const { throttle } = require("../flowcontrol/throttle");
 const Level3Point = require("../level3-point");
+const { balanced: { LoadBalanceClient } } = require('../decorators');
 
 class KucoinClient extends BasicClient {
   /**
@@ -841,4 +842,4 @@ function candlePeriod(period) {
   }
 }
 
-module.exports = KucoinClient;
+module.exports = LoadBalanceClient.create((...args) => new KucoinClient(...args), { maxSubscriptions: 100 });

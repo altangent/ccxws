@@ -58,37 +58,38 @@ class BasicTradeClient extends EventEmitter {
   }
 
   subscribeTicker(market) {
-    if (!this.hasTickers) return;
+    if (!this.hasTickers) return false;
     return this._subscribe(market, this._tickerSubs, this._sendSubTicker.bind(this));
   }
 
   unsubscribeTicker(market) {
-    if (!this.hasTickers) return;
-    this._unsubscribe(market, this._tickerSubs, this._sendUnsubTicker.bind(this));
+    if (!this.hasTickers) return false;
+    return this._unsubscribe(market, this._tickerSubs, this._sendUnsubTicker.bind(this));
   }
 
   subscribeCandles(market) {
-    if (!this.hasCandles) return;
+    if (!this.hasCandles) return false;
     return this._subscribe(market, this._candleSubs, this._sendSubCandles.bind(this));
   }
 
   unsubscribeCandles(market) {
-    if (!this.hasCandles) return;
-    this._unsubscribe(market, this._candleSubs, this._sendUnsubCandles.bind(this));
+    if (!this.hasCandles) return false;
+    return this._unsubscribe(market, this._candleSubs, this._sendUnsubCandles.bind(this));
   }
 
   subscribeTrades(market) {
-    if (!this.hasTrades) return;
+    console.log('Basic client', market);
+    if (!this.hasTrades) return false;
     return this._subscribe(market, this._tradeSubs, this._sendSubTrades.bind(this));
   }
 
   unsubscribeTrades(market) {
-    if (!this.hasTrades) return;
-    this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
+    if (!this.hasTrades) return false;
+    return this._unsubscribe(market, this._tradeSubs, this._sendUnsubTrades.bind(this));
   }
 
   subscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Snapshots) return;
+    if (!this.hasLevel2Snapshots) return false;
     return this._subscribe(
       market,
       this._level2SnapshotSubs,
@@ -97,28 +98,28 @@ class BasicTradeClient extends EventEmitter {
   }
 
   unsubscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Snapshots) return;
-    this._unsubscribe(market, this._level2SnapshotSubs, this._sendUnsubLevel2Snapshots.bind(this));
+    if (!this.hasLevel2Snapshots) return false;
+    return this._unsubscribe(market, this._level2SnapshotSubs, this._sendUnsubLevel2Snapshots.bind(this));
   }
 
   subscribeLevel2Updates(market) {
-    if (!this.hasLevel2Updates) return;
+    if (!this.hasLevel2Updates) return false;
     return this._subscribe(market, this._level2UpdateSubs, this._sendSubLevel2Updates.bind(this));
   }
 
   unsubscribeLevel2Updates(market) {
-    if (!this.hasLevel2Updates) return;
-    this._unsubscribe(market, this._level2UpdateSubs, this._sendUnsubLevel2Updates.bind(this));
+    if (!this.hasLevel2Updates) return false;
+    return this._unsubscribe(market, this._level2UpdateSubs, this._sendUnsubLevel2Updates.bind(this));
   }
 
   subscribeLevel3Updates(market) {
-    if (!this.hasLevel3Updates) return;
+    if (!this.hasLevel3Updates) return false;
     return this._subscribe(market, this._level3UpdateSubs, this._sendSubLevel3Updates.bind(this));
   }
 
   unsubscribeLevel3Updates(market) {
-    if (!this.hasLevel3Updates) return;
-    this._unsubscribe(market, this._level3UpdateSubs, this._sendUnsubLevel3Updates.bind(this));
+    if (!this.hasLevel3Updates) return false;
+    return this._unsubscribe(market, this._level3UpdateSubs, this._sendUnsubLevel3Updates.bind(this));
   }
 
   ////////////////////////////////////////////
@@ -168,7 +169,9 @@ class BasicTradeClient extends EventEmitter {
       if (this._wss.isConnected) {
         sendFn(remote_id, market);
       }
+      return true;
     }
+    return false;
   }
 
   /**
