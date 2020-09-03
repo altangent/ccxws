@@ -262,7 +262,7 @@ class LedgerXClient extends BasicClient {
       quote: market.quote,
       sequenceId: msg.clock,
       timestampMs: Math.floor(msg.inserted_time / 1e6),
-      rundId: this.runId,
+      runId: this.runId,
       asks,
       bids,
     });
