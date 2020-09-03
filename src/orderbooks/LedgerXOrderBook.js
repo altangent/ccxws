@@ -9,6 +9,7 @@ class LedgerXOrderBook {
     this.asks = new Map();
     this.bids = new Map();
     this.sequenceId = snap.sequenceId;
+    this.runId = 0;
 
     for (let ask of snap.asks) {
       this.asks.set(ask.orderId, new L3Point(ask.orderId, Number(ask.price), Number(ask.size)));
@@ -30,10 +31,14 @@ class LedgerXOrderBook {
    * @param {L3Point} updatea
    */
   update(update) {
-    this.sequenceId++;
+    this.sequenceId += 1;
 
+    // Capature the runId of the first update
+    if (this.runId === 0) {
+      this.runId = update.runId;
+    }
     // Handle when the run_id changes and we need to reset things
-    if (update.reset) {
+    else if (update.runId > this.runId) {
       this.reset();
     }
 
@@ -82,6 +87,7 @@ class LedgerXOrderBook {
   snapshot(depth = 10) {
     return {
       sequenceId: this.sequenceId,
+      runId: this.runId,
       asks: snapSide(this.asks, sortAsc, depth),
       bids: snapSide(this.bids, sortDesc, depth),
     };

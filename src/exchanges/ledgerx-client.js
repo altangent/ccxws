@@ -16,7 +16,7 @@ class LedgerXClient extends BasicClient {
 
     this.hasTrades = true;
     this.hasLevel3Updates = true;
-    this._runId = 0;
+    this.runId = 0;
     this.apiKey = apiKey;
   }
 
@@ -33,24 +33,32 @@ class LedgerXClient extends BasicClient {
   _onMessage(msg) {
     const json = JSON.parse(msg);
 
+    if (json.type === "auth_success") {
+      return;
+    }
+
     if (json.type === "book_top") {
+      return;
+    }
+
+    if (json.type === "exposure_reports") {
+      return;
+    }
+
+    if (json.type === "open_positions_update") {
+      return;
+    }
+
+    if (json.type === "collateral_balance_update") {
       return;
     }
 
     if (json.type === "heartbeat") {
       this._watcher.markAlive();
 
-      // initialize the runId
-      if (this._runId === 0) {
-        this._runId = json.run_id;
-      }
-      // handle when runId has changed
-      else if (this._runId !== json.run_id) {
-        this._runId = json.run_id;
-        for (let market of this._level3UpdateSubs.values()) {
-          const update = this._constructL3Reset(json, market);
-          this.emit("l3update", update, market, json);
-        }
+      // update the run_id if it's changed
+      if (this.runId !== json.run_id) {
+        this.runId = json.run_id;
       }
       return;
     }
@@ -95,15 +103,12 @@ class LedgerXClient extends BasicClient {
         return;
       }
     }
-
-    // console.log(json);
   }
 
   /**
    * Obtains the orderbook via REST
    */
   async _requestLevel3Snapshot(market) {
-    let failed = false;
     try {
       let uri = `https://trade.ledgerx.com/api/book-states/${market.id}?token=${this.apiKey}`;
       let { data } = await https.get(uri);
@@ -128,10 +133,8 @@ class LedgerXClient extends BasicClient {
       });
       this.emit("l3snapshot", snapshot, market);
     } catch (ex) {
+      // TODO handle this properly
       this.emit("error", ex);
-      failed = true;
-    } finally {
-      if (failed) this._requestLevel3Snapshot(market);
     }
   }
 
@@ -259,6 +262,7 @@ class LedgerXClient extends BasicClient {
       quote: market.quote,
       sequenceId: msg.clock,
       timestampMs: Math.floor(msg.inserted_time / 1e6),
+      rundId: this.runId,
       asks,
       bids,
     });
@@ -325,6 +329,7 @@ class LedgerXClient extends BasicClient {
       quote: market.quote,
       sequenceId: msg.clock,
       timestampMs: Math.floor(msg.inserted_time / 1e6),
+      runId: this.runId,
       asks,
       bids,
     });
@@ -391,21 +396,9 @@ class LedgerXClient extends BasicClient {
       quote: market.quote,
       sequenceId: msg.clock,
       timestampMs: Math.floor(msg.inserted_time / 1e6),
+      runId: this.runId,
       asks,
       bids,
-    });
-  }
-
-  /**
-   * Signals an orderbook reset must be performed. This is detected
-   * when the heartbeat changes its run identifier.
-   */
-  _constructL3Reset(msg, market) {
-    return new Level3Update({
-      exchange: this._name,
-      base: market.base,
-      quote: market.quote,
-      reset: true,
     });
   }
 }
