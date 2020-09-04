@@ -1,5 +1,5 @@
 /* eslint-disable no-sparse-arrays */
-const { CircularBuffer } = require("../src/circular-buffer");
+const { CircularBuffer } = require("../../src/flowcontrol/circular-buffer");
 const { expect } = require("chai");
 
 describe("CircularBuffer", () => {

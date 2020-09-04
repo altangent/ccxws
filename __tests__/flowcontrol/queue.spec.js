@@ -1,5 +1,5 @@
 /* eslint-disable no-sparse-arrays */
-const { Queue } = require("../src/queue");
+const { Queue } = require("../../src/flowcontrol/queue");
 const { expect } = require("chai");
 
 describe("Queue", () => {
