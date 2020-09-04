@@ -63,7 +63,7 @@ testClient({
     hasSnapshot: false,
     hasTimestampMs: true,
     hasSequenceId: true,
-    orderIdPattern: /^[a-f0-9]{32,32}$/,
+    orderIdPattern: /^[-a-f0-9]{36,36}$/,
     done: (spec, result, update) => {
       let point = update.asks[0] || update.bids[0];
       switch (point.meta.type) {

@@ -128,7 +128,11 @@ class CoinbaseProClient extends BasicClient {
     }
 
     if (
-      ["received", "open", "done", "match", "change"].includes(type) &&
+      (type === "received" ||
+        type === "open" ||
+        type === "done" ||
+        type === "match" ||
+        type === "change") &&
       this._level3UpdateSubs.has(product_id)
     ) {
       let market = this._level3UpdateSubs.get(product_id);
@@ -227,7 +231,7 @@ class CoinbaseProClient extends BasicClient {
 
     switch (msg.type) {
       case "received":
-        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.size, {
+        point = new Level3Point(msg.order_id, msg.price, msg.size, {
           type: msg.type,
           side: msg.side,
           order_type: msg.order_type,
@@ -235,28 +239,28 @@ class CoinbaseProClient extends BasicClient {
         });
         break;
       case "open":
-        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.remaining_size, {
+        point = new Level3Point(msg.order_id, msg.price, msg.remaining_size, {
           type: msg.type,
           remaining_size: msg.remaining_size,
         });
         break;
       case "done":
-        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.remaining_size, {
+        point = new Level3Point(msg.order_id, msg.price, msg.remaining_size, {
           type: msg.type,
           reason: msg.reason,
           remaining_size: msg.remaining_size,
         });
         break;
       case "match":
-        point = new Level3Point(msg.maker_order_id.replace(/-/g, ""), msg.price, msg.size, {
+        point = new Level3Point(msg.maker_order_id, msg.price, msg.size, {
           type: msg.type,
           trade_id: msg.trade_id,
-          maker_order_id: msg.maker_order_id.replace(/-/g, ""),
-          taker_order_id: msg.taker_order_id.replace(/-/g, ""),
+          maker_order_id: msg.maker_order_id,
+          taker_order_id: msg.taker_order_id,
         });
         break;
       case "change":
-        point = new Level3Point(msg.order_id.replace(/-/g, ""), msg.price, msg.new_size, {
+        point = new Level3Point(msg.order_id, msg.price, msg.new_size, {
           type: msg.type,
           new_size: msg.new_size,
           old_size: msg.old_size,
