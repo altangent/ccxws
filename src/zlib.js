@@ -1,4 +1,6 @@
 const zlib = require("zlib");
+const { Queue } = require("./flowcontrol/queue");
+const queue = new Queue();
 
 module.exports = {
   unzip,
@@ -6,7 +8,6 @@ module.exports = {
   inflateRaw,
 };
 
-const queue = [];
 let current;
 
 /**
