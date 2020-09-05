@@ -154,4 +154,43 @@ describe("CircularBuffer", () => {
     expect(sut.write(8)).to.be.true;
     expect(sut.read()).to.equal(8);
   });
+
+  it("full cycles", () => {
+    let sut = new CircularBuffer(4);
+    sut.write("a");
+    sut.write("b");
+    sut.write("c");
+
+    for (let i = 0; i < 1000; i++) {
+      let a = sut.read();
+      let b = sut.read();
+      let c = sut.read();
+      expect(a).to.equal("a");
+      expect(b).to.equal("b");
+      expect(c).to.equal("c");
+      sut.write(a);
+      sut.write(b);
+      sut.write(c);
+      expect(sut.write("nope")).to.be.false;
+    }
+  });
+
+  it("partial cycles", () => {
+    let sut = new CircularBuffer(8);
+    sut.write("a");
+    sut.write("b");
+    sut.write("c");
+
+    for (let i = 0; i < 10000; i++) {
+      let a = sut.read();
+      let b = sut.read();
+      let c = sut.read();
+      expect(a).to.equal("a");
+      expect(b).to.equal("b");
+      expect(c).to.equal("c");
+      sut.write(a);
+      sut.write(b);
+      sut.write(c);
+    }
+  });
 });
