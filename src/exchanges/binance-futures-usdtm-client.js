@@ -115,7 +115,7 @@ class BinanceFuturesUsdtMClient extends BinanceBase {
     let lastSequenceId = msg.data.u;
     let previousLastSequenceId = msg.data.pu;
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
-    let bids = msg.data.a.map(p => new Level2Point(p[0], p[1]));
+    let bids = msg.data.b.map(p => new Level2Point(p[0], p[1]));
     return new Level2Snapshot({
       exchange: this._name,
       base: market.base,
