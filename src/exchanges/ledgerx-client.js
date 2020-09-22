@@ -66,7 +66,9 @@ class LedgerXClient extends BasicClient {
     if (json.type === "action_report") {
       // insert event
       if (json.status_type === 200) {
-        const market = this._level3UpdateSubs.get(json.contract_id.toFixed());
+        const market =
+          this._level3UpdateSubs.get(json.contract_id) ||
+          this._level3UpdateSubs.get(json.contract_id.toString());
         if (!market) return;
 
         const update = this._constructL3Insert(json, market);
@@ -76,16 +78,20 @@ class LedgerXClient extends BasicClient {
 
       // trade event
       if (json.status_type === 201) {
-        if (this._tradeSubs.has(json.contract_id)) {
-          const market = this._tradeSubs.get(json.contract_id.toFixed());
-          const trade = this._constructTrade(json);
+        // check for trade subscription
+        let market =
+          this._tradeSubs.get(json.contract_id) ||
+          this._tradeSubs.get(json.contract_id.toString()); // prettier-ignore
+        if (market) {
+          const trade = this._constructTrade(json, market);
           this.emit("trade", trade, market, json);
         }
 
-        if (this._level3UpdateSubs.has(json.contract_id)) {
-          const market = this._level3UpdateSubs.get(json.contract_id.toFixed());
-          if (!market) return;
-
+        // check for l3 subscription
+        market =
+          this._level3UpdateSubs.get(json.contract_id) ||
+          this._level3UpdateSubs.get(json.contract_id.toString());
+        if (market) {
           const update = this._constructL3Trade(json, market);
           this.emit("l3update", update, market, json);
         }
@@ -95,7 +101,9 @@ class LedgerXClient extends BasicClient {
 
       // cancel event
       if (json.status_type === 203) {
-        const market = this._level3UpdateSubs.get(json.contract_id.toFixed());
+        const market =
+          this._level3UpdateSubs.get(json.contract_id) ||
+          this._level3UpdateSubs.get(json.contract_id.toString());
         if (!market) return;
 
         const update = this._constructL3Cancel(json, market);
@@ -197,7 +205,7 @@ class LedgerXClient extends BasicClient {
       unix: Math.floor(msg.timestamp / 1e6),
       side: msg.is_ask ? "sell" : "buy",
       price: msg.filled_price.toFixed(8),
-      amount: msg.filled_price.toFixed(8),
+      amount: msg.filled_size.toFixed(8),
     });
   }
 
