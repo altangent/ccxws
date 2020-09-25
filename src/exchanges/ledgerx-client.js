@@ -197,15 +197,21 @@ class LedgerXClient extends BasicClient {
     }
    */
   _constructTrade(msg, market) {
+    let buyOrderId;
+    let sellOrderId;
+    if (msg.is_ask) sellOrderId = msg.mid;
+    else buyOrderId = msg.mid;
     return new Trade({
       exchange: this._name,
       base: market.base,
       quote: market.quote,
-      tradeId: msg.mid,
+      tradeId: undefined, // doesn't emit or match REST API
       unix: Math.floor(msg.timestamp / 1e6),
       side: msg.is_ask ? "sell" : "buy",
       price: msg.filled_price.toFixed(8),
       amount: msg.filled_size.toFixed(8),
+      buyOrderId,
+      sellOrderId,
     });
   }
 
