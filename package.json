@@ -15,9 +15,9 @@
   "license": "MIT",
   "main": "src/index.js",
   "scripts": {
-    "test": "mocha-parallel-tests --exit --recursive \"__tests__/**/*.spec.js\"",
-    "coverage": "nyc --reporter=lcov --reporter=text npm run test",
-    "test:ci": "npm run coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js"
+    "format": "prettier --check \"src/**\" \"__tests__/**\"",
+    "lint": "eslint src __tests__",
+    "test": "nyc --reporter=text mocha --recursive \"__tests__\""
   },
   "repository": "altangent/ccxws",
   "dependencies": {
@@ -30,10 +30,8 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "coveralls": "^3.1.0",
     "eslint": "^5.16.0",
     "mocha": "^6.2.3",
-    "mocha-parallel-tests": "^2.3.0",
     "nyc": "^15.1.0",
     "prettier": "^1.19.1",
     "sinon": "^7.5.0"

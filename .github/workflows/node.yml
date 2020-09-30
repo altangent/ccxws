@@ -3,7 +3,7 @@ name: Node.js CI
 on: [push]
 
 jobs:
-  test-general:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -13,11 +13,15 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 10.x
+      - run: npm ci
 
-      - name: Install dependencies
-        run: npm install
+      - name: Verify formatting
+        run: npm run format
 
-      - name: Run tests
+      - name: Verify linting
+        run: npm run lint
+
+      - name: Test non-exchanges
         run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.js"
         env:
           CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
@@ -30,7 +34,8 @@ jobs:
           flag-name: run-general
           parallel: true
 
-  test:
+  exchange:
+    needs: [validate]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -98,7 +103,7 @@ jobs:
           parallel: true
 
   finish:
-    needs: [test-general, test]
+    needs: [validate, exchange]
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
