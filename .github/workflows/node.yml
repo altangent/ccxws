@@ -3,21 +3,106 @@ name: Node.js CI
 on: [push]
 
 jobs:
-  build:
+  test-general:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [10.x]
-
     steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
         uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm install
-      - run: npm run build --if-present
-      - run: npm run test:ci
+          node-version: 10.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.js"
         env:
-          CI: true
+          CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
+          CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}
+
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-general
+          parallel: true
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        exchange:
+          - bibox
+          - binance
+          - binance-futures-coinm
+          - binance-futures-usdtm
+          - binanceje
+          - binanceus
+          - bitfinex
+          - bitflyer
+          - bithumb
+          - bitmex
+          - bitstamp
+          - bittrex
+          - cex
+          - coinbasepro
+          - coinex
+          - deribit
+          - digifinex
+          # - ethfinex
+          - ftx
+          - ftx-us
+          - gateio
+          - gemini
+          - hitbtc
+          - huobi
+          - huobi-futures
+          - huobi-japan
+          - huobi-korea
+          - huobi-russia
+          - huobi-swaps
+          - kucoin
+          # - ledgerx
+          - liquid
+          - okex
+          - poloniex
+          - upbit
+          - zb
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 10.x
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha __tests__/exchanges/${{ matrix.exchange }}-client.spec.js
+        env:
+          CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
+          CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}
+
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-${{ matrix.exchange }}
+          parallel: true
+
+  finish:
+    needs: [test-general, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          parallel-finished: true
