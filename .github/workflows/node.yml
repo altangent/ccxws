@@ -22,7 +22,7 @@ jobs:
         run: npm run lint
 
       - name: Test non-exchanges
-        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.js"
+        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exit --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.js"
         env:
           CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
           CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}
@@ -90,7 +90,7 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha __tests__/exchanges/${{ matrix.exchange }}-client.spec.js
+        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exit __tests__/exchanges/${{ matrix.exchange }}-client.spec.js
         env:
           CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
           CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}
