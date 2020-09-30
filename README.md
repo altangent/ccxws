@@ -1,7 +1,7 @@
 # CryptoCurrency eXchange WebSockets
 
-[![CircleCI](https://circleci.com/gh/altangent/ccxws/tree/master.svg?style=shield)](https://circleci.com/gh/altangent/ccxws/tree/master)
-[![Coverage Status](https://coveralls.io/repos/github/altangent/ccxws/badge.svg?branch=master)](https://coveralls.io/github/altangent/ccxws?branch=master)
+[![CI](https://github.com/altangent/ccxws/workflows/Node.js%20CI/badge.svg)](https://github.com/altangent/ccxws/actions?query=workflow%3A%22Node.js+CI%22)
+[![Coverage](https://coveralls.io/repos/github/altangent/ccxws/badge.svg?branch=master)](https://coveralls.io/github/altangent/ccxws?branch=master)
 
 A JavaScript library for connecting to realtime public APIs on all cryptocurrency exchanges.
 
