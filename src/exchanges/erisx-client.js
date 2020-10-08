@@ -6,6 +6,13 @@ const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 const jwt = require("../jwt");
 
+/**
+ * ErisX has limited market data and presently only supports trades and
+ * level3 order books. It requires authenticating with a token to view
+ * the market data, which is performed on initial connection. ErisX also
+ * requires a unique "correlationId" for each request sent to the server.
+ * Requests are limited to 40 per second.
+ */
 class ErisXClient extends BasicClient {
   constructor({
     wssPath = "wss://trade-api.erisx.com/",
