@@ -195,7 +195,7 @@ class ErisXClient extends BasicClient {
    */
   _constructTrade(msg, market) {
     const timestamp = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS");
-    const unix = timestamp.toISOString();
+    const unix = timestamp.unix();
     const tradeId = msg.transactTime.replace(/[-:.]/g, "");
     const amount = msg.size.toFixed(8);
     const price = msg.price.toFixed(8);
@@ -268,7 +268,7 @@ class ErisXClient extends BasicClient {
     }
    */
   _constructLevel3Snapshot(msg, market) {
-    const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").toISOString();
+    const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf();
     const asks = msg.offers.map(
       p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
     );
@@ -306,7 +306,7 @@ class ErisXClient extends BasicClient {
     }
    */
   _constructLevel3Update(msg, market) {
-    const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").toISOString();
+    const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf();
     let asks = msg.bids.map(
       p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
     );
