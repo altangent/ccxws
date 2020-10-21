@@ -195,7 +195,7 @@ class ErisXClient extends BasicClient {
    */
   _constructTrade(msg, market) {
     const timestamp = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS");
-    const unix = timestamp.unix();
+    const unix = timestamp.valueOf();
     const tradeId = msg.transactTime.replace(/[-:.]/g, "");
     const amount = msg.size.toFixed(8);
     const price = msg.price.toFixed(8);
