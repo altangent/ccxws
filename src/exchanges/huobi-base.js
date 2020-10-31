@@ -273,8 +273,12 @@ class HuobiBase extends BasicClient {
   _constructL2UpdateSnapshot(msg, market) {
     let { tick } = msg;
 
-    let asks = tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
-    let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+    let asks = tick.asks
+      ? tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)))
+      : [];
+    let bids = tick.bids
+      ? tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)))
+      : [];
 
     return new Level2Snapshot({
       exchange: this._name,
@@ -311,8 +315,12 @@ class HuobiBase extends BasicClient {
   _constructL2Update(msg, market) {
     let { tick } = msg;
 
-    let asks = tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
-    let bids = tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)));
+    let asks = tick.asks
+      ? tick.asks.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)))
+      : [];
+    let bids = tick.bids
+      ? tick.bids.map(p => new Level2Point(p[0].toFixed(8), p[1].toFixed(2)))
+      : [];
 
     return new Level2Update({
       exchange: this._name,
