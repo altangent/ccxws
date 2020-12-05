@@ -342,7 +342,7 @@ class BinanceBase extends BasicClient {
     data:
     { e: 'kline',
       E: 1571068845689,
-      s: 'BTCUSDT',
+      s:  'BTCUSDT',
       k:
         { t: 1571068800000,
           T: 1571068859999,
@@ -381,7 +381,30 @@ class BinanceBase extends BasicClient {
     });
   }
 
+  /**
+   {
+      "e": "depthUpdate", // Event type
+      "E": 123456789,     // Event time
+      "s": "BNBBTC",      // Symbol
+      "U": 157,           // First update ID in event
+      "u": 160,           // Final update ID in event
+      "b": [              // Bids to be updated
+        [
+          "0.0024",       // Price level to be updated
+          "10"            // Quantity
+        ]
+      ],
+      "a": [              // Asks to be updated
+        [
+          "0.0026",       // Price level to be updated
+          "100"           // Quantity
+        ]
+      ]
+    }
+   */
   _constructLevel2Update(msg, market) {
+    let eventMs = msg.data.E;
+    let timestampMs = msg.data.E; // use event time
     let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
@@ -390,8 +413,10 @@ class BinanceBase extends BasicClient {
       exchange: this._name,
       base: market.base,
       quote: market.quote,
+      timestampMs,
       sequenceId,
       lastSequenceId,
+      eventMs,
       asks,
       bids,
     });
