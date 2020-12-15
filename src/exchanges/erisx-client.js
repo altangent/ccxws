@@ -1,6 +1,8 @@
 const moment = require("moment");
 const BasicClient = require("../basic-client");
 const Trade = require("../trade");
+const Level2Point = require("../level2-point");
+const Level2Snapshot = require("../level2-snapshot");
 const Level3Point = require("../level3-point");
 const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
@@ -19,13 +21,16 @@ class ErisXClient extends BasicClient {
     watcherMs = 600000,
     apiKey,
     apiSecret,
+    l2depth = 20,
   } = {}) {
     super(wssPath, "ErisX", undefined, watcherMs);
 
     this.apiKey = apiKey;
     this.apiSecret = apiSecret;
     this.hasTrades = true;
+    this.hasLevel2Snapshots = true;
     this.hasLevel3Updates = true;
+    this.l2depth = l2depth;
     this._messageId = 0;
   }
 
@@ -83,6 +88,28 @@ class ErisXClient extends BasicClient {
         type: "MarketDataUnsubscribe",
         symbol: remote_id,
         tradeOnly: true,
+      })
+    );
+  }
+
+  _sendSubLevel2Snapshots(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        correlation: this._nextId(),
+        type: "TopOfBookMarketDataSubscribe",
+        symbol: remote_id,
+        topOfBookDepth: this.l2depth,
+      })
+    );
+  }
+
+  _sendUnsubLevel2Snapshots(remote_id) {
+    this._wss.send(
+      JSON.stringify({
+        correlation: this._nextId(),
+        type: "TopOfBookMarketDataUnsubscribe",
+        symbol: remote_id,
+        topOfBookDepth: this.l2depth,
       })
     );
   }
@@ -155,6 +182,16 @@ class ErisXClient extends BasicClient {
       return;
     }
 
+    // l2 snapshot
+    if (msg.type === "TopOfBookMarketData") {
+      let market = this._level2SnapshotSubs.get(msg.symbol);
+      if (!market) return;
+
+      const snapshot = this._constructLevel2Snapshot(msg, market);
+      this.emit("l2snapshot", snapshot, market);
+      return;
+    }
+
     // l3
     if (msg.type === "MarketDataIncrementalRefresh") {
       let market = this._level3UpdateSubs.get(msg.symbol);
@@ -224,6 +261,65 @@ class ErisXClient extends BasicClient {
       price,
       amount,
       raw: msg,
+    });
+  }
+
+  /**
+   {
+    "correlation": "15978412650812",
+    "type": "TopOfBookMarketData",
+    "bids": [
+        {
+            "action": "NEW",
+            "count": 1,
+            "totalVolume": 1.0,
+            "price": 413.2,
+            "lastUpdate": "20200819-12:47:49.975"
+        },
+        {
+            "action": "UPDATE",
+            "count": 2,
+            "totalVolume": 2.00,
+            "price": 412.9,
+            "lastUpdate": "20200819-12:47:39.984"
+        }
+    ],
+    "offers": [
+        {
+            "action": "NO CHANGE",
+            "count": 1,
+            "totalVolume": 1.00,
+            "price": 413.3,
+            "lastUpdate": "20200819-12:47:40.166"
+        },
+        {
+            "action": "NO CHANGE",
+            "count": 1,
+            "totalVolume": 1.56,
+            "price": 413.4,
+            "lastUpdate": "20200819-12:47:20.196"
+        }
+    ],
+    "symbol": "ETH/USD"
+    }
+   */
+  _constructLevel2Snapshot(msg, market) {
+    const map = p =>
+      new Level2Point(
+        p.price.toFixed(8),
+        p.totalVolume.toFixed(8),
+        p.count,
+        undefined,
+        moment.utc(p.lastUpdate, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf()
+      );
+    const bids = msg.bids.map(map);
+    const asks = msg.offers.map(map);
+    return new Level2Snapshot({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      asks,
+      bids,
     });
   }
 
