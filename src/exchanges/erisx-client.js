@@ -29,6 +29,16 @@ class ErisXClient extends BasicClient {
     this._messageId = 0;
   }
 
+  fetchSecurities() {
+    this._wss.send(
+      JSON.stringify({
+        correlation: "SecurityList",
+        type: "SecurityList",
+        securityGroup: "ALL",
+      })
+    );
+  }
+
   _onConnected() {
     this._sendAuthentication();
   }
@@ -124,6 +134,12 @@ class ErisXClient extends BasicClient {
 
     // status
     if (msg.type === "INFO_MESSAGE") {
+      return;
+    }
+
+    // securities
+    if (msg.type === "SecuritiesResponse") {
+      this.emit("markets", msg.securities);
       return;
     }
 
