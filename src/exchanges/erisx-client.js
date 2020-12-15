@@ -97,7 +97,7 @@ class ErisXClient extends BasicClient {
     );
   }
 
-  _sendUnsubLevel2Snapshots(remote_id) {
+  _sendUnsubLevel3Snapshots(remote_id) {
     this._wss.send(
       JSON.stringify({
         correlation: this._nextId(),
