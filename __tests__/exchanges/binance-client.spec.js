@@ -76,7 +76,7 @@ testClient({
 
   l2update: {
     hasSnapshot: true,
-    hasTimestampMs: true,
+    hasTimestampMs: false,
     hasSequenceId: true,
     hasLastSequenceId: true,
     hasEventMs: true,

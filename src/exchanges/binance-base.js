@@ -404,7 +404,6 @@ class BinanceBase extends BasicClient {
    */
   _constructLevel2Update(msg, market) {
     let eventMs = msg.data.E;
-    let timestampMs = msg.data.E; // use event time
     let sequenceId = msg.data.U;
     let lastSequenceId = msg.data.u;
     let asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
@@ -413,7 +412,6 @@ class BinanceBase extends BasicClient {
       exchange: this._name,
       base: market.base,
       quote: market.quote,
-      timestampMs,
       sequenceId,
       lastSequenceId,
       eventMs,
