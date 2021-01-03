@@ -473,12 +473,14 @@ class BittrexClient extends BasicClient {
       let remote_id = market.id;
       let uri = `https://api.bittrex.com/v3/markets/${remote_id}/orderbook?depth=${this.orderBookDepth}`;
       let raw = await https.get(uri);
+      const sequence = raw._headers.sequence;
       let asks = raw.ask.map(p => new Level2Point(p.rate, p.quantity));
       let bids = raw.bid.map(p => new Level2Point(p.rate, p.quantity));
       let snapshot = new Level2Snapshot({
         exchange: this._name,
         base: market.base,
         quote: market.quote,
+        sequenceId: Number(sequence),
         asks,
         bids,
       });

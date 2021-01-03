@@ -17,7 +17,10 @@ async function get(uri) {
         if (res.statusCode !== 200) {
           return reject(new Error(results.toString()));
         } else {
-          return resolve(JSON.parse(results));
+          const resultsParsed = JSON.parse(results);
+          // add headers onto response payload as _headers
+          const resultsWithHeaders = { ...resultsParsed, _headers: res.headers };
+          return resolve(resultsWithHeaders);
         }
       });
     });
