@@ -25,7 +25,7 @@ class BitfinexClient extends BasicClient {
         hasSentConfig = true;
         // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
         // 65536 adds a sequence ID to each message
-        this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 }))
+        this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 }));
       }
     });
   }
@@ -240,7 +240,6 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Update(msg, market) {
-    let channel = msg[0];
     let [price, count, size] = msg[1];
     let sequence = +msg[2];
 
@@ -270,7 +269,6 @@ class BitfinexClient extends BasicClient {
     let bids = [];
     let asks = [];
     
-    let channel = msg[0];
     let orders = msg[1];
     let sequence = +msg[2];
 
@@ -294,7 +292,6 @@ class BitfinexClient extends BasicClient {
     let bids = [];
     let asks = [];
     
-    let channel = msg[0];
     // let [price, count, size] = msg[1];
     let [orderId, price, size] = msg[1];
     let sequence = +msg[2];
