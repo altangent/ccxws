@@ -199,7 +199,6 @@ class BitFlyerClient extends BasicClient {
         let remote_id = market.id;
         let uri = `https://api.bitflyer.com/v1/board?product_code=${remote_id}`;
         let raw = await https.get(uri);
-        console.log('--snapshot raw=', raw);
         let asks = raw.asks.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
         let bids = raw.bids.map(p => new Level2Point(p.price.toFixed(8), p.size.toFixed(8)));
         let snapshot = new Level2Snapshot({
