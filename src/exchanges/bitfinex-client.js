@@ -66,16 +66,14 @@ class BitfinexClient extends BasicClient {
   }
 
   _sendSubLevel2Updates(remote_id) {
-    setTimeout(() => {
-      this._wss.send(
-        JSON.stringify({
-          event: "subscribe",
-          channel: "book",
-          pair: remote_id,
-          len: "250"
-        })
-      );
-    }, 2000)
+    this._wss.send(
+      JSON.stringify({
+        event: "subscribe",
+        channel: "book",
+        pair: remote_id,
+        len: "250"
+      })
+    );
   }
 
   _sendUnsubLevel2Updates(remote_id) {
@@ -125,7 +123,6 @@ class BitfinexClient extends BasicClient {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-    console.log('got msg', msg);
 
     // capture channel metadata
     if (msg.event === "subscribed") {
@@ -138,9 +135,7 @@ class BitfinexClient extends BasicClient {
     if (!channel) return;
 
     // ignore heartbeats
-    if (msg[1] === "hb") {
-      return;
-    };
+    if (msg[1] === "hb") return;
 
     if (channel.channel === "ticker") {
       let market = this._tickerSubs.get(channel.pair);
