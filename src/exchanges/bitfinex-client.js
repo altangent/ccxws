@@ -219,6 +219,18 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Snapshot(msg, market) {
+    /*
+    example msg: 
+      [
+        646750,
+        [ 
+          [ 31115, 1, 1 ],
+          [ 31114, 1, 0.31589592 ],
+          ...
+        ],
+        1
+      ]
+  */
     let bids = [];
     let asks = [];
     const sequence = +msg[2];
@@ -240,6 +252,7 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Update(msg, market) {
+    // example msg: [ 646750, [ 30927, 5, 0.0908 ], 19 ]
     let [price, count, size] = msg[1];
     let sequence = +msg[2];
 
@@ -266,6 +279,18 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel3Snapshot(msg, market) {
+    /*
+    example msg:
+    [
+      648087,
+      [ 
+        [ 55888179267, 31111, 0.05 ],
+        [ 55895806791, 31111, 0.989 ],
+        ...
+      ],
+      1
+    ]
+    */
     let bids = [];
     let asks = [];
     
@@ -289,10 +314,10 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel3Update(msg, market) {
+    // example msg: [ 648087, [ 55895794256, 31107, 0.07799627 ], 4 ]
     let bids = [];
     let asks = [];
     
-    // let [price, count, size] = msg[1];
     let [orderId, price, size] = msg[1];
     let sequence = +msg[2];
 
