@@ -256,7 +256,8 @@ class GeminiClient extends EventEmitter {
     if (!market) return;
 
     if (msg.type === "update") {
-      let { timestampms, eventId, socket_sequence } = msg;
+      let { timestampms, socket_sequence } = msg;
+      const sequenceId = socket_sequence;
 
       // process trades
       if (subscription.trades) {
@@ -272,10 +273,10 @@ class GeminiClient extends EventEmitter {
       if (subscription.level2updates) {
         let updates = msg.events.filter(p => p.type === "change");
         if (socket_sequence === 0) {
-          let snapshot = this._constructL2Snapshot(updates, market, eventId);
+          let snapshot = this._constructL2Snapshot(updates, market, sequenceId);
           this.emit("l2snapshot", snapshot, market);
         } else {
-          let update = this._constructL2Update(updates, market, eventId, timestampms);
+          let update = this._constructL2Update(updates, market, sequenceId, timestampms);
           this.emit("l2update", update, market);
         }
         return;
