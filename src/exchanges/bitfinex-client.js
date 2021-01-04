@@ -18,7 +18,6 @@ class BitfinexClient extends BasicClient {
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = true;
     this.l2UpdateDepth = l2UpdateDepth;
-    this._connect();
   }
 
   _onConnected() {
