@@ -99,6 +99,7 @@ class CoinbaseProClient extends BasicClient {
   }
 
   _onMessage(raw) {
+    // console.log('---- raw msg=', raw);
     let msg = JSON.parse(raw);
 
     let { type, product_id } = msg;
@@ -189,6 +190,7 @@ class CoinbaseProClient extends BasicClient {
   }
 
   _constructLevel2Snapshot(msg, market) {
+    console.log('-- l2 snapshot msg=', msg);
     let { bids, asks } = msg;
     bids = bids.map(([price, size]) => new Level2Point(price, size));
     asks = asks.map(([price, size]) => new Level2Point(price, size));
@@ -203,6 +205,7 @@ class CoinbaseProClient extends BasicClient {
   }
 
   _constructLevel2Update(msg, market) {
+    console.log('-- l2 update msg=', msg);
     let { changes } = msg;
     let asks = [];
     let bids = [];
