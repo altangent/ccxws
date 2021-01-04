@@ -9,7 +9,7 @@ const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 
 class BitfinexClient extends BasicClient {
-  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs } = {}) {
+  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250} = {}) {
     super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
 
@@ -17,18 +17,24 @@ class BitfinexClient extends BasicClient {
     this.hasTrades = true;
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = true;
+    this.l2UpdateDepth = l2UpdateDepth;
     this._connect();
-    let hasSentConfig = false;
-    // immediately send the config event to include sequence IDs in every message
-    this._wss.on('open', function open() {
-      if (!hasSentConfig) {
-        hasSentConfig = true;
-        // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
-        // 65536 adds a sequence ID to each message
-        this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 }));
-      }
-    });
   }
+
+  _onConnected() {
+    // immediately send the config event to include sequence IDs in every message
+    this._sendConfiguration();
+    super._onConnected();
+  }
+  _sendConfiguration() {
+    // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
+    // 65536 adds a sequence ID to each message
+    // 32768 adds a Timestamp in milliseconds to each received event
+    // 131072 Enable checksum for every book iteration. Checks the top 25 entries for each side of book. Checksum is a signed int. more info https://docs.bitfinex.com/docs/ws-websocket-checksum
+    this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 + 32768 + 131072 }));
+  }
+
+
 
   _sendSubTicker(remote_id) {
     this._wss.send(
@@ -71,7 +77,7 @@ class BitfinexClient extends BasicClient {
         event: "subscribe",
         channel: "book",
         pair: remote_id,
-        len: "250"
+        len: String(this.l2UpdateDepth) // len must be of type string, even though it's a number
       })
     );
   }
@@ -123,6 +129,11 @@ class BitfinexClient extends BasicClient {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
+    if (msg[1] === 'cs') {
+      // checksum msg
+      // ex: [ 20114, 'cs', 625400997, 116, 1609794565952 ]
+      return;
+    }
 
     // capture channel metadata
     if (msg.event === "subscribed") {
@@ -228,12 +239,14 @@ class BitfinexClient extends BasicClient {
           [ 31114, 1, 0.31589592 ],
           ...
         ],
-        1
+        1,
+        1609794291015
       ]
   */
     let bids = [];
     let asks = [];
-    const sequence = +msg[2];
+    const sequence = Number(msg[2]);
+    const timestampMs = msg[3];
     for (let [price, count, size] of msg[1]) {
       let isBid = size > 0;
       let result = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
@@ -245,6 +258,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       sequenceId: sequence,
+      timestampMs,
       bids,
       asks,
     });
@@ -252,9 +266,10 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel2Update(msg, market) {
-    // example msg: [ 646750, [ 30927, 5, 0.0908 ], 19 ]
+    // example msg: [ 646750, [ 30927, 5, 0.0908 ], 19, 1609794565952 ]
     let [price, count, size] = msg[1];
-    let sequence = +msg[2];
+    let sequence = Number(msg[2]);
+    const timestampMs = msg[3];
 
     if (!price.toFixed) return;
     let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
@@ -271,7 +286,8 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      sequenceId: +sequence,
+      sequenceId: sequence,
+      timestampMs,
       asks,
       bids,
     });
@@ -288,18 +304,20 @@ class BitfinexClient extends BasicClient {
         [ 55895806791, 31111, 0.989 ],
         ...
       ],
-      1
+      1,
+      1609794565952
     ]
     */
     let bids = [];
     let asks = [];
     
     let orders = msg[1];
-    let sequence = +msg[2];
+    let sequence = Number(msg[2]);
+    const timestampMs = msg[3];
 
-    for (let p of orders) {
-      let point = new Level3Point(p[0].toFixed(), p[1].toFixed(8), Math.abs(p[2]).toFixed(8));
-      if (p[2] > 0) bids.push(point);
+    for (let [orderId, price, size] of orders) {
+      let point = new Level3Point(orderId.toFixed(), price.toFixed(8), Math.abs(size).toFixed(8));
+      if (size > 0) bids.push(point);
       else asks.push(point);
     }
     let result = new Level3Snapshot({
@@ -307,6 +325,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       sequenceId: sequence,
+      timestampMs,
       asks,
       bids,
     });
@@ -314,12 +333,13 @@ class BitfinexClient extends BasicClient {
   }
 
   _onLevel3Update(msg, market) {
-    // example msg: [ 648087, [ 55895794256, 31107, 0.07799627 ], 4 ]
+    // example msg: [ 648087, [ 55895794256, 31107, 0.07799627 ], 4, 1609794565952 ]
     let bids = [];
     let asks = [];
     
     let [orderId, price, size] = msg[1];
-    let sequence = +msg[2];
+    let sequence = Number(msg[2]);
+    const timestampMs = msg[3];
 
     let point = new Level3Point(orderId, price.toFixed(8), Math.abs(size).toFixed(8));
     if (size > 0) bids.push(point);
@@ -330,6 +350,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       sequenceId: sequence,
+      timestampMs,
       asks,
       bids,
     });
