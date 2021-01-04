@@ -3,10 +3,29 @@ const url = require("url");
 
 module.exports = {
   get,
+  getResponse,
   post,
 };
 
+/**
+ * Maks an HTTPS GET request to the specified URI and returns the parsed JSON
+ * body data.
+ * @param {String} uri
+ * @returns {Object} parsed body
+ */
 async function get(uri) {
+  const { data } = await getResponse(uri);
+  return data;
+}
+
+/**
+ * Make an HTTPS GET request to the specified URI and returns the parsed JSON
+ * body data as well as the full response.
+ *
+ * @param {String} uri
+ * @returns {Object} { data: <parsed JSON body>, response: <http.IncomingMessage> }
+ */
+async function getResponse(uri) {
   return new Promise((resolve, reject) => {
     let req = https.get(url.parse(uri), res => {
       let results = [];
@@ -17,7 +36,11 @@ async function get(uri) {
         if (res.statusCode !== 200) {
           return reject(new Error(results.toString()));
         } else {
-          return resolve(JSON.parse(results));
+          const resultsParsed = JSON.parse(results);
+          return resolve({
+            data: resultsParsed,
+            response: res,
+          });
         }
       });
     });
