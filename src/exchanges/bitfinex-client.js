@@ -27,10 +27,11 @@ class BitfinexClient extends BasicClient {
   }
   _sendConfiguration() {
     // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
+    // combine multiple flags by summing their values
     // 65536 adds a sequence ID to each message
     // 32768 adds a Timestamp in milliseconds to each received event
     // 131072 Enable checksum for every book iteration. Checks the top 25 entries for each side of book. Checksum is a signed int. more info https://docs.bitfinex.com/docs/ws-websocket-checksum
-    this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 + 32768 + 131072 }));
+    this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 + 32768 }));
   }
 
 
@@ -128,11 +129,6 @@ class BitfinexClient extends BasicClient {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-    if (msg[1] === 'cs') {
-      // checksum msg
-      // ex: [ 20114, 'cs', 625400997, 116, 1609794565952 ]
-      return;
-    }
 
     // capture channel metadata
     if (msg.event === "subscribed") {
