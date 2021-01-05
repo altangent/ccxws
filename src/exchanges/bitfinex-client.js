@@ -30,7 +30,8 @@ class BitfinexClient extends BasicClient {
     // combine multiple flags by summing their values
     // 65536 adds a sequence ID to each message
     // 32768 adds a Timestamp in milliseconds to each received event
-    // 131072 Enable checksum for every book iteration. Checks the top 25 entries for each side of book. Checksum is a signed int. more info https://docs.bitfinex.com/docs/ws-websocket-checksum
+    // 131072 Enable checksum for every book iteration. Checks the top 25 entries for each side of book. Checksum is a signed int. more info https://docs.bitfinex.com/docs/ws-websocket-checksum. it's sent in its own
+    // separate event so we've disabled it
     this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 + 32768 }));
   }
 
