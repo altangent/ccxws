@@ -257,6 +257,7 @@ class GeminiClient extends EventEmitter {
 
     if (msg.type === "update") {
       let { timestampms, eventId, socket_sequence } = msg;
+      const sequenceId = socket_sequence;
 
       // process trades
       if (subscription.trades) {
@@ -272,10 +273,10 @@ class GeminiClient extends EventEmitter {
       if (subscription.level2updates) {
         let updates = msg.events.filter(p => p.type === "change");
         if (socket_sequence === 0) {
-          let snapshot = this._constructL2Snapshot(updates, market, eventId);
+          let snapshot = this._constructL2Snapshot(updates, market, sequenceId, eventId);
           this.emit("l2snapshot", snapshot, market);
         } else {
-          let update = this._constructL2Update(updates, market, eventId, timestampms);
+          let update = this._constructL2Update(updates, market, sequenceId, timestampms, eventId);
           this.emit("l2update", update, market);
         }
         return;
@@ -310,7 +311,7 @@ class GeminiClient extends EventEmitter {
     });
   }
 
-  _constructL2Snapshot(events, market, sequenceId) {
+  _constructL2Snapshot(events, market, sequenceId, eventId) {
     let asks = [];
     let bids = [];
 
@@ -325,12 +326,13 @@ class GeminiClient extends EventEmitter {
       base: market.base,
       quote: market.quote,
       sequenceId,
+      eventId,
       asks,
       bids,
     });
   }
 
-  _constructL2Update(events, market, sequenceId, timestampMs) {
+  _constructL2Update(events, market, sequenceId, timestampMs, eventId) {
     let asks = [];
     let bids = [];
 
@@ -345,6 +347,7 @@ class GeminiClient extends EventEmitter {
       base: market.base,
       quote: market.quote,
       sequenceId,
+      eventId,
       timestampMs,
       asks,
       bids,
