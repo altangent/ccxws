@@ -629,6 +629,12 @@ function testLevel2Result(spec, result, type) {
     testUndefined(result, `${type}.eventMs`);
   }
 
+  if (spec[`l2${type}`].hasEventId) {
+    testPositiveNumber(result, `${type}.eventId`);
+  } else {
+    testUndefined(result, `${test}.eventId`);
+  }
+
   it(`${type}.bid/ask.price should be a string`, () => {
     let actual = (result[type].bids[0] || result[type].asks[0]).price;
     expect(actual).to.be.a("string");
@@ -802,7 +808,7 @@ function testPositiveNumber(result, prop) {
 
   it(`${prop} should be positive`, () => {
     let actual = deepValue(result, prop);
-    expect(actual).to.be.greaterThan(0);
+    expect(actual).to.be.gte(0);
   });
 }
 
