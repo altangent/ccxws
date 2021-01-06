@@ -57,27 +57,27 @@ testClient({
   },
 
   l2snapshot: {
-    hasTimestampMs: false,
-    hasSequenceId: false,
+    hasTimestampMs: true,
+    hasSequenceId: true,
     hasCount: true,
   },
 
   l2update: {
     hasSnapshot: true,
-    hasTimestampMs: false,
-    hasSequenceId: false,
+    hasTimestampMs: true,
+    hasSequenceId: true,
     hasCount: true,
   },
 
   l3snapshot: {
-    hasTimestampMs: false,
-    hasSequenceId: false,
+    hasTimestampMs: true,
+    hasSequenceId: true,
   },
 
   l3update: {
     hasSnapshot: true,
-    hasTimestampMs: false,
-    hasSequenceId: false,
+    hasTimestampMs: true,
+    hasSequenceId: true,
     hasCount: true,
   },
 });
