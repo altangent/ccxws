@@ -9,7 +9,7 @@ const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 
 class BitfinexClient extends BasicClient {
-  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250} = {}) {
+  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250 } = {}) {
     super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
 
@@ -25,6 +25,7 @@ class BitfinexClient extends BasicClient {
     this._sendConfiguration();
     super._onConnected();
   }
+
   _sendConfiguration() {
     // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
     // combine multiple flags by summing their values
@@ -32,10 +33,8 @@ class BitfinexClient extends BasicClient {
     // 32768 adds a Timestamp in milliseconds to each received event
     // 131072 Enable checksum for every book iteration. Checks the top 25 entries for each side of book. Checksum is a signed int. more info https://docs.bitfinex.com/docs/ws-websocket-checksum. it's sent in its own
     // separate event so we've disabled it
-    this._wss.send(JSON.stringify({ event: 'conf', flags: 65536 + 32768 }));
+    this._wss.send(JSON.stringify({ event: "conf", flags: 65536 + 32768 }));
   }
-
-
 
   _sendSubTicker(remote_id) {
     this._wss.send(
@@ -78,7 +77,7 @@ class BitfinexClient extends BasicClient {
         event: "subscribe",
         channel: "book",
         pair: remote_id,
-        len: String(this.l2UpdateDepth) // len must be of type string, even though it's a number
+        len: String(this.l2UpdateDepth), // len must be of type string, even though it's a number
       })
     );
   }
@@ -227,10 +226,10 @@ class BitfinexClient extends BasicClient {
 
   _onLevel2Snapshot(msg, market) {
     /*
-    example msg: 
+    example msg:
       [
         646750,
-        [ 
+        [
           [ 31115, 1, 1 ],
           [ 31114, 1, 0.31589592 ],
           ...
@@ -295,7 +294,7 @@ class BitfinexClient extends BasicClient {
     example msg:
     [
       648087,
-      [ 
+      [
         [ 55888179267, 31111, 0.05 ],
         [ 55895806791, 31111, 0.989 ],
         ...
@@ -306,7 +305,7 @@ class BitfinexClient extends BasicClient {
     */
     let bids = [];
     let asks = [];
-    
+
     let orders = msg[1];
     let sequence = Number(msg[2]);
     const timestampMs = msg[3];
@@ -332,7 +331,7 @@ class BitfinexClient extends BasicClient {
     // example msg: [ 648087, [ 55895794256, 31107, 0.07799627 ], 4, 1609794565952 ]
     let bids = [];
     let asks = [];
-    
+
     let [orderId, price, size] = msg[1];
     let sequence = Number(msg[2]);
     const timestampMs = msg[3];
