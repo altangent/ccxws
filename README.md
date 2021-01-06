@@ -59,7 +59,7 @@ binance.subscribeLevel2Snapshots(market);
 | Binance Futures USDT-M | 1   | BinanceFuturesUsdtM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance Jersey         | 1   | BinanceJe           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance US             | 1   | BinanceUs           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Bitfinex               | 1.1 | Bitfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
+| Bitfinex               | 2   | Bitfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
 | bitFlyer               | 1   | Bitflyer            | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
 | Bithumb                | 1   | Bithumb             | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
 | BitMEX                 | 1   | BitMEX              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
