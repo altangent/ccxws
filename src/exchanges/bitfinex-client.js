@@ -217,7 +217,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       tradeId: id.toFixed(),
-      unix: unix * 1000,
+      unix: unix,
       side,
       price,
       amount,
@@ -337,7 +337,7 @@ class BitfinexClient extends BasicClient {
     let sequence = Number(msg[2]);
     const timestampMs = msg[3];
 
-    let point = new Level3Point(orderId, price.toFixed(8), Math.abs(size).toFixed(8));
+    let point = new Level3Point(orderId.toFixed(), price.toFixed(8), Math.abs(size).toFixed(8));
     if (size > 0) bids.push(point);
     else asks.push(point);
 
