@@ -63,6 +63,7 @@ testClient({
   l2snapshot: {
     hasTimestampMs: false,
     hasSequenceId: true,
+    hasEventId: true,
     hasCount: false,
   },
 
@@ -70,6 +71,7 @@ testClient({
     hasSnapshot: true,
     hasTimestampMs: true,
     hasSequenceId: true,
+    hasEventId: true,
     hasCount: false,
   },
 });
