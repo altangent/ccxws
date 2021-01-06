@@ -632,7 +632,7 @@ function testLevel2Result(spec, result, type) {
   if (spec[`l2${type}`].hasEventId) {
     testPositiveNumber(result, `${type}.eventId`);
   } else {
-    testUndefined(result, `${test}.eventId`);
+    testUndefined(result, `${type}.eventId`);
   }
 
   it(`${type}.bid/ask.price should be a string`, () => {
