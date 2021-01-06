@@ -203,7 +203,8 @@ class CoinbaseProClient extends BasicClient {
   }
 
   _constructLevel2Update(msg, market) {
-    let { changes } = msg;
+    let { changes, time } = msg;
+    const timestampMs = new Date(time).getTime();
     let asks = [];
     let bids = [];
     for (let [side, price, size] of changes) {
@@ -216,6 +217,7 @@ class CoinbaseProClient extends BasicClient {
       exchange: "CoinbasePro",
       base: market.base,
       quote: market.quote,
+      timestampMs,
       asks,
       bids,
     });
