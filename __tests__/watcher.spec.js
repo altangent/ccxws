@@ -84,8 +84,8 @@ describe("Watcher", () => {
       sut.start();
     });
     it("it should call reconnect on the client", async () => {
-      await wait(150);
-      expect(client.reconnect.callCount).to.equal(1);
+      await wait(500);
+      expect(client.reconnect.callCount).to.be.gt(0);
     });
   });
 }).retries(3);
