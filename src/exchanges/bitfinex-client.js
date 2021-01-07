@@ -182,6 +182,7 @@ class BitfinexClient extends BasicClient {
 
   _onTicker(msg, market) {
     let msgBody = msg[1];
+    const sequence = Number(msg[2]);
     let [bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msgBody;
     let open = last + change;
     let ticker = new Ticker({
@@ -189,6 +190,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       timestamp: Date.now(),
+      sequenceId: sequence,
       last: last.toFixed(8),
       open: open.toFixed(8),
       high: high.toFixed(8),
@@ -207,6 +209,7 @@ class BitfinexClient extends BasicClient {
   _onTradeMessage(msg, market) {
     // example msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
     let [id, unix, amount, price] = msg[2];
+    const sequence = Number(msg[3]);
 
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
@@ -216,6 +219,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       tradeId: id.toFixed(),
+      sequenceId: sequence,
       unix: unix,
       side,
       price,

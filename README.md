@@ -351,6 +351,7 @@ The ticker class is the result of a `ticker` event.
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
 - `timestamp: int` - the unix timestamp in milliseconds
+- `sequenceId: int` - the sequence ID of the ticker update event
 - `last: string` - the last price of a match that caused a tick
 - `open: string` - the price 24 hours ago
 - `low: string` - the highest price in the last 24 hours
@@ -374,6 +375,7 @@ The trade class is the result of a `trade` event emitted from a client.
 - `base: string` - the normalized base symbol for the market
 - `quote: string` - the normalized quote symbol for the market
 - `tradeId: string` - the unique trade identifer from the exchanges feed
+- `sequenceId: int` - the sequence ID of the ticker update event
 - `unix: int` - the unix timestamp in milliseconds for when the trade executed
 - `side: string` - whether the buyer `buy` or seller `sell` was the maker for the match
 - `price: string` - the price at which the match executed
