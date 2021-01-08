@@ -255,6 +255,18 @@ class GeminiClient extends EventEmitter {
 
     if (!market) return;
 
+    if (msg.type === "heartbeat") {
+      // if using sequenceId a heartbeat event will arrive which includes sequenceId.
+      // you'll need to receive heartbeat, otherwise sequence will have a gap in next l2update,
+      // so emit an l2update w/no ask or bid changes, only including the sequenceId
+      // ex: '{"type":"heartbeat","socket_sequence":272}'
+      const sequenceId = msg.socket_sequence;
+      this.emit("l2update",
+        this._constructL2Update([], market, sequenceId, null, null),
+        market
+      );
+      return;
+    }
     if (msg.type === "update") {
       let { timestampms, eventId, socket_sequence } = msg;
       const sequenceId = socket_sequence;
@@ -331,7 +343,6 @@ class GeminiClient extends EventEmitter {
       bids,
     });
   }
-
   _constructL2Update(events, market, sequenceId, timestampMs, eventId) {
     let asks = [];
     let bids = [];
