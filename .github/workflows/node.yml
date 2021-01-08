@@ -62,6 +62,7 @@ jobs:
           - ftx-us
           - gateio
           - gemini
+          - gmocoin
           - hitbtc
           - huobi
           - huobi-futures

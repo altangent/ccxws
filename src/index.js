@@ -14,6 +14,7 @@ const ethfinex = require("./exchanges/ethfinex-client");
 const ftx = require("./exchanges/ftx-client");
 const gateio = require("./exchanges/gateio-client");
 const gemini = require("./exchanges/gemini-client");
+const gmocoin = require("./exchanges/gmocoin-client");
 const hitbtc = require("./exchanges/hitbtc-client");
 const huobi = require("./exchanges/huobi-client");
 const kucoin = require("./exchanges/kucoin-client");
@@ -42,6 +43,7 @@ module.exports = {
   ftx,
   gateio,
   gemini,
+  gmocoin,
   hitbtc,
   hitbtc2: hitbtc,
   huobi,
@@ -79,6 +81,7 @@ module.exports = {
   FtxUs: require("./exchanges/ftx-us-client"),
   Gateio: gateio,
   Gemini: gemini,
+  GMOCoin: gmocoin,
   HitBTC: hitbtc,
   Huobi: huobi,
   HuobiFutures: require("./exchanges/huobi-futures-client"),
