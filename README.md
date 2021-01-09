@@ -59,6 +59,7 @@ binance.subscribeLevel2Snapshots(market);
 | Binance Futures USDT-M | 1   | BinanceFuturesUsdtM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance Jersey         | 1   | BinanceJe           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
 | Binance US             | 1   | BinanceUs           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
+| bitbank                | 1   | Bitbank             | &#10003; | &#10003; | -        | &#10003;           | &#10003;          | -                  | -                 |
 | Bitfinex               | 2   | Bitfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
 | bitFlyer               | 1   | Bitflyer            | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
 | Bithumb                | 1   | Bithumb             | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
@@ -76,7 +77,6 @@ binance.subscribeLevel2Snapshots(market);
 | FTX US                 | 1   | FtxUs               | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
 | Gate.io                | 3   | Gateio              | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
 | Gemini                 | 1   | Gemini              | -        | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| bitbank                | 1   | bitbank             | &#10003; | &#10003; | -        | &#10003;           | &#10003;          | -                  | -                 |
 | HitBTC                 | 2   | HitBTC              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
 | Huobi Global           | 1   | Huobi               | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
 | Huobi Global Futures   | 1   | HuobiFutures        | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |

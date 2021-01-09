@@ -1,8 +1,8 @@
 const { testClient } = require("../test-runner");
-const bitbankClient = require("../../src/exchanges/bitbank-client");
+const BitbankClient = require("../../src/exchanges/bitbank-client");
 
 testClient({
-  clientFactory: () => new bitbankClient(),
+  clientFactory: () => new BitbankClient(),
   clientName: "bitbankClient",
   exchangeName: "bitbank",
   markets: [

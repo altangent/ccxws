@@ -64,6 +64,7 @@ module.exports = {
   BinanceFuturesUsdtM: require("./exchanges/binance-futures-usdtm-client"),
   BinanceJe: binanceje,
   BinanceUs: binanceus,
+  Bitbank: bitbank,
   Bitfinex: bitfinex,
   Bitflyer: bitflyer,
   Bithumb: require("./exchanges/bithumb-client"),

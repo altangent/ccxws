@@ -5,7 +5,7 @@ const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const Level2Update = require("../level2-update");
 
-class bitbankClient extends BasicClient {
+class BitbankClient extends BasicClient {
   constructor({
     wssPath = "wss://stream.bitbank.cc/socket.io/?EIO=3&transport=websocket",
     watcherMs,
@@ -209,4 +209,4 @@ class bitbankClient extends BasicClient {
     });
   }
 }
-module.exports = bitbankClient;
+module.exports = BitbankClient;
