@@ -9,6 +9,7 @@ const moment = require("moment");
 class GMOCoinClient extends BasicMultiClient {
   constructor(options = {}) {
     super();
+    this._name = "GMOCoin";
     this.options = options;
     this.hasTickers = true;
     this.hasTrades = true;
