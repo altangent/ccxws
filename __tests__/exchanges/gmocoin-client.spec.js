@@ -13,17 +13,17 @@ testClient({
     },
     {
       id: "ETH",
-      base: "XRP",
+      base: "ETH",
       quote: "JPY",
     },
     {
       id: "BCH",
-      base: "XRP",
+      base: "BCH",
       quote: "JPY",
     },
     {
       id: "LTC",
-      base: "XRP",
+      base: "LTC",
       quote: "JPY",
     },
     {
