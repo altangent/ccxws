@@ -46,6 +46,7 @@ jobs:
           - binance-futures-usdtm
           - binanceje
           - binanceus
+          - bitbank
           - bitfinex
           - bitflyer
           - bithumb
