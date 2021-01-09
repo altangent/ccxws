@@ -73,10 +73,7 @@ class GMOCoinClient extends BasicMultiClient {
       let client = null;
       let key;
       map.keys(k => {
-        if (
-          key.remote_id === remote_id &&
-          key.marketObjectType == MarketObjectTypes.level2snapshot
-        ) {
+        if (key.remote_id === remote_id && key.marketObjectType == marketObjectType) {
           key = k;
           return;
         }
