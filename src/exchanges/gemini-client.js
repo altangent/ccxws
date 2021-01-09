@@ -256,17 +256,31 @@ class GeminiClient extends EventEmitter {
     if (!market) return;
 
     if (msg.type === "heartbeat") {
-      // if using sequenceId a heartbeat event will arrive which includes sequenceId.
-      // you'll need to receive heartbeat, otherwise sequence will have a gap in next l2update,
-      // so emit an l2update w/no ask or bid changes, only including the sequenceId
       // ex: '{"type":"heartbeat","socket_sequence":272}'
-      const sequenceId = msg.socket_sequence;
-      this.emit("l2update",
-        this._constructL2Update([], market, sequenceId, null, null),
-        market
-      );
-      return;
+      /*
+        A few notes on heartbeats and sequenceIds taken from the Gemini docs:
+        - Ongoing order events are interspersed with heartbeats every five seconds 
+        - So you can easily ensure that you are receiving all of your WebSocket messages in the expected order without any gaps, events and heartbeats contain a special sequence number.
+        - Your subscription begins - you receive your first event with socket_sequence set to a value of 0
+        - For all further messages, each message - whether a heartbeat or an event - should increase this sequence number by one.
+        - Each time you reconnect, the sequence number resets to zero.
+        - If you have multiple WebSocket connections, each will have a separate sequence number beginning with zero - make sure to keep track of each sequence number separately!
+      */
+      if (subscription.level2Updates) {
+        /*
+          So when subbed to l2 updates using sequenceId, a heartbeat event will arrive which includes sequenceId.
+          You'll need to receive the heartbeat, otherwise sequence will have a gap in next l2update,
+          So emit an l2update w/no ask or bid changes, only including the sequenceId
+        */
+        const sequenceId = msg.socket_sequence;
+        this.emit("l2update",
+          this._constructL2Update([], market, sequenceId, null, null),
+          market
+        );
+        return;
+      }
     }
+
     if (msg.type === "update") {
       let { timestampms, eventId, socket_sequence } = msg;
       const sequenceId = socket_sequence;
