@@ -33,10 +33,10 @@ testClient({
     },
   ],
 
-  testConnectEvents: false,
-  testDisconnectEvents: false,
-  testReconnectionEvents: false,
-  testCloseEvents: false,
+  testConnectEvents: true,
+  testDisconnectEvents: true,
+  testReconnectionEvents: true,
+  testCloseEvents: true,
 
   hasTickers: true,
   hasTrades: true,
@@ -68,13 +68,6 @@ testClient({
 
   l2snapshot: {
     hasTimestampMs: true,
-    hasSequenceId: false,
-    hasCount: false,
-  },
-
-  l2update: {
-    hasSnapshot: true,
-    hasTimestampMs: false,
     hasSequenceId: false,
     hasCount: false,
   },

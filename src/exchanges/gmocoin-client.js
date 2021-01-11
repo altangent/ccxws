@@ -1,160 +1,29 @@
 const BasicClient = require("../basic-client");
-const BasicMultiClient = require("../basic-multiclient");
-const { MarketObjectTypes } = require("../enums");
+const { throttle } = require("../flowcontrol/throttle");
 const Ticker = require("../ticker");
 const Trade = require("../trade");
 const Level2Point = require("../level2-point");
 const Level2Snapshot = require("../level2-snapshot");
 const moment = require("moment");
-const { wait } = require("../util");
 
-class GMOCoinClient extends BasicMultiClient {
-  constructor(options = {}) {
-    super();
-    this._name = "GMOCoin";
-    this.options = options;
-    this.hasTickers = true;
-    this.hasTrades = true;
-    this.hasLevel2Snapshots = true;
-  }
-
-  _createBasicClient() {
-    return new GMOCoinSingleClient({ ...this.options, parent: this });
-  }
-
-  async unsubscribeTicker(market) {
-    if (!this.hasTickers) return;
-    let key;
-    this._clients.keys(k => {
-      if (key.remote_id === market.id && key.marketObjectType == MarketObjectTypes.ticker) {
-        key = k;
-        return;
-      }
-    });
-
-    if (this._clients.has(key)) {
-      (await this._clients.get(key)).unsubscribeTicker(market);
-    }
-  }
-
-  async unsubscribeTrades(market) {
-    if (!this.hasTrades) return;
-    let key;
-    this._clients.keys(k => {
-      if (key.remote_id === market.id && key.marketObjectType == MarketObjectTypes.trade) {
-        key = k;
-        return;
-      }
-    });
-
-    if (this._clients.has(key)) {
-      (await this._clients.get(key)).unsubscribeTrades(market);
-    }
-  }
-
-  async unsubscribeLevel2Snapshots(market) {
-    if (!this.hasLevel2Snapshots) return;
-    let key;
-    this._clients.keys(k => {
-      if (key.remote_id === market.id && key.marketObjectType == MarketObjectTypes.level2snapshot) {
-        key = k;
-        return;
-      }
-    });
-
-    if (this._clients.has(key)) {
-      (await this._clients.get(key)).unsubscribeLevel2Snapshots(market);
-    }
-  }
-
-  async _subscribe(market, map, marketObjectType) {
-    try {
-      let remote_id = market.id;
-      let client = null;
-      let key = null;
-      map.keys(k => {
-        if (key.remote_id === remote_id && key.marketObjectType == marketObjectType) {
-          key = k;
-          return;
-        }
-      });
-      if (key === null) {
-        key = { remote_id: remote_id, marketObjectType: marketObjectType };
-      }
-      // construct a client
-      if (!map.has(key)) {
-        let clientArgs = { auth: this.auth, market: market };
-        client = this._createBasicClientThrottled(clientArgs);
-        // we MUST store the promise in here otherwise we will stack up duplicates
-        map.set(key, client);
-      }
-
-      // wait for client to be made!
-      client = await map.get(key);
-      await wait(1000);
-
-      if (marketObjectType === MarketObjectTypes.ticker) {
-        let subscribed = client.subscribeTicker(market);
-        if (subscribed) {
-          client.on("ticker", (ticker, market) => {
-            this.emit("ticker", ticker, market);
-          });
-        }
-      }
-
-      if (marketObjectType === MarketObjectTypes.candle) {
-        let subscribed = client.subscribeCandles(market);
-        if (subscribed) {
-          client.on("candle", (candle, market) => {
-            this.emit("candle", candle, market);
-          });
-        }
-      }
-
-      if (marketObjectType === MarketObjectTypes.trade) {
-        let subscribed = client.subscribeTrades(market);
-        if (subscribed) {
-          client.on("trade", (trade, market) => {
-            this.emit("trade", trade, market);
-          });
-        }
-      }
-
-      if (marketObjectType === MarketObjectTypes.level2update) {
-        let subscribed = client.subscribeLevel2Updates(market);
-        if (subscribed) {
-          client.on("l2update", (l2update, market) => {
-            this.emit("l2update", l2update, market);
-          });
-          client.on("l2snapshot", (l2snapshot, market) => {
-            this.emit("l2snapshot", l2snapshot, market);
-          });
-        }
-      }
-
-      if (marketObjectType === MarketObjectTypes.level2snapshot) {
-        let subscribed = client.subscribeLevel2Snapshots(market);
-        if (subscribed) {
-          client.on("l2snapshot", (l2snapshot, market) => {
-            this.emit("l2snapshot", l2snapshot, market);
-          });
-        }
-      }
-    } catch (ex) {
-      this.emit("error", ex, market);
-    }
-  }
-}
-class GMOCoinSingleClient extends BasicClient {
-  constructor({ wssPath = "wss://api.coin.z.com/ws/public/v1", watcherMs, parent } = {}) {
+class GMOCoinClient extends BasicClient {
+  constructor({
+    wssPath = "wss://api.coin.z.com/ws/public/v1",
+    throttleMs = 1000,
+    watcherMs,
+  } = {}) {
     super(wssPath, "GMOCoin", undefined, watcherMs);
 
     this.hasTickers = true;
     this.hasTrades = true;
     this.hasLevel2Snapshots = true;
-    this.parent = parent;
+    this._send = throttle(this._send.bind(this), throttleMs);
   }
 
+  _send(message) {
+    this._wss.send(message);
+  }
+  
   _sendPong(id) {
     this._wss.send(JSON.stringify({ pong: id }));
   }
