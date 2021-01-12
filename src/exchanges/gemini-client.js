@@ -266,17 +266,14 @@ class GeminiClient extends EventEmitter {
         - Each time you reconnect, the sequence number resets to zero.
         - If you have multiple WebSocket connections, each will have a separate sequence number beginning with zero - make sure to keep track of each sequence number separately!
       */
-      if (subscription.level2Updates) {
+      if (subscription.level2updates) {
         /*
           So when subbed to l2 updates using sequenceId, a heartbeat event will arrive which includes sequenceId.
           You'll need to receive the heartbeat, otherwise sequence will have a gap in next l2update,
           So emit an l2update w/no ask or bid changes, only including the sequenceId
         */
         const sequenceId = msg.socket_sequence;
-        this.emit("l2update",
-          this._constructL2Update([], market, sequenceId, null, null),
-          market
-        );
+        this.emit("l2update", this._constructL2Update([], market, sequenceId, null, null), market);
         return;
       }
     }
