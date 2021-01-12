@@ -16,7 +16,7 @@ class Ticker {
     bid,
     bidVolume,
     ask,
-    askVolume
+    askVolume,
   }) {
     this.exchange = exchange;
     this.base = base;
