@@ -68,6 +68,11 @@ testClient({
   },
 
   l2update: {
+    done: function(spec, result, update, market) {
+      const hasAsks = update.asks && update.asks.length > 0;
+      const hasBids = update.bids && update.bids.length > 0;
+      return hasAsks || hasBids;
+    },
     hasSnapshot: true,
     hasTimestampMs: true,
     hasSequenceId: true,
