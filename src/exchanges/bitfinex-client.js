@@ -182,7 +182,7 @@ class BitfinexClient extends BasicClient {
 
   _onTicker(msg, market) {
     let msgBody = msg[1];
-    const sequence = Number(msg[2]);
+    const sequenceId = Number(msg[2]);
     let [bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msgBody;
     let open = last + change;
     let ticker = new Ticker({
@@ -190,7 +190,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       timestamp: Date.now(),
-      sequenceId: sequence,
+      sequenceId,
       last: last.toFixed(8),
       open: open.toFixed(8),
       high: high.toFixed(8),
@@ -209,7 +209,7 @@ class BitfinexClient extends BasicClient {
   _onTradeMessage(msg, market) {
     // example msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
     let [id, unix, amount, price] = msg[2];
-    const sequence = Number(msg[3]);
+    const sequenceId = Number(msg[3]);
 
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
@@ -219,7 +219,7 @@ class BitfinexClient extends BasicClient {
       base: market.base,
       quote: market.quote,
       tradeId: id.toFixed(),
-      sequenceId: sequence,
+      sequenceId,
       unix: unix,
       side,
       price,
@@ -244,7 +244,7 @@ class BitfinexClient extends BasicClient {
   */
     let bids = [];
     let asks = [];
-    const sequence = Number(msg[2]);
+    const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
     for (let [price, count, size] of msg[1]) {
       let isBid = size > 0;
@@ -256,7 +256,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      sequenceId: sequence,
+      sequenceId,
       timestampMs,
       bids,
       asks,
@@ -267,7 +267,7 @@ class BitfinexClient extends BasicClient {
   _onLevel2Update(msg, market) {
     // example msg: [ 646750, [ 30927, 5, 0.0908 ], 19, 1609794565952 ]
     let [price, count, size] = msg[1];
-    let sequence = Number(msg[2]);
+    const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
 
     if (!price.toFixed) return;
@@ -285,7 +285,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      sequenceId: sequence,
+      sequenceId,
       timestampMs,
       asks,
       bids,
@@ -311,7 +311,7 @@ class BitfinexClient extends BasicClient {
     let asks = [];
 
     let orders = msg[1];
-    let sequence = Number(msg[2]);
+    const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
 
     for (let [orderId, price, size] of orders) {
@@ -323,7 +323,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      sequenceId: sequence,
+      sequenceId,
       timestampMs,
       asks,
       bids,
@@ -337,7 +337,7 @@ class BitfinexClient extends BasicClient {
     let asks = [];
 
     let [orderId, price, size] = msg[1];
-    let sequence = Number(msg[2]);
+    const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
 
     let point = new Level3Point(orderId.toFixed(), price.toFixed(8), Math.abs(size).toFixed(8));
@@ -348,7 +348,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      sequenceId: sequence,
+      sequenceId,
       timestampMs,
       asks,
       bids,

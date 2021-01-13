@@ -10,7 +10,6 @@ class Trade {
     this.amount = props.amount;
     this.buyOrderId = props.buyOrderId;
     this.sellOrderId = props.sellOrderId;
-    this.sequenceId = props.sequenceId;
     // attach any extra props
     for (let key in props) {
       if (!this[key]) this[key] = props[key];

@@ -310,8 +310,11 @@ function testTickers(spec, state) {
       } else {
         testUndefined(result, "ticker.timestamp");
       }
+
       if (spec.ticker.hasSequenceId) {
         testPositiveNumber(result, "ticker.sequenceId");
+      } else {
+        testUndefined(result, "ticker.sequenceId");
       }
 
       let numberProps = [
@@ -403,8 +406,11 @@ function testTrades(spec, state) {
       } else {
         testUndefined(result, "trade.tradeId");
       }
+
       if (spec.trade.hasSequenceId) {
         testPositiveNumber(result, `trade.sequenceId`);
+      } else {
+        testUndefined(result, `trade.sequenceId`);
       }
 
       if (spec.trade.tradeIdPattern) {
