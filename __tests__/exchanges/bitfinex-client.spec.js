@@ -49,11 +49,13 @@ testClient({
     hasBid: true,
     hasBidVolume: true,
     hasAsk: true,
+    hasSequenceId: true,
     hasAskVolume: true,
   },
 
   trade: {
     hasTradeId: true,
+    hasSequenceId: true,
   },
 
   l2snapshot: {

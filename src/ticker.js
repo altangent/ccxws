@@ -4,6 +4,7 @@ class Ticker {
     base,
     quote,
     timestamp,
+    sequenceId,
     last,
     open,
     high,
@@ -21,6 +22,7 @@ class Ticker {
     this.base = base;
     this.quote = quote;
     this.timestamp = timestamp;
+    this.sequenceId = sequenceId;
     this.last = last;
     this.open = open;
     this.high = high;
