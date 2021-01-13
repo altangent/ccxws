@@ -259,7 +259,7 @@ class GeminiClient extends EventEmitter {
       // ex: '{"type":"heartbeat","socket_sequence":272}'
       /*
         A few notes on heartbeats and sequenceIds taken from the Gemini docs:
-        - Ongoing order events are interspersed with heartbeats every five seconds 
+        - Ongoing order events are interspersed with heartbeats every five seconds
         - So you can easily ensure that you are receiving all of your WebSocket messages in the expected order without any gaps, events and heartbeats contain a special sequence number.
         - Your subscription begins - you receive your first event with socket_sequence set to a value of 0
         - For all further messages, each message - whether a heartbeat or an event - should increase this sequence number by one.
