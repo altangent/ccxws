@@ -472,3 +472,15 @@ Additional metadata is often provided in the `meta` property that has more detai
 - `sequenceId: int` - optional sequence identifier for the snapshot
 - `asks: [Level3Point]` - the ask (seller side) price points
 - `bids: [Level3Point]` - the bid (buyer side) price points
+
+## Caveats
+### Snapshots broadcast using the REST API
+For exchanges which request the Level2Snapshot or Level3Snapshot over REST, there can be a race condition where messages are missed between the snapshot and the first update, for example the snapshot `sequenceId` is 100 and the first update's `sequenceId` is 105.
+
+For a not-so-reliable fix you can monkey-patch a delay so that the snapshot is requested after subscribing to updates to better ensure the snapshot arrives with a `sequenceId` >= the first update that arrives. See example below:
+```js
+const REST_DELAY_MS = 500
+client._originalRequestLevel2Snapshot = client._requestLevel2Snapshot;
+client._requestLevel2Snapshot = market => setTimeout(() => client._originalRequestLevel2Snapshot(market), REST_DELAY_MS);
+```
+Otherwise you should be prepared to manually verify the `sequenceId` if possible, and request the snapshot again if there is a gap between the snapshot and the first update by calling `client.requestLevel2Snapshot(market)` again.
