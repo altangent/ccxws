@@ -139,9 +139,28 @@ class BitfinexClient extends BasicClient {
     // lookup channel
     let channel = this._channels[msg[0]];
     if (!channel) return;
+    //  heartbeats
+    if (msg[1] === "hb") {
+      // example msg: [ 78472, 'hb', 15, 1610739316477 ], values are [channelId, 'hb', sequenceId, timestamp]
+      // heartbeats include a sequenceId that needs to be received for order book
+      // validation, so emit an empty l2 update or l3 update w/the sequenceId if subscribed
+      const channelId = msg[0];
+      const sequenceId = Number(msg[2]);
+      const timestampMs = msg[3];
+      const l2Market = this._level2UpdateSubs.get(channel.pair);
+      const l3Market = this._level3UpdateSubs.get(channel.pair);
 
-    // ignore heartbeats
-    if (msg[1] === "hb") return;
+      if (l2Market) {
+        // simulate l2 update if subscribed, to keep book sequenceId up to date
+        const emptyL2UpdateMsg = [channelId, [], sequenceId, timestampMs];
+        this._onLevel2Update(emptyL2UpdateMsg, l2Market);
+      } else if (l3Market) {
+        // simulate l3 update if subscribed, to keep book sequenceId up to date
+        const emptyL3UpdateMsg = [channelId, [], sequenceId, timestampMs];
+        this._onLevel3Update(emptyL3UpdateMsg, l3Market);
+      }
+      return;
+    }
 
     if (channel.channel === "ticker") {
       let market = this._tickerSubs.get(channel.pair);
@@ -270,6 +289,21 @@ class BitfinexClient extends BasicClient {
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
 
+    // handle empty updates from the heartbeat event
+    if (msg[1].length === 0) {
+      let update = new Level2Update({
+        exchange: "Bitfinex",
+        base: market.base,
+        quote: market.quote,
+        sequenceId,
+        timestampMs,
+        asks: [],
+        bids: [],
+      });
+      this.emit("l2update", update, market);
+      return;
+    }
+
     if (!price.toFixed) return;
     let point = new Level2Point(price.toFixed(8), Math.abs(size).toFixed(8), count.toFixed(0));
     let asks = [];
@@ -339,6 +373,21 @@ class BitfinexClient extends BasicClient {
     let [orderId, price, size] = msg[1];
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
+
+    // handle empty updates from the heartbeat event
+    if (msg[1].length === 0) {
+      let result = new Level3Update({
+        exchange: "Bitfinex",
+        base: market.base,
+        quote: market.quote,
+        sequenceId,
+        timestampMs,
+        asks: [],
+        bids: [],
+      });
+      this.emit("l3update", result, market);
+      return;
+    }
 
     let point = new Level3Point(orderId.toFixed(), price.toFixed(8), Math.abs(size).toFixed(8));
     if (size > 0) bids.push(point);
