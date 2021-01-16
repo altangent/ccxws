@@ -107,7 +107,8 @@ class BitbankClient extends BasicClient {
 
     // tickers
     if (room.startsWith("ticker_")) {
-      let market = this._tickerSubs.get(remote_id);
+      const id = room.replace("ticker_", "");
+      let market = this._tickerSubs.get(id);
       if (!market) return;
 
       let ticker = this._constructTicker(msg, market);
@@ -118,8 +119,9 @@ class BitbankClient extends BasicClient {
 
     // trade
     if (room.startsWith("transactions_")) {
+      const id = room.replace("transactions_", "");
       for (let tx of msg.transactions) {
-        let market = this._tradeSubs.get(remote_id);
+        let market = this._tradeSubs.get(id);
         if (!market) return;
 
         let trade = this._constructTradesFromMessage(tx, market);
@@ -130,7 +132,8 @@ class BitbankClient extends BasicClient {
 
     // l2 snapshot
     if (room.startsWith("depth_whole_")) {
-      let market = this._level2SnapshotSubs.get(remote_id);
+      const id = room.replace("depth_whole_", "");
+      let market = this._level2SnapshotSubs.get(id);
       if (!market) return;
 
       let snapshot = this._constructLevel2Snapshot(msg, market);
@@ -140,7 +143,8 @@ class BitbankClient extends BasicClient {
 
     // l2 update
     if (room.startsWith("depth_diff_")) {
-      let market = this._level2UpdateSubs.get(remote_id);
+      const id = room.replace("depth_diff_", "");
+      let market = this._level2UpdateSubs.get(id);
       if (!market) return;
 
       let update = this._constructLevel2Updates(msg, market);
