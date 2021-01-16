@@ -50,45 +50,7 @@ class BitbankClient extends BasicClient {
     this._wss.send(`42["left-room", "depth_diff_${remote_id}"]`);
   }
 
-  _subscribe(market, map, sendFn) {
-    let remote_id = market.id;
-    this._connect(remote_id);
-    if (!map.has(remote_id)) {
-      map.set(remote_id, market);
-
-      // perform the subscription if we're connected
-      // and if not, then we'll reply on the _onConnected event
-      // to send the signal to our server!
-      if (this._wss && this._wss.isConnected) {
-        sendFn(remote_id, market);
-      }
-      return true;
-    }
-    return false;
-  }
-
-  _connect(remote_id) {
-    if (!this._wss) {
-      this._wss = this._wssFactory(this._wssPath);
-      this._wss.on("error", this._onError.bind(this));
-      this._wss.on("connecting", this._onConnecting.bind(this));
-      this._wss.on("connected", this._onConnected.bind(this));
-      this._wss.on("disconnected", this._onDisconnected.bind(this));
-      this._wss.on("closing", this._onClosing.bind(this));
-      this._wss.on("closed", this._onClosed.bind(this));
-      this._wss.on("message", msg => {
-        try {
-          this._onMessage(remote_id, msg);
-        } catch (ex) {
-          this._onError(ex);
-        }
-      });
-      if (this._beforeConnect) this._beforeConnect();
-      this._wss.connect();
-    }
-  }
-
-  _onMessage(remote_id, raw) {
+  _onMessage(raw) {
     let ep = parseInt(raw.slice(0, 1)); // engine.io-protocol
     let sp; // socket.io-protocol
     let content;
