@@ -23,13 +23,12 @@ class GMOCoinClient extends BasicClient {
   _send(message) {
     this._wss.send(message);
   }
-  
   _sendPong(id) {
-    this._wss.send(JSON.stringify({ pong: id }));
+    this._send(JSON.stringify({ pong: id }));
   }
 
   _sendSubTicker(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "subscribe",
         channel: "ticker",
@@ -39,7 +38,7 @@ class GMOCoinClient extends BasicClient {
   }
 
   _sendUnsubTicker(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "unsubscribe",
         channel: "ticker",
@@ -49,7 +48,7 @@ class GMOCoinClient extends BasicClient {
   }
 
   _sendSubTrades(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "subscribe",
         channel: "trades",
@@ -60,7 +59,7 @@ class GMOCoinClient extends BasicClient {
   }
 
   _sendUnsubTrades(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "unsubscribe",
         channel: "trades",
@@ -71,7 +70,7 @@ class GMOCoinClient extends BasicClient {
   }
 
   _sendSubLevel2Snapshots(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "subscribe",
         channel: "orderbooks",
@@ -81,7 +80,7 @@ class GMOCoinClient extends BasicClient {
   }
 
   _sendUnsubLevel2Snapshots(remote_id) {
-    this._wss.send(
+    this._send(
       JSON.stringify({
         command: "unsubscribe",
         channel: "orderbooks",
@@ -129,6 +128,25 @@ class GMOCoinClient extends BasicClient {
     }
   }
 
+  _onClosing() {
+    this._sendMessage.cancel();
+    super._onClosing();
+  }
+
+  /**
+   * Response example:
+   * {
+   *    "channel":"ticker",
+   *    "ask": "750760",
+   *    "bid": "750600",
+   *    "high": "762302",
+   *    "last": "756662",
+   *    "low": "704874",
+   *    "symbol": "BTC",
+   *    "timestamp": "2018-03-30T12:34:56.789Z",
+   *    "volume": "194785.8484"
+   * }
+   */
   _constructTicker(msg, market) {
     let { ask, bid, high, last, low, timestamp, volume } = msg;
     return new Ticker({
@@ -145,6 +163,17 @@ class GMOCoinClient extends BasicClient {
     });
   }
 
+  /**
+   * Response example:
+   * {
+   *    "channel":"trades",
+   *    "price": "750760",
+   *    "side": "BUY",
+   *    "size": "0.1",
+   *    "timestamp": "2018-03-30T12:34:56.789Z",
+   *    "symbol": "BTC"
+   * }
+   */
   _constructTrade(datum, market) {
     let { price, side, size, timestamp } = datum;
     let unix = moment(timestamp).valueOf();
@@ -159,6 +188,22 @@ class GMOCoinClient extends BasicClient {
     });
   }
 
+  /**
+   * Response example:
+   * {
+   *    "channel":"orderbooks",
+   *    "asks": [
+   *        {"price": "455659","size": "0.1"},
+   *        {"price": "455658","size": "0.2"}
+   *    ],
+   *    "bids": [
+   *        {"price": "455665","size": "0.1"},
+   *        {"price": "455655","size": "0.3"}
+   *    ],
+   *    "symbol": "BTC",
+   *    "timestamp": "2018-03-30T12:34:56.789Z"
+   * }
+   */
   _constructLevel2Snapshot(msg, market) {
     let asks = msg.asks.map(p => new Level2Point(p.price, p.size));
     let bids = msg.bids.map(p => new Level2Point(p.price, p.size));
