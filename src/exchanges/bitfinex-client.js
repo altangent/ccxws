@@ -235,10 +235,12 @@ class BitfinexClient extends BasicClient {
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
     if (msg[1] === "hb") {
-      });
       if (this.enableEmptyHeartbeatEvents === false) return;
       // handle heartbeat by emitting empty update w/sequenceId.
       // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
+      let trade = new Trade({
+        exchange: "Bitfinex",
+        base: market.base,
         quote: market.quote,
         timestamp: timestampMs,
         sequenceId
@@ -264,8 +266,8 @@ class BitfinexClient extends BasicClient {
         timestampMs
       ]
       */
-          price
-        });
+      msg[1].forEach(thisTrade => {
+        let [id, unix, amount, price] = thisTrade;
 
         let side = amount > 0 ? "buy" : "sell";
         price = price.toFixed(8);
