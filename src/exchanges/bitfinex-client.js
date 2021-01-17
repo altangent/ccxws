@@ -191,6 +191,7 @@ class BitfinexClient extends BasicClient {
 
   _onTicker(msg, market) {
     const sequenceId = Number(msg[2]);
+    const timestampMs = msg[3];
 
     if (msg[1] === "hb") {
       if (this.enableEmptyHeartbeatEvents === false) return;
@@ -200,7 +201,7 @@ class BitfinexClient extends BasicClient {
         exchange: "Bitfinex",
         base: market.base,
         quote: market.quote,
-        timestamp: Date.now(),
+        timestamp: timestampMs,
         sequenceId,
       });
       this.emit("ticker", ticker, market);
@@ -213,7 +214,7 @@ class BitfinexClient extends BasicClient {
       exchange: "Bitfinex",
       base: market.base,
       quote: market.quote,
-      timestamp: Date.now(),
+      timestamp: timestampMs,
       sequenceId,
       last: last.toFixed(8),
       open: open.toFixed(8),
@@ -231,23 +232,62 @@ class BitfinexClient extends BasicClient {
   }
 
   _onTradeMessage(msg, market) {
+    const sequenceId = Number(msg[2]);
+    const timestampMs = msg[3];
     if (msg[1] === "hb") {
+      });
       if (this.enableEmptyHeartbeatEvents === false) return;
       // handle heartbeat by emitting empty update w/sequenceId.
       // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
-      const sequenceId = Number(msg[2]);
-      let trade = new Trade({
-        exchange: "Bitfinex",
-        base: market.base,
         quote: market.quote,
-        timestamp: Date.now(),
-        sequenceId,
+        timestamp: timestampMs,
+        sequenceId
       });
       this.emit("trade", trade, market);
       return;
     }
-    // example trade msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
-    const sequenceId = Number(msg[3]);
+    if (Array.isArray(msg[1])) {
+      // trade snapshot example msg:
+      /*
+      [
+        CHANNEL_ID,
+        [
+          [
+            ID,
+            MTS,
+            AMOUNT,
+            PRICE
+          ],
+          ...
+        ],
+        sequenceId,
+        timestampMs
+      ]
+      */
+          price
+        });
+
+        let side = amount > 0 ? "buy" : "sell";
+        price = price.toFixed(8);
+        amount = Math.abs(amount).toFixed(8);
+        let trade = new Trade({
+          exchange: "Bitfinex",
+          base: market.base,
+          quote: market.quote,
+          tradeId: id.toFixed(),
+          sequenceId,
+          unix: unix,
+          side,
+          price,
+          amount,
+        });
+        this.emit("trade", trade, market);
+      });
+      return;
+    }
+    // example trade update msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
+    // note: "tu" means it's got the tradeId, this is delayed by 1-2 seconds and includes tradeId.
+    // "te" is the same but available immediately and without the tradeId
     if (msg[1] !== "tu") return;
     let [id, unix, amount, price] = msg[2];
 
