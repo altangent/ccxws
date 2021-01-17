@@ -13,7 +13,8 @@ class BitfinexClient extends BasicClient {
    *
    * @param {Object} params
    * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
-   *                                                             otherwise only l2update and l3update channels will include events on heartbeat
+   *                                                             otherwise only l2update and l3update channels will include events on heartbeat. If you need to validate all messages by
+   *                                                             tracking sequenceIds this must be set to true
    */
   constructor({
     wssPath = "wss://api.bitfinex.com/ws/2",

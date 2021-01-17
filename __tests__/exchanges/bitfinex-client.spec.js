@@ -69,11 +69,11 @@ testClient({
     hasTimestampMs: true,
     hasSequenceId: true,
     hasCount: true,
-    done: function(spec, result, update, market) {
+    done: function(spec, result, update) {
       const hasAsks = update.asks && update.asks.length > 0;
       const hasBids = update.bids && update.bids.length > 0;
       return hasAsks || hasBids;
-    },
+    }
   },
 
   l3snapshot: {
@@ -86,10 +86,10 @@ testClient({
     hasTimestampMs: true,
     hasSequenceId: true,
     hasCount: true,
-    done: function(spec, result, update, market) {
+    done: function(spec, result, update) {
       const hasAsks = update.asks && update.asks.length > 0;
       const hasBids = update.bids && update.bids.length > 0;
       return hasAsks || hasBids;
-    },
+    }
   },
 });
