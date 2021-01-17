@@ -10,12 +10,17 @@ const Level3Update = require("../level3-update");
 
 class BitfinexClient extends BasicClient {
   /**
-   * 
+   *
    * @param {Object} params
    * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
    *                                                             otherwise only l2update and l3update channels will include events on heartbeat
    */
-  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250, enableEmptyHeartbeatEvents = false } = {}) {
+  constructor({
+    wssPath = "wss://api.bitfinex.com/ws/2",
+    watcherMs,
+    l2UpdateDepth = 250,
+    enableEmptyHeartbeatEvents = false,
+  } = {}) {
     super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
 
@@ -195,7 +200,7 @@ class BitfinexClient extends BasicClient {
         base: market.base,
         quote: market.quote,
         timestamp: Date.now(),
-        sequenceId
+        sequenceId,
       });
       this.emit("ticker", ticker, market);
       return;
@@ -235,7 +240,7 @@ class BitfinexClient extends BasicClient {
         base: market.base,
         quote: market.quote,
         timestamp: Date.now(),
-        sequenceId
+        sequenceId,
       });
       this.emit("trade", trade, market);
       return;
@@ -391,7 +396,7 @@ class BitfinexClient extends BasicClient {
     let [orderId, price, size] = msg[1];
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
-    
+
     if (msg[1] === "hb") {
       // handle heartbeat by emitting empty update w/sequenceId.
       // heartbeat msg: [ 169546, 'hb', 17, 1610921150321 ]
