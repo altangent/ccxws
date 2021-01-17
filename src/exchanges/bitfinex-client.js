@@ -9,7 +9,13 @@ const Level3Snapshot = require("../level3-snapshot");
 const Level3Update = require("../level3-update");
 
 class BitfinexClient extends BasicClient {
-  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250 } = {}) {
+  /**
+   * 
+   * @param {Object} params
+   * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
+   *                                                             otherwise only l2update and l3update channels will include events on heartbeat
+   */
+  constructor({ wssPath = "wss://api.bitfinex.com/ws/2", watcherMs, l2UpdateDepth = 250, enableEmptyHeartbeatEvents = false } = {}) {
     super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
 
@@ -18,6 +24,7 @@ class BitfinexClient extends BasicClient {
     this.hasLevel2Updates = true;
     this.hasLevel3Updates = true;
     this.l2UpdateDepth = l2UpdateDepth;
+    this.enableEmptyHeartbeatEvents = enableEmptyHeartbeatEvents;
   }
 
   _onConnected() {
@@ -129,7 +136,6 @@ class BitfinexClient extends BasicClient {
 
   _onMessage(raw) {
     let msg = JSON.parse(raw);
-
     // capture channel metadata
     if (msg.event === "subscribed") {
       this._channels[msg.chanId] = msg;
@@ -139,28 +145,6 @@ class BitfinexClient extends BasicClient {
     // lookup channel
     let channel = this._channels[msg[0]];
     if (!channel) return;
-    //  heartbeats
-    if (msg[1] === "hb") {
-      // example msg: [ 78472, 'hb', 15, 1610739316477 ], values are [channelId, 'hb', sequenceId, timestamp]
-      // heartbeats include a sequenceId that needs to be received for order book
-      // validation, so emit an empty l2 update or l3 update w/the sequenceId if subscribed
-      const channelId = msg[0];
-      const sequenceId = Number(msg[2]);
-      const timestampMs = msg[3];
-      const l2Market = this._level2UpdateSubs.get(channel.pair);
-      const l3Market = this._level3UpdateSubs.get(channel.pair);
-
-      if (l2Market) {
-        // simulate l2 update if subscribed, to keep book sequenceId up to date
-        const emptyL2UpdateMsg = [channelId, [], sequenceId, timestampMs];
-        this._onLevel2Update(emptyL2UpdateMsg, l2Market);
-      } else if (l3Market) {
-        // simulate l3 update if subscribed, to keep book sequenceId up to date
-        const emptyL3UpdateMsg = [channelId, [], sequenceId, timestampMs];
-        this._onLevel3Update(emptyL3UpdateMsg, l3Market);
-      }
-      return;
-    }
 
     if (channel.channel === "ticker") {
       let market = this._tickerSubs.get(channel.pair);
@@ -200,8 +184,23 @@ class BitfinexClient extends BasicClient {
   }
 
   _onTicker(msg, market) {
-    let msgBody = msg[1];
     const sequenceId = Number(msg[2]);
+
+    if (msg[1] === "hb") {
+      if (this.enableEmptyHeartbeatEvents === false) return;
+      // handle heartbeat by emitting empty update w/sequenceId.
+      // heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
+      let ticker = new Ticker({
+        exchange: "Bitfinex",
+        base: market.base,
+        quote: market.quote,
+        timestamp: Date.now(),
+        sequenceId
+      });
+      this.emit("ticker", ticker, market);
+      return;
+    }
+    let msgBody = msg[1];
     let [bid, bidSize, ask, askSize, change, changePercent, last, volume, high, low] = msgBody;
     let open = last + change;
     let ticker = new Ticker({
@@ -226,9 +225,25 @@ class BitfinexClient extends BasicClient {
   }
 
   _onTradeMessage(msg, market) {
-    // example msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
+    if (msg[1] === "hb") {
+      if (this.enableEmptyHeartbeatEvents === false) return;
+      // handle heartbeat by emitting empty update w/sequenceId.
+      // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
+      let trade = new Trade({
+        exchange: "Bitfinex",
+        base: market.base,
+        quote: market.quote,
+        timestamp: Date.now(),
+        sequenceId
+      });
+      this.emit("trade", trade, market);
+      return;
+    }
+    // example trade msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
     let [id, unix, amount, price] = msg[2];
     const sequenceId = Number(msg[3]);
+
+
 
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
@@ -289,8 +304,11 @@ class BitfinexClient extends BasicClient {
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
 
-    // handle empty updates from the heartbeat event
-    if (msg[1].length === 0) {
+    if (msg[1] === "hb") {
+      // handle heartbeat by emitting empty update w/sequenceId.
+      // heartbeat msg: [ 169546, 'hb', 17, 1610921150321 ]
+      // NOTE: for order book updates we don't check if enableEmptyHeartbeatEvents === true, because
+      // an empty l2 update is 100% backward compatible so no harm done in emitting it
       let update = new Level2Update({
         exchange: "Bitfinex",
         base: market.base,
@@ -373,9 +391,12 @@ class BitfinexClient extends BasicClient {
     let [orderId, price, size] = msg[1];
     const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
-
-    // handle empty updates from the heartbeat event
-    if (msg[1].length === 0) {
+    
+    if (msg[1] === "hb") {
+      // handle heartbeat by emitting empty update w/sequenceId.
+      // heartbeat msg: [ 169546, 'hb', 17, 1610921150321 ]
+      // NOTE: for order book updates we don't check if enableEmptyHeartbeatEvents === true, because
+      // an empty l3 update is 100% backward compatible so no harm done in emitting it
       let result = new Level3Update({
         exchange: "Bitfinex",
         base: market.base,
