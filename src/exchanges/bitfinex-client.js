@@ -155,7 +155,7 @@ class BitfinexClient extends BasicClient {
     }
 
     // trades
-    if (channel.channel === "trades" && msg[1] === "tu") {
+    if (channel.channel === "trades") {
       let market = this._tradeSubs.get(channel.pair);
       if (!market) return;
 
@@ -229,6 +229,7 @@ class BitfinexClient extends BasicClient {
       if (this.enableEmptyHeartbeatEvents === false) return;
       // handle heartbeat by emitting empty update w/sequenceId.
       // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
+      const sequenceId = Number(msg[2]);
       let trade = new Trade({
         exchange: "Bitfinex",
         base: market.base,
@@ -240,10 +241,9 @@ class BitfinexClient extends BasicClient {
       return;
     }
     // example trade msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
-    let [id, unix, amount, price] = msg[2];
     const sequenceId = Number(msg[3]);
-
-
+    if (msg[1] !== "tu") return;
+    let [id, unix, amount, price] = msg[2];
 
     let side = amount > 0 ? "buy" : "sell";
     price = price.toFixed(8);
