@@ -73,7 +73,7 @@ testClient({
       const hasAsks = update.asks && update.asks.length > 0;
       const hasBids = update.bids && update.bids.length > 0;
       return hasAsks || hasBids;
-    }
+    },
   },
 
   l3snapshot: {
@@ -90,6 +90,6 @@ testClient({
       const hasAsks = update.asks && update.asks.length > 0;
       const hasBids = update.bids && update.bids.length > 0;
       return hasAsks || hasBids;
-    }
+    },
   },
 });

@@ -13,14 +13,15 @@ class BitfinexClient extends BasicClient {
    *
    * @param {Object} params
    * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
-   *                                                             otherwise only l2update and l3update channels will include events on heartbeat. If you need to validate all messages by
-   *                                                             tracking sequenceIds this must be set to true
+   * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). whether to use trade channel events of type "te" or "tu". see https://blog.bitfinex.com/api/websocket-api-update/.
+   *                                                            note that if you're using sequenceIds for validation you will probably want to use "te" since the delay in "tu" messages could cause a sequenceId out of order issue
    */
   constructor({
     wssPath = "wss://api.bitfinex.com/ws/2",
     watcherMs,
     l2UpdateDepth = 250,
     enableEmptyHeartbeatEvents = false,
+    tradeMessageType = "tu",
   } = {}) {
     super(wssPath, "Bitfinex", undefined, watcherMs);
     this._channels = {};
@@ -31,6 +32,7 @@ class BitfinexClient extends BasicClient {
     this.hasLevel3Updates = true;
     this.l2UpdateDepth = l2UpdateDepth;
     this.enableEmptyHeartbeatEvents = enableEmptyHeartbeatEvents;
+    this.tradeMessageType = tradeMessageType;
   }
 
   _onConnected() {
@@ -232,9 +234,9 @@ class BitfinexClient extends BasicClient {
   }
 
   _onTradeMessage(msg, market) {
-    const sequenceId = Number(msg[2]);
     const timestampMs = msg[3];
     if (msg[1] === "hb") {
+      const sequenceId = Number(msg[2]);
       if (this.enableEmptyHeartbeatEvents === false) return;
       // handle heartbeat by emitting empty update w/sequenceId.
       // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
@@ -243,12 +245,13 @@ class BitfinexClient extends BasicClient {
         base: market.base,
         quote: market.quote,
         timestamp: timestampMs,
-        sequenceId
+        sequenceId,
       });
       this.emit("trade", trade, market);
       return;
     }
     if (Array.isArray(msg[1])) {
+      const sequenceId = Number(msg[2]);
       // trade snapshot example msg:
       /*
       [
@@ -287,10 +290,13 @@ class BitfinexClient extends BasicClient {
       });
       return;
     }
-    // example trade update msg: [ 359491, 'tu', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
+    // example trade update msg: [ 359491, 'tu' or 'te', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
     // note: "tu" means it's got the tradeId, this is delayed by 1-2 seconds and includes tradeId.
     // "te" is the same but available immediately and without the tradeId
-    if (msg[1] !== "tu") return;
+    if (msg[1] !== this.tradeMessageType) {
+      return;
+    }
+    const sequenceId = Number(msg[3]);
     let [id, unix, amount, price] = msg[2];
 
     let side = amount > 0 ? "buy" : "sell";
