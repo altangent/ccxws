@@ -13,8 +13,8 @@ class BitfinexClient extends BasicClient {
    *
    * @param {Object} params
    * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
-   * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). whether to use trade channel events of type "te" or "tu". see https://blog.bitfinex.com/api/websocket-api-update/.
-   *                                                            note that if you're using sequenceIds for validation you will probably want to use "te" since the delay in "tu" messages could cause a sequenceId out of order issue
+   * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). one of "tu", "te", or "all". determines whether to use trade channel events of type "te" or "tu", or all trade events. see https://blog.bitfinex.com/api/websocket-api-update/.
+   *                                                            if you're using sequenceIds to validate websocket messages you may want to use "all" to receive every sequenceId
    */
   constructor({
     wssPath = "wss://api.bitfinex.com/ws/2",
@@ -32,7 +32,7 @@ class BitfinexClient extends BasicClient {
     this.hasLevel3Updates = true;
     this.l2UpdateDepth = l2UpdateDepth;
     this.enableEmptyHeartbeatEvents = enableEmptyHeartbeatEvents;
-    this.tradeMessageType = tradeMessageType;
+    this.tradeMessageType = tradeMessageType; // "te", "tu", or "all"
   }
 
   _onConnected() {
@@ -293,7 +293,16 @@ class BitfinexClient extends BasicClient {
     // example trade update msg: [ 359491, 'tu' or 'te', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
     // note: "tu" means it's got the tradeId, this is delayed by 1-2 seconds and includes tradeId.
     // "te" is the same but available immediately and without the tradeId
-    if (msg[1] !== this.tradeMessageType) {
+    let shouldHandleTradeEvent = false;
+    const tradeEventType = msg[1];
+    if (this.tradeMessageType === "all") {
+      shouldHandleTradeEvent = true;
+    } else if (this.tradeMessageType === "te" && tradeEventType === "te") {
+      shouldHandleTradeEvent = true;
+    } else if (this.tradeMessageType === "tu" && tradeEventType === "tu") {
+      shouldHandleTradeEvent = true;
+    }
+    if (!shouldHandleTradeEvent) {
       return;
     }
     const sequenceId = Number(msg[3]);
