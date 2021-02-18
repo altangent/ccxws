@@ -239,7 +239,7 @@ class BithumbClient extends BasicClient {
 
     for (let data of msg.content.list) {
       let point = new Level2Point(data.price, data.quantity, data.total);
-      if (point.orderType === "bid") bids.push(point);
+      if (data.orderType === "bid") bids.push(point);
       else asks.push(point);
     }
 
@@ -261,8 +261,8 @@ class BithumbClient extends BasicClient {
       let uri = `${this._restL2SnapshotPath}/${remote_id}`;
       let raw = await https.get(uri);
       let timestampMs = Number(raw.data.timestamp);
-      let asks = raw.data.asks.map(p => new Level2Point(p.price, p.quantity));
-      let bids = raw.data.bids.map(p => new Level2Point(p.price, p.quantity));
+      let asks = raw.data.asks.map((p) => new Level2Point(p.price, p.quantity));
+      let bids = raw.data.bids.map((p) => new Level2Point(p.price, p.quantity));
       let snapshot = new Level2Snapshot({
         exchange: this._name,
         base: market.base,
