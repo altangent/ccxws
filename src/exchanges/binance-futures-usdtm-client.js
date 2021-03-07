@@ -28,6 +28,14 @@ class BinanceFuturesUsdtMClient extends BinanceBase {
     });
   }
 
+
+  _sendSubTicker(remoteid) {
+    //if (this._tickersActive) return;
+    //this._tickersActive = true;
+    const stream = remoteid.toLowerCase() + "@bookTicker";
+    this._batchSub(stream)
+  }
+
   /**
    * Custom construction for a partial depth update. This deviates from
    * the spot market by including the `pu` property where updates may

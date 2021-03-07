@@ -216,6 +216,18 @@ class BinanceBase extends BasicClient {
       }
       return;
     }
+    
+    if (msg.stream.toLowerCase().endsWith("bookticker")) {
+      let raw = msg.data
+      let remote_id = raw.s;
+      let market = this._tickerSubs.get(remote_id);
+       
+
+      let ticker = this._constructTicker(raw, market);
+      this.emit("ticker", ticker, market);
+
+      return;
+    }
 
     // trades
     if (msg.stream.toLowerCase().endsWith("trade")) {
