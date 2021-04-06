@@ -239,7 +239,7 @@ class BithumbClient extends BasicClient {
 
     for (let data of msg.content.list) {
       let point = new Level2Point(data.price, data.quantity, data.total);
-      if (point.orderType === "bid") bids.push(point);
+      if (data.orderType === "bid") bids.push(point);
       else asks.push(point);
     }
 
