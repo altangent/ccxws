@@ -114,8 +114,10 @@ class DigifinexClient extends BasicClient {
     // handle ticker
     if (msg.method === "ticker.update") {
       for (let datum of msg.params) {
-        let remote_id = datum.symbol.toLowerCase();
-        let market = this._tickerSubs.get(remote_id);
+        let remote_id = datum.symbol;
+        let market =
+          this._tickerSubs.get(remote_id).toUpperCase() ||
+          this._tickerSubs.get(remote_id.toLowerCase());
         if (!market) continue;
 
         let ticker = this._constructTicker(datum, market);
@@ -126,8 +128,10 @@ class DigifinexClient extends BasicClient {
 
     // handle trades
     if (msg.method == "trades.update") {
-      let remote_id = msg.params[2].toLowerCase();
-      let market = this._tradeSubs.get(remote_id);
+      let remote_id = msg.params[2];
+      let market =
+        this._tradeSubs.get(remote_id).toUpperCase() ||
+        this._tradeSubs.get(remote_id.toLowerCase());
       if (!market) return;
 
       // trades arrive newest first
@@ -140,8 +144,10 @@ class DigifinexClient extends BasicClient {
 
     // handle updates
     if (msg.method === "depth.update") {
-      let remote_id = msg.params[2].toLowerCase();
-      let market = this._level2UpdateSubs.get(remote_id);
+      let remote_id = msg.params[2];
+      let market =
+        this._level2UpdateSubs.get(remote_id).toUpperCase() ||
+        this._level2UpdateSubs.get(remote_id.toLowerCase());
       if (!market) return;
 
       let snapshot = msg.params[0];
