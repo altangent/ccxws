@@ -8,20 +8,19 @@ class BinanceClient extends BinanceBase {
     socketThrottleMs = 1000,
     restThrottleMs = 1000,
     testNet = false,
+    wssPath = "wss://stream.binance.com:9443/stream",
+    restL2SnapshotPath = "https://api.binance.com/api/v1/depth",
     watcherMs,
     l2updateSpeed,
     l2snapshotSpeed,
   } = {}) {
-    let wssPath = "wss://stream.binance.com:9443/stream";
-    let apiPath = "https://api.binance.com/api";
     if (testNet) {
       wssPath = "wss://testnet.binance.vision/stream";
-      apiPath = "https://testnet.binance.vision/api"
+      apiPath = "https://testnet.binance.vision/api/v1/depth"
     }
-
     super({
       name: "Binance",
-      restL2SnapshotPath: `${apiPath}/v1/depth`,
+      restL2SnapshotPath,
       wssPath,
       useAggTrades,
       requestSnapshot,
