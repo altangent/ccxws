@@ -1,6 +1,7 @@
 const { CandlePeriod } = require("../enums");
 const https = require("../https");
 const Ticker = require("../ticker");
+const BookTicker = require("../bookTicker");
 const Trade = require("../trade");
 const Candle = require("../candle");
 const Level2Point = require("../level2-point");
@@ -53,6 +54,7 @@ class BinanceBase extends BasicClient {
     this.l2snapshotSpeed = l2snapshotSpeed;
     this.requestSnapshot = requestSnapshot;
     this.hasTickers = true;
+    this.hasBookTicker = true;
     this.hasTrades = true;
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
@@ -60,6 +62,7 @@ class BinanceBase extends BasicClient {
 
     this._messageId = 0;
     this._tickersActive = false;
+    this._bookTickersActive = false;
     this.candlePeriod = CandlePeriod._1m;
 
     this._batchSub = batch(this._batchSub.bind(this), socketBatchSize);
@@ -73,6 +76,7 @@ class BinanceBase extends BasicClient {
 
   _onClosing() {
     this._tickersActive = false;
+    this._bookTickersActive = false;
     this._batchSub.cancel();
     this._batchUnsub.cancel();
     this._sendMessage.cancel();
@@ -99,6 +103,30 @@ class BinanceBase extends BasicClient {
       JSON.stringify({
         method: "UNSUBSCRIBE",
         params: [`${remote_id}@ticker`],
+        id: ++this._messageId,
+      })
+    );
+  }
+
+  _sendSubBookTicker(remote_id) {
+    if (this._bookTickersActive) return;
+    this._bookTickersActive = true;
+    this._wss.send(
+      JSON.stringify({
+        method: "SUBSCRIBE",
+        params: [`${remote_id.toLowerCase()}@bookTicker`],
+        id: ++this._messageId,
+      })
+    );
+  }
+
+  _sendUnsubBookTicker(remote_id) {
+    if (this._bookTickerSubs.size > 1) return;
+    this._bookTickersActive = false;
+    this._wss.send(
+      JSON.stringify({
+        method: "UNSUBSCRIBE",
+        params: [`${remote_id}@bookTicker`],
         id: ++this._messageId,
       })
     );
@@ -215,6 +243,17 @@ class BinanceBase extends BasicClient {
       return;
     }
 
+    // orderbook ticker
+    if (msg.stream.toLowerCase().endsWith("bookTicker")) {
+      let remote_id = msg.data.s;
+      let market = this._bookTickerSubs.get(remote_id);
+      if (!market) return;
+
+      let ticker = this._constructBookTicker(msg.data, market);
+      this.emit("bookTicker", ticker, market);
+      return;
+    }
+
     // trades
     if (msg.stream.toLowerCase().endsWith("trade")) {
       let remote_id = msg.data.s;
@@ -297,6 +336,25 @@ class BinanceBase extends BasicClient {
       askVolume,
     });
   }
+
+  _constructBookTicker(msg, market) {
+    let {
+      a: ask,
+      A: askVolume,
+      b: bid,
+      B: bidVolume,
+    } = msg;
+    return new BookTicker({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      bid,
+      bidVolume,
+      ask,
+      askVolume,
+    });
+  }
+
 
   _constructAggTrade({ data }, market) {
     let { a: trade_id, p: price, q: size, T: time, m: buyer } = data;
