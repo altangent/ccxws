@@ -60,5 +60,6 @@ typings/
 test.js
 test*.js
 
+.history
 .vscode
 **/.DS_Store
