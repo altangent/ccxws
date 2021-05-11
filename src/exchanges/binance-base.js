@@ -80,25 +80,25 @@ class BinanceBase extends BasicClient {
     super._onClosing();
   }
 
-  _sendSubTicker() {
+  _sendSubTicker(remote_id) {
     if (this._tickersActive) return;
     this._tickersActive = true;
     this._wss.send(
       JSON.stringify({
         method: "SUBSCRIBE",
-        params: ["!ticker@arr"],
+        params: [`${remote_id.toLowerCase()}@ticker`],
         id: ++this._messageId,
       })
     );
   }
 
-  _sendUnsubTicker() {
+  _sendUnsubTicker(remote_id) {
     if (this._tickerSubs.size > 1) return;
     this._tickersActive = false;
     this._wss.send(
       JSON.stringify({
         method: "UNSUBSCRIBE",
-        params: ["!ticker@arr"],
+        params: [`${remote_id}@ticker`],
         id: ++this._messageId,
       })
     );
@@ -205,15 +205,13 @@ class BinanceBase extends BasicClient {
     }
 
     // ticker
-    if (msg.stream === "!ticker@arr") {
-      for (let raw of msg.data) {
-        let remote_id = raw.s;
-        let market = this._tickerSubs.get(remote_id);
-        if (!market) continue;
+    if (msg.stream.toLowerCase().endsWith("ticker")) {
+      let remote_id = msg.data.s;
+      let market = this._tickerSubs.get(remote_id);
+      if (!market) return;
 
-        let ticker = this._constructTicker(raw, market);
-        this.emit("ticker", ticker, market);
-      }
+      let ticker = this._constructTicker(msg.data, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
