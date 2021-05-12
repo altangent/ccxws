@@ -9,6 +9,7 @@ class BasicMultiClient extends EventEmitter {
     this._clients = new Map();
 
     this.hasTickers = false;
+    this.hasBookTicker = false;
     this.hasTrades = false;
     this.hasCandles = false;
     this.hasLevel2Snapshots = false;
@@ -48,6 +49,18 @@ class BasicMultiClient extends EventEmitter {
     if (!this.hasTickers) return;
     if (this._clients.has(market.id)) {
       (await this._clients.get(market.id)).unsubscribeTicker(market);
+    }
+  }
+
+  subscribeBookTicker(market) {
+    if (!this.hasBookTicker) return;
+    this._subscribe(market, this._clients, MarketObjectTypes.bookTicker);
+  }
+
+  async unsubscribeBookTicker(market) {
+    if (!this.hasBookTicker) return;
+    if (this._clients.has(market.id)) {
+      (await this._clients.get(market.id)).unsubscribeBookTicker(market);
     }
   }
 
@@ -142,6 +155,15 @@ class BasicMultiClient extends EventEmitter {
         if (subscribed) {
           client.on("ticker", (ticker, market) => {
             this.emit("ticker", ticker, market);
+          });
+        }
+      }
+
+      if (marketObjectType === MarketObjectTypes.bookTicker) {
+        let subscribed = client.subscribeBookTicker(market);
+        if (subscribed) {
+          client.on("bookTicker", (bookTicker, market) => {
+            this.emit("bookTicker", bookTicker, market);
           });
         }
       }
