@@ -6,6 +6,7 @@ const MarketObjectTypes = Object.freeze({
   level3snapshot: 5,
   level3update: 6,
   candle: 7,
+  bookTicker: 8
 });
 
 const CandlePeriod = Object.freeze({
