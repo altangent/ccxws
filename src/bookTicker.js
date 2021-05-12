@@ -23,7 +23,6 @@ class BookTicker {
     this.exchange = exchange;
     this.base = base;
     this.quote = quote;
-    this.timestamp = timestamp;
     this.bid = bid;
     this.bidVolume = bidVolume;
     this.ask = ask;
