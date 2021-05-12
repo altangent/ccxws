@@ -62,7 +62,6 @@ class BinanceBase extends BasicClient {
 
     this._messageId = 0;
     this._tickersActive = false;
-    this._bookTickersActive = false;
     this.candlePeriod = CandlePeriod._1m;
 
     this._batchSub = batch(this._batchSub.bind(this), socketBatchSize);
@@ -76,7 +75,7 @@ class BinanceBase extends BasicClient {
 
   _onClosing() {
     this._tickersActive = false;
-    this._bookTickersActive = false;
+    this._bookTickerSubs = new Map();
     this._batchSub.cancel();
     this._batchUnsub.cancel();
     this._sendMessage.cancel();
@@ -109,8 +108,6 @@ class BinanceBase extends BasicClient {
   }
 
   _sendSubBookTicker(remote_id) {
-    if (this._bookTickersActive) return;
-    this._bookTickersActive = true;
     this._wss.send(
       JSON.stringify({
         method: "SUBSCRIBE",
@@ -121,8 +118,7 @@ class BinanceBase extends BasicClient {
   }
 
   _sendUnsubBookTicker(remote_id) {
-    if (this._bookTickerSubs.size > 1) return;
-    this._bookTickersActive = false;
+    if (!this._bookTickerSubs.has(remote_id)) return;
     this._wss.send(
       JSON.stringify({
         method: "UNSUBSCRIBE",
@@ -233,7 +229,7 @@ class BinanceBase extends BasicClient {
     }
 
     // ticker
-    if (msg.stream.toLowerCase().endsWith("ticker")) {
+    if (msg.stream.toLowerCase().endsWith("@ticker")) {
       let remote_id = msg.data.s;
       let market = this._tickerSubs.get(remote_id);
       if (!market) return;
@@ -244,7 +240,7 @@ class BinanceBase extends BasicClient {
     }
 
     // orderbook ticker
-    if (msg.stream.toLowerCase().endsWith("bookTicker")) {
+    if (msg.stream.endsWith("@bookTicker")) {
       let remote_id = msg.data.s;
       let market = this._bookTickerSubs.get(remote_id);
       if (!market) return;
