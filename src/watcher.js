@@ -13,6 +13,7 @@ class Watcher {
 
     this.markAlive = this.markAlive.bind(this);
     client.on("ticker", this.markAlive);
+    client.on("bookTicker", this.markAlive);
     client.on("candle", this.markAlive);
     client.on("trade", this.markAlive);
     client.on("l2snapshot", this.markAlive);
