@@ -16,7 +16,7 @@ class BinanceClient extends BinanceBase {
   } = {}) {
     if (testNet) {
       wssPath = "wss://testnet.binance.vision/stream";
-      apiPath = "https://testnet.binance.vision/api/v1/depth"
+      restL2SnapshotPath = "https://testnet.binance.vision/api/v1/depth";
     }
     super({
       name: "Binance",
