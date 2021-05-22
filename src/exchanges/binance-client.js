@@ -10,6 +10,7 @@ class BinanceClient extends BinanceBase {
     watcherMs,
     l2updateSpeed,
     l2snapshotSpeed,
+    batchTickers = true,
   } = {}) {
     super({
       name: "Binance",
@@ -23,6 +24,7 @@ class BinanceClient extends BinanceBase {
       watcherMs,
       l2updateSpeed,
       l2snapshotSpeed,
+      batchTickers,
     });
   }
 }

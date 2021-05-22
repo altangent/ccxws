@@ -44,6 +44,7 @@ class BinanceBase extends BasicClient {
     restThrottleMs = 1000,
     l2updateSpeed = "",
     l2snapshotSpeed = "",
+    batchTickers,
   } = {}) {
     super(wssPath, name, undefined, watcherMs);
     this._restL2SnapshotPath = restL2SnapshotPath;
@@ -57,6 +58,7 @@ class BinanceBase extends BasicClient {
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
+    this.batchTickers = batchTickers;
 
     this._messageId = 0;
     this._tickersActive = false;
@@ -83,10 +85,11 @@ class BinanceBase extends BasicClient {
   _sendSubTicker(remote_id) {
     if (this._tickersActive) return;
     this._tickersActive = true;
+    const params = this.batchTickers ? ['!ticker@arr'] : [`${remote_id.toLowerCase()}@ticker`];
     this._wss.send(
       JSON.stringify({
         method: "SUBSCRIBE",
-        params: [`${remote_id.toLowerCase()}@ticker`],
+        params: params,
         id: ++this._messageId,
       })
     );
@@ -95,10 +98,11 @@ class BinanceBase extends BasicClient {
   _sendUnsubTicker(remote_id) {
     if (this._tickerSubs.size > 1) return;
     this._tickersActive = false;
+    const params = this.batchTickers ? ['!ticker@arr'] : [`${remote_id.toLowerCase()}@ticker`];
     this._wss.send(
       JSON.stringify({
         method: "UNSUBSCRIBE",
-        params: [`${remote_id}@ticker`],
+        params: params,
         id: ++this._messageId,
       })
     );
@@ -204,7 +208,20 @@ class BinanceBase extends BasicClient {
       return;
     }
 
-    // ticker
+    // batch tickers
+    if (msg.stream === "!ticker@arr") {
+      for (let raw of msg.data) {
+        let remote_id = raw.s;
+        let market = this._tickerSubs.get(remote_id);
+        if (!market) continue;
+
+        let ticker = this._constructTicker(raw, market);
+        this.emit("ticker", ticker, market);
+      }
+      return;
+    }
+
+    // single ticker
     if (msg.stream.toLowerCase().endsWith("ticker")) {
       let remote_id = msg.data.s;
       let market = this._tickerSubs.get(remote_id);
