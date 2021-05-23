@@ -92,21 +92,29 @@ class BinanceBase extends BasicClient {
    _onConnected() {
     this.emit("connected");
     const subscribe = (subFn, subs) => {
-      const subscriptions = Array.from(subs.entries())
-      const [marketSymbol, market] = subscriptions[0]
+      const subscribeMore = (subscriptions) => {
+        if (!subscriptions.length) {
+          return
+        }
 
-      subFn(marketSymbol, market);
+        const [marketSymbol, market] = subscriptions[0]
 
-      setTimeout(() => subscribe(subscriptions.slice(1)), 200)
+        subFn(marketSymbol, market);
+
+        setTimeout(() => subscribeMore(subscriptions.slice(1)), 200)
+      }
+      const subscriptions = subs && Array.from(subs.entries()) || []
+
+      subscribeMore(subscriptions)
     }
 
-    subscribe(this._sendSubTicker, this._tickerSubs)
-    subscribe(this._sendSubBookTicker, this._bookTickerSubs)
-    subscribe(this._sendSubCandles, this._candleSubs)
-    subscribe(this._sendSubTrades, this._tradeSubs)
-    subscribe(this._sendSubLevel2Snapshots, this._level2SnapshotSubs)
-    subscribe(this._sendSubLevel2Updates, this._level2UpdateSubs)
-    subscribe(this._sendSubLevel3Updates, this._level3UpdateSubs)
+    subscribe(this._sendSubTicker.bind(this), this._tickerSubs)
+    subscribe(this._sendSubBookTicker.bind(this), this._bookTickerSubs)
+    subscribe(this._sendSubCandles.bind(this), this._candleSubs)
+    subscribe(this._sendSubTrades.bind(this), this._tradeSubs)
+    subscribe(this._sendSubLevel2Snapshots.bind(this), this._level2SnapshotSubs)
+    subscribe(this._sendSubLevel2Updates.bind(this), this._level2UpdateSubs)
+    subscribe(this._sendSubLevel3Updates.bind(this), this._level3UpdateSubs)
 
     this._watcher.start();
   }
