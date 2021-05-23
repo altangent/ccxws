@@ -93,7 +93,7 @@ class BinanceBase extends BasicClient {
    _onConnected() {
     this.emit("connected");
     const subscribe = (subFn, subs) => {
-      const subscriptions = Array.from(this._bookTickerSubs.entries())
+      const subscriptions = Array.from(subs.entries())
       const [marketSymbol, market] = subscriptions[0]
 
       subFn(marketSymbol, market);
