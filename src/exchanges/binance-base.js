@@ -83,6 +83,51 @@ class BinanceBase extends BasicClient {
     super._onClosing();
   }
 
+
+  /**
+   * This method is fired anytime the socket is opened, whether
+   * the first time, or any subsequent reconnects. This allows
+   * the socket to immediate trigger resubscription to relevent
+   * feeds
+   */
+   _onConnected() {
+    this.emit("connected");
+    for (let [marketSymbol, market] of this._tickerSubs) {
+      this._sendSubTicker(marketSymbol, market);
+    }
+
+    const bootTickerSubs = Array.from(this._bookTickerSubs.entries())
+    const sendBookTicker = (subs) => {
+      const [marketSymbol, market] = subs[0]
+
+      this._sendSubBookTicker(marketSymbol, market);
+
+      setTimeout(() => sendBookTicker(subs.slice(1)), 500)
+    }
+
+    sendBookTicker(bootTickerSubs)
+
+    for (let [marketSymbol, market] of this._bookTickerSubs) {
+      this._sendSubBookTicker(marketSymbol, market);
+    }
+    for (let [marketSymbol, market] of this._candleSubs) {
+      this._sendSubCandles(marketSymbol, market);
+    }
+    for (let [marketSymbol, market] of this._tradeSubs) {
+      this._sendSubTrades(marketSymbol, market);
+    }
+    for (let [marketSymbol, market] of this._level2SnapshotSubs) {
+      this._sendSubLevel2Snapshots(marketSymbol, market);
+    }
+    for (let [marketSymbol, market] of this._level2UpdateSubs) {
+      this._sendSubLevel2Updates(marketSymbol, market);
+    }
+    for (let [marketSymbol, market] of this._level3UpdateSubs) {
+      this._sendSubLevel3Updates(marketSymbol, market);
+    }
+    this._watcher.start();
+  }
+
   _sendSubTicker(remote_id) {
     if (this._tickersActive) return;
     this._tickersActive = true;
