@@ -92,39 +92,23 @@ class BinanceBase extends BasicClient {
    */
    _onConnected() {
     this.emit("connected");
-    for (let [marketSymbol, market] of this._tickerSubs) {
-      this._sendSubTicker(marketSymbol, market);
+    const subscribe = (subFn, subs) => {
+      const subscriptions = Array.from(this._bookTickerSubs.entries())
+      const [marketSymbol, market] = subscriptions[0]
+
+      subFn(marketSymbol, market);
+
+      setTimeout(() => subscribe(subscriptions.slice(1)), 200)
     }
 
-    const bootTickerSubs = Array.from(this._bookTickerSubs.entries())
-    const sendBookTicker = (subs) => {
-      const [marketSymbol, market] = subs[0]
+    subscribe(this._sendSubTicker, this._tickerSubs)
+    subscribe(this._sendSubBookTicker, this._bookTickerSubs)
+    subscribe(this._sendSubCandles, this._candleSubs)
+    subscribe(this._sendSubTrades, this._tradeSubs)
+    subscribe(this._sendSubLevel2Snapshots, this._level2SnapshotSubs)
+    subscribe(this._sendSubLevel2Updates, this._level2UpdateSubs)
+    subscribe(this._sendSubLevel3Updates, this._level3UpdateSubs)
 
-      this._sendSubBookTicker(marketSymbol, market);
-
-      setTimeout(() => sendBookTicker(subs.slice(1)), 500)
-    }
-
-    sendBookTicker(bootTickerSubs)
-
-    for (let [marketSymbol, market] of this._bookTickerSubs) {
-      this._sendSubBookTicker(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._candleSubs) {
-      this._sendSubCandles(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._tradeSubs) {
-      this._sendSubTrades(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._level2SnapshotSubs) {
-      this._sendSubLevel2Snapshots(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._level2UpdateSubs) {
-      this._sendSubLevel2Updates(marketSymbol, market);
-    }
-    for (let [marketSymbol, market] of this._level3UpdateSubs) {
-      this._sendSubLevel3Updates(marketSymbol, market);
-    }
     this._watcher.start();
   }
 
