@@ -44,7 +44,7 @@ class BinanceBase extends BasicClient {
     restThrottleMs = 1000,
     l2updateSpeed = "",
     l2snapshotSpeed = "",
-    batchTickers,
+    batchTickers = true,
   } = {}) {
     super(wssPath, name, undefined, watcherMs);
     this._restL2SnapshotPath = restL2SnapshotPath;
