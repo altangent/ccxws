@@ -32,7 +32,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `live_trades_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -43,7 +43,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `live_trades_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -54,7 +54,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `order_book_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -65,7 +65,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `order_book_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -77,7 +77,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `diff_order_book_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -88,7 +88,7 @@ class BitstampClient extends BasicClient {
         data: {
           channel: `diff_order_book_${remote_id}`,
         },
-      })
+      }),
     );
   }
 

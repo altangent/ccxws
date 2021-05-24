@@ -26,7 +26,7 @@ class DigifinexClient extends BasicClient {
         method: "ticker.subscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -36,7 +36,7 @@ class DigifinexClient extends BasicClient {
         method: "ticker.unsubscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -46,7 +46,7 @@ class DigifinexClient extends BasicClient {
         method: "trades.subscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -56,7 +56,7 @@ class DigifinexClient extends BasicClient {
         method: "trades.unsubscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -66,7 +66,7 @@ class DigifinexClient extends BasicClient {
         method: "depth.subscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -76,7 +76,7 @@ class DigifinexClient extends BasicClient {
         method: "depth.unsubscribe",
         params: [remote_id],
         id: ++this.id,
-      })
+      }),
     );
   }
 

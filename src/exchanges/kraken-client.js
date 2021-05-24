@@ -123,7 +123,7 @@ class KrakenClient extends BasicClient {
           event: subscribe ? "subscribe" : "unsubscribe",
           pair: wsSymbols,
           subscription,
-        })
+        }),
       );
     });
   }

@@ -36,7 +36,7 @@ class DeribitClient extends BasicClient {
           channels: [`ticker.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -49,7 +49,7 @@ class DeribitClient extends BasicClient {
           channels: [`ticker.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -62,7 +62,7 @@ class DeribitClient extends BasicClient {
           channels: [`trades.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -75,7 +75,7 @@ class DeribitClient extends BasicClient {
           channels: [`trades.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -88,7 +88,7 @@ class DeribitClient extends BasicClient {
           channels: [`chart.trades.${remote_id}.${candlePeriod(this.candlePeriod)}`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -101,7 +101,7 @@ class DeribitClient extends BasicClient {
           channels: [`chart.trades.${remote_id}.${candlePeriod(this.candlePeriod)}`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -114,7 +114,7 @@ class DeribitClient extends BasicClient {
           channels: [`book.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -127,7 +127,7 @@ class DeribitClient extends BasicClient {
           channels: [`book.${remote_id}.raw`],
         },
         id: ++this.id,
-      })
+      }),
     );
   }
 
@@ -311,7 +311,7 @@ class DeribitClient extends BasicClient {
       data.high.toFixed(8),
       data.low.toFixed(8),
       data.close.toFixed(8),
-      data.volume.toFixed(8)
+      data.volume.toFixed(8),
     );
   }
 
@@ -352,10 +352,10 @@ class DeribitClient extends BasicClient {
     const sequenceId = data.change_id;
 
     const asks = data.asks.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] }),
     );
     const bids = data.bids.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(8), undefined, { type: p[0] }),
     );
 
     return new Level2Snapshot({
@@ -399,10 +399,10 @@ class DeribitClient extends BasicClient {
     const sequenceId = data.change_id;
 
     const asks = data.asks.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] }),
     );
     const bids = data.bids.map(
-      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] })
+      p => new Level2Point(p[1].toFixed(8), p[2].toFixed(2), undefined, { type: p[0] }),
     );
 
     return new Level2Snapshot({

@@ -133,7 +133,7 @@ class SingleCexClient extends BasicClient {
       JSON.stringify({
         e: "auth",
         auth: createAuthToken(this.auth.apiKey, this.auth.apiSecret),
-      })
+      }),
     );
   }
 
@@ -149,7 +149,7 @@ class SingleCexClient extends BasicClient {
       JSON.stringify({
         e: "subscribe",
         rooms: ["tickers"],
-      })
+      }),
     );
   }
 
@@ -161,7 +161,7 @@ class SingleCexClient extends BasicClient {
       JSON.stringify({
         e: "subscribe",
         rooms: [`pair-${remote_id.replace("/", "-")}`],
-      })
+      }),
     );
   }
 
@@ -174,7 +174,7 @@ class SingleCexClient extends BasicClient {
         e: "init-ohlcv",
         i: candlePeriod(this.candlePeriod),
         rooms: [`pair-${remote_id.replace("/", "-")}`],
-      })
+      }),
     );
   }
 
@@ -186,7 +186,7 @@ class SingleCexClient extends BasicClient {
       JSON.stringify({
         e: "subscribe",
         rooms: [`pair-${remote_id.replace("/", "-")}`],
-      })
+      }),
     );
   }
 

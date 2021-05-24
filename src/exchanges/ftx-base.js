@@ -21,7 +21,7 @@ class FtxBaseClient extends BasicClient {
         op: "subscribe",
         channel: "ticker",
         market,
-      })
+      }),
     );
   }
 
@@ -31,7 +31,7 @@ class FtxBaseClient extends BasicClient {
         op: "unsubscribe",
         channel: "ticker",
         market,
-      })
+      }),
     );
   }
 
@@ -41,7 +41,7 @@ class FtxBaseClient extends BasicClient {
         op: "subscribe",
         channel: "trades",
         market,
-      })
+      }),
     );
   }
 
@@ -51,7 +51,7 @@ class FtxBaseClient extends BasicClient {
         op: "unsubscribe",
         channel: "trades",
         market,
-      })
+      }),
     );
   }
 
@@ -61,7 +61,7 @@ class FtxBaseClient extends BasicClient {
         op: "subscribe",
         channel: "orderbook",
         market,
-      })
+      }),
     );
   }
 
@@ -71,7 +71,7 @@ class FtxBaseClient extends BasicClient {
         op: "subscribe",
         channel: "orderbook",
         market,
-      })
+      }),
     );
   }
 
@@ -189,10 +189,7 @@ class FtxBaseClient extends BasicClient {
   }
 
   _timeToTimestampMs(time) {
-    return new Decimal(time)
-      .mul(1000)
-      .toDecimalPlaces(0)
-      .toNumber();
+    return new Decimal(time).mul(1000).toDecimalPlaces(0).toNumber();
   }
 }
 

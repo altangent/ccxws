@@ -63,7 +63,7 @@ class KucoinOrderBook {
     for (let ask of snap.asks) {
       this.asks.set(
         ask.orderId,
-        new L3Point(ask.orderId, Number(ask.price), Number(ask.size), Number(ask.meta.timestampMs))
+        new L3Point(ask.orderId, Number(ask.price), Number(ask.size), Number(ask.meta.timestampMs)),
       );
     }
 
@@ -71,7 +71,7 @@ class KucoinOrderBook {
     for (let bid of snap.bids) {
       this.bids.set(
         bid.orderId,
-        new L3Point(bid.orderId, Number(bid.price), Number(bid.size), Number(bid.meta.timestampMs))
+        new L3Point(bid.orderId, Number(bid.price), Number(bid.size), Number(bid.meta.timestampMs)),
       );
     }
 
@@ -118,7 +118,7 @@ class KucoinOrderBook {
         updatePoint.orderId,
         Number(updatePoint.price),
         Number(updatePoint.size),
-        update.timestampMs
+        update.timestampMs,
       );
 
       map.set(obPoint.orderId, obPoint);
@@ -170,9 +170,7 @@ class KucoinOrderBook {
 
 function snapSide(map, sorter, depth) {
   const aggMap = aggByPrice(map);
-  return Array.from(aggMap.values())
-    .sort(sorter)
-    .slice(0, depth);
+  return Array.from(aggMap.values()).sort(sorter).slice(0, depth);
 }
 
 function aggByPrice(map) {

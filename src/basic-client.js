@@ -92,7 +92,7 @@ class BasicTradeClient extends EventEmitter {
     return this._subscribe(
       market,
       this._level2SnapshotSubs,
-      this._sendSubLevel2Snapshots.bind(this)
+      this._sendSubLevel2Snapshots.bind(this),
     );
   }
 

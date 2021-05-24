@@ -88,7 +88,7 @@ class BinanceBase extends BasicClient {
         method: "SUBSCRIBE",
         params: ["!ticker@arr"],
         id: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -100,7 +100,7 @@ class BinanceBase extends BasicClient {
         method: "UNSUBSCRIBE",
         params: ["!ticker@arr"],
         id: ++this._messageId,
-      })
+      }),
     );
   }
 

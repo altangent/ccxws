@@ -97,7 +97,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `product_cash_${remote_id}_${product_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -110,7 +110,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `product_cash_${remote_id}_${product_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -121,7 +121,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `executions_cash_${remote_id.toLowerCase()}`,
         },
-      })
+      }),
     );
   }
 
@@ -132,7 +132,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `executions_cash_${remote_id.toLowerCase()}`,
         },
-      })
+      }),
     );
   }
 
@@ -144,7 +144,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `price_ladders_cash_${remote_id}_buy`,
         },
-      })
+      }),
     );
     this._wss.send(
       JSON.stringify({
@@ -152,7 +152,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `price_ladders_cash_${remote_id}_sell`,
         },
-      })
+      }),
     );
   }
 
@@ -164,7 +164,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `price_ladders_cash_${remote_id}_buy`,
         },
-      })
+      }),
     );
     this._wss.send(
       JSON.stringify({
@@ -172,7 +172,7 @@ class LiquidClient extends BasicClient {
         data: {
           channel: `price_ladders_cash_${remote_id}_sell`,
         },
-      })
+      }),
     );
   }
 

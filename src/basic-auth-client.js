@@ -74,7 +74,7 @@ class BasicAuthTradeClient extends BasicClient {
       JSON.stringify({
         e: "auth",
         auth: this.createAuthToken(),
-      })
+      }),
     );
   }
 }

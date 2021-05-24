@@ -68,7 +68,7 @@ testClient({
   },
 
   l2update: {
-    done: function(spec, result, update) {
+    done: function (spec, result, update) {
       const hasAsks = update.asks && update.asks.length > 0;
       const hasBids = update.bids && update.bids.length > 0;
       return hasAsks || hasBids;

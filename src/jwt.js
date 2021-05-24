@@ -17,10 +17,7 @@ function base64Encode(value) {
 }
 
 function base64UrlEncode(value) {
-  return base64Encode(value)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+  return base64Encode(value).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
 function hmacSign(algorithm, secret, data) {

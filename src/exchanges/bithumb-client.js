@@ -33,7 +33,7 @@ class BithumbClient extends BasicClient {
         type: "ticker",
         symbols,
         tickTypes: ["24H"],
-      })
+      }),
     );
   }
 
@@ -45,7 +45,7 @@ class BithumbClient extends BasicClient {
       JSON.stringify({
         type: "transaction",
         symbols,
-      })
+      }),
     );
   }
 
@@ -60,7 +60,7 @@ class BithumbClient extends BasicClient {
       JSON.stringify({
         type: "orderbookdepth",
         symbols,
-      })
+      }),
     );
   }
 

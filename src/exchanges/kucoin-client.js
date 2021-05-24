@@ -66,7 +66,7 @@ class KucoinClient extends BasicClient {
         JSON.stringify({
           id: new Date().getTime(),
           type: "ping",
-        })
+        }),
       );
     }
   }
@@ -135,7 +135,7 @@ class KucoinClient extends BasicClient {
         topic: "/market/snapshot:" + remote_id,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -147,7 +147,7 @@ class KucoinClient extends BasicClient {
         topic: "/market/snapshot:" + remote_id,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -159,7 +159,7 @@ class KucoinClient extends BasicClient {
         topic: "/market/match:" + remote_id,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -171,7 +171,7 @@ class KucoinClient extends BasicClient {
         topic: "/market/match:" + remote_id,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -183,7 +183,7 @@ class KucoinClient extends BasicClient {
         topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -195,7 +195,7 @@ class KucoinClient extends BasicClient {
         topic: `/market/candles:${remote_id}_${candlePeriod(this.candlePeriod)}`,
         privateChannel: false,
         response: true,
-      })
+      }),
     );
   }
 
@@ -209,7 +209,7 @@ class KucoinClient extends BasicClient {
         type: "subscribe",
         topic: "/market/level2:" + remote_id,
         response: true,
-      })
+      }),
     );
   }
 
@@ -220,7 +220,7 @@ class KucoinClient extends BasicClient {
         type: "unsubscribe",
         topic: "/market/level2:" + remote_id,
         response: true,
-      })
+      }),
     );
   }
 
@@ -234,7 +234,7 @@ class KucoinClient extends BasicClient {
         type: "subscribe",
         topic: "/spotMarket/level3:" + remote_id,
         response: true,
-      })
+      }),
     );
   }
 
@@ -245,7 +245,7 @@ class KucoinClient extends BasicClient {
         type: "unsubscribe",
         topic: "/spotMarket/level3:" + remote_id,
         response: true,
-      })
+      }),
     );
   }
 
@@ -393,7 +393,7 @@ class KucoinClient extends BasicClient {
       candles[3],
       candles[4],
       candles[2],
-      candles[5]
+      candles[5],
     );
     this.emit("candle", result, market);
   }
@@ -776,14 +776,14 @@ class KucoinClient extends BasicClient {
           new Level3Point(p[0], p[1], p[2], {
             orderTime: p[3],
             timestampMs: Math.trunc(Number(p[3]) / 1e6),
-          })
+          }),
       );
       let bids = raw.data.bids.map(
         p =>
           new Level3Point(p[0], p[1], p[2], {
             orderTime: p[3],
             timestampMs: Math.trunc(Number(p[3]) / 1e6),
-          })
+          }),
       );
       let snapshot = new Level3Snapshot({
         exchange: this._name,

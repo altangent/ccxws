@@ -45,7 +45,7 @@ class BittrexClient extends BasicClient {
     this._processLevel2Update = this._processLevel2Update.bind(this);
     this._requestLevel2Snapshot = throttle(
       this._requestLevel2Snapshot.bind(this),
-      throttleL2Snapshot
+      throttleL2Snapshot,
     );
   }
 
@@ -68,7 +68,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [["heartbeat"]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -81,7 +81,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [["market_summaries"]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -96,7 +96,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [[`trade_${remote_id}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -107,7 +107,7 @@ class BittrexClient extends BasicClient {
         M: "Unsubscribe",
         A: [[`trade_${remote_id}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -118,7 +118,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [[`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -129,7 +129,7 @@ class BittrexClient extends BasicClient {
         M: "Unsubscribe",
         A: [[`candle_${remote_id}_${candlePeriod(this.candlePeriod)}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -141,7 +141,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [[`orderbook_${remote_id}_${this.orderBookDepth}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -152,7 +152,7 @@ class BittrexClient extends BasicClient {
         M: "Subscribe",
         A: [[`orderbook_${remote_id}_${this.orderBookDepth}`]],
         I: ++this._messageId,
-      })
+      }),
     );
   }
 
@@ -180,7 +180,7 @@ class BittrexClient extends BasicClient {
       try {
         let data = JSON.stringify([{ name: "c3" }]);
         let negotiations = await https.get(
-          `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`
+          `https://socket-v3.bittrex.com/signalr/negotiate?connectionData=${data}&clientProtocol=1.5`,
         );
         let token = encodeURIComponent(negotiations.ConnectionToken);
         wssPath = `wss://socket-v3.bittrex.com/signalr/connect?clientProtocol=1.5&transport=webSockets&connectionToken=${token}&connectionData=${data}&tid=10`;
@@ -415,7 +415,7 @@ class BittrexClient extends BasicClient {
       msg.high,
       msg.low,
       msg.close,
-      msg.volume
+      msg.volume,
     );
   }
 

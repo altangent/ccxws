@@ -27,7 +27,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_ticker_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -38,7 +38,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_ticker_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -49,7 +49,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_executions_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -62,7 +62,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_board_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -73,7 +73,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_executions_${remote_id}`,
         },
-      })
+      }),
     );
   }
 
@@ -84,7 +84,7 @@ class BitFlyerClient extends BasicClient {
         params: {
           channel: `lightning_board_${remote_id}`,
         },
-      })
+      }),
     );
   }
 

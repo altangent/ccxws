@@ -76,7 +76,7 @@ async function post(uri, postData = "") {
             return resolve(JSON.parse(results));
           }
         });
-      }
+      },
     );
     req.on("error", reject);
     req.write(postData);

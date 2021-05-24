@@ -20,7 +20,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `${wss_remote_id}_ticker`,
-      })
+      }),
     );
   }
 
@@ -31,7 +31,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `${wss_remote_id}_ticker`,
-      })
+      }),
     );
   }
 
@@ -42,7 +42,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `${wss_remote_id}_trades`,
-      })
+      }),
     );
   }
 
@@ -53,7 +53,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `${wss_remote_id}_trades`,
-      })
+      }),
     );
   }
 
@@ -64,7 +64,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `${wss_remote_id}_depth`,
-      })
+      }),
     );
   }
 
@@ -75,7 +75,7 @@ class ZbClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `${wss_remote_id}_depth`,
-      })
+      }),
     );
   }
 

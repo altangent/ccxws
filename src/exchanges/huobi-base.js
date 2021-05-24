@@ -30,7 +30,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         sub: `market.${remote_id}.detail`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -39,7 +39,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         unsub: `market.${remote_id}.detail`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -48,7 +48,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         sub: `market.${remote_id}.trade.detail`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -57,7 +57,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         unsub: `market.${remote_id}.trade.detail`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -66,7 +66,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         sub: `market.${remote_id}.kline.${candlePeriod(this.candlePeriod)}`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -75,7 +75,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         unsub: `market.${remote_id}.kline.${candlePeriod(this.candlePeriod)}`,
         id: remote_id,
-      })
+      }),
     );
   }
 
@@ -85,7 +85,7 @@ class HuobiBase extends BasicClient {
         sub: `market.${remote_id}.depth.size_150.high_freq`,
         data_type: "incremental",
         id: "depth_update_" + remote_id,
-      })
+      }),
     );
   }
 
@@ -95,7 +95,7 @@ class HuobiBase extends BasicClient {
         unsub: `market.${remote_id}.depth.size_150.high_freq`,
         data_type: "incremental",
         id: "depth_update_" + remote_id,
-      })
+      }),
     );
   }
 
@@ -104,7 +104,7 @@ class HuobiBase extends BasicClient {
       JSON.stringify({
         sub: `market.${remote_id}.depth.step0`,
         id: "depth_" + remote_id,
-      })
+      }),
     );
   }
 
@@ -112,7 +112,7 @@ class HuobiBase extends BasicClient {
     this._wss.send(
       JSON.stringify({
         unsub: `market.${remote_id}.depth.step0`,
-      })
+      }),
     );
   }
 
@@ -242,7 +242,7 @@ class HuobiBase extends BasicClient {
       tick.high.toFixed(8),
       tick.low.toFixed(8),
       tick.close.toFixed(8),
-      tick.amount.toFixed(8)
+      tick.amount.toFixed(8),
     );
   }
 

@@ -233,7 +233,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `bibox_sub_spot_${remote_id}_ticker`,
-      })
+      }),
     );
   }
 
@@ -243,7 +243,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `bibox_sub_spot_${remote_id}_ticker`,
-      })
+      }),
     );
   }
 
@@ -253,7 +253,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `bibox_sub_spot_${remote_id}_deals`,
-      })
+      }),
     );
   }
 
@@ -263,7 +263,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `bibox_sub_spot_${remote_id}_deals`,
-      })
+      }),
     );
   }
 
@@ -273,7 +273,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `bibox_sub_spot_${remote_id}_kline_${candlePeriod(this.candlePeriod)}`,
-      })
+      }),
     );
   }
 
@@ -283,7 +283,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `bibox_sub_spot_${remote_id}_kline_${candlePeriod(this.candlePeriod)}`,
-      })
+      }),
     );
   }
 
@@ -293,7 +293,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "addChannel",
         channel: `bibox_sub_spot_${remote_id}_depth`,
-      })
+      }),
     );
   }
 
@@ -303,7 +303,7 @@ class BiboxBasicClient extends BasicClient {
       JSON.stringify({
         event: "removeChannel",
         channel: `bibox_sub_spot_${remote_id}_depth`,
-      })
+      }),
     );
   }
 

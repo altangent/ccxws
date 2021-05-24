@@ -26,7 +26,7 @@ class EthfinexClient extends BasicClient {
         event: "subscribe",
         channel: "ticker",
         pair: remote_id,
-      })
+      }),
     );
   }
 
@@ -36,7 +36,7 @@ class EthfinexClient extends BasicClient {
         event: "unsubscribe",
         channel: "ticker",
         pair: remote_id,
-      })
+      }),
     );
   }
 
@@ -46,7 +46,7 @@ class EthfinexClient extends BasicClient {
         event: "subscribe",
         channel: "trades",
         pair: remote_id,
-      })
+      }),
     );
   }
 
@@ -62,7 +62,7 @@ class EthfinexClient extends BasicClient {
         channel: "book",
         pair: remote_id,
         length: "100",
-      })
+      }),
     );
   }
 
@@ -79,7 +79,7 @@ class EthfinexClient extends BasicClient {
         pair: remote_id,
         prec: "R0",
         length: "100",
-      })
+      }),
     );
   }
 
@@ -94,7 +94,7 @@ class EthfinexClient extends BasicClient {
         JSON.stringify({
           event: "unsubscribe",
           chanId: chanId,
-        })
+        }),
       );
     }
   }

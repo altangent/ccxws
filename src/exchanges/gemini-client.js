@@ -217,7 +217,7 @@ class GeminiClient extends EventEmitter {
     this._stopReconnectWatcher(subscription); // always clear the prior interval
     subscription.reconnectIntervalHandle = setInterval(
       () => this._onReconnectCheck(subscription),
-      this.reconnectIntervalMs
+      this.reconnectIntervalMs,
     );
   }
 
@@ -415,7 +415,7 @@ class GeminiClient extends EventEmitter {
           exchange: "Gemini",
           base: market.base,
           quote: market.quote,
-        })
+        }),
       );
     }
     return this.tickersCache.get(market.id);

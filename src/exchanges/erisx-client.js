@@ -40,7 +40,7 @@ class ErisXClient extends BasicClient {
         correlation: "SecurityList",
         type: "SecurityList",
         securityGroup: "ALL",
-      })
+      }),
     );
   }
 
@@ -54,7 +54,7 @@ class ErisXClient extends BasicClient {
         correlation: this._nextId(),
         type: "AuthenticationRequest",
         token: this._createToken(),
-      })
+      }),
     );
   }
 
@@ -77,7 +77,7 @@ class ErisXClient extends BasicClient {
         type: "MarketDataSubscribe",
         symbol: remote_id,
         tradeOnly: true,
-      })
+      }),
     );
   }
 
@@ -88,7 +88,7 @@ class ErisXClient extends BasicClient {
         type: "MarketDataUnsubscribe",
         symbol: remote_id,
         tradeOnly: true,
-      })
+      }),
     );
   }
 
@@ -99,7 +99,7 @@ class ErisXClient extends BasicClient {
         type: "TopOfBookMarketDataSubscribe",
         symbol: remote_id,
         topOfBookDepth: this.l2depth,
-      })
+      }),
     );
   }
 
@@ -110,7 +110,7 @@ class ErisXClient extends BasicClient {
         type: "TopOfBookMarketDataUnsubscribe",
         symbol: remote_id,
         topOfBookDepth: this.l2depth,
-      })
+      }),
     );
   }
 
@@ -120,7 +120,7 @@ class ErisXClient extends BasicClient {
         correlation: this._nextId(),
         type: "MarketDataSubscribe",
         symbol: remote_id,
-      })
+      }),
     );
   }
 
@@ -130,7 +130,7 @@ class ErisXClient extends BasicClient {
         correlation: this._nextId(),
         type: "MarketDataUnsubscribe",
         symbol: remote_id,
-      })
+      }),
     );
   }
 
@@ -310,7 +310,7 @@ class ErisXClient extends BasicClient {
         p.totalVolume.toFixed(8),
         p.count,
         undefined,
-        moment.utc(p.lastUpdate, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf()
+        moment.utc(p.lastUpdate, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf(),
       );
     const bids = msg.bids.map(map);
     const asks = msg.offers.map(map);
@@ -382,10 +382,10 @@ class ErisXClient extends BasicClient {
   _constructLevel3Snapshot(msg, market) {
     const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf();
     const asks = msg.offers.map(
-      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
+      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction }),
     );
     const bids = msg.bids.map(
-      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
+      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction }),
     );
     return new Level3Snapshot({
       exchange: this._name,
@@ -420,10 +420,10 @@ class ErisXClient extends BasicClient {
   _constructLevel3Update(msg, market) {
     const timestampMs = moment.utc(msg.transactTime, "YYYYMMDD-hh:mm:ss.SSSSSSSSS").valueOf();
     let asks = msg.bids.map(
-      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
+      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction }),
     );
     let bids = msg.offers.map(
-      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction })
+      p => new Level3Point(p.id, p.price.toFixed(8), p.amount.toFixed(8), { type: p.updateAction }),
     );
     return new Level3Update({
       exchange: this._name,

@@ -52,7 +52,7 @@ class GateioClient extends BasicClient {
       this._wss.send(
         JSON.stringify({
           method: "server.ping",
-        })
+        }),
       );
     }
   }
@@ -65,7 +65,7 @@ class GateioClient extends BasicClient {
           method: "ticker.subscribe",
           params: markets,
           id: 1,
-        })
+        }),
       );
     });
   }
@@ -74,7 +74,7 @@ class GateioClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "ticker.unsubscribe",
-      })
+      }),
     );
   }
 
@@ -86,7 +86,7 @@ class GateioClient extends BasicClient {
           method: "trades.subscribe",
           params: markets,
           id: 1,
-        })
+        }),
       );
     });
   }
@@ -95,7 +95,7 @@ class GateioClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "trades.unsubscribe",
-      })
+      }),
     );
   }
 
@@ -107,7 +107,7 @@ class GateioClient extends BasicClient {
           method: "depth.subscribe",
           params: markets.map(m => [m, 30, "0"]),
           id: 1,
-        })
+        }),
       );
     });
   }
@@ -116,7 +116,7 @@ class GateioClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "depth.unsubscribe",
-      })
+      }),
     );
   }
 

@@ -68,7 +68,7 @@ class CoinexSingleClient extends BasicClient {
           method: "server.ping",
           params: [],
           id: ++this._id,
-        })
+        }),
       );
     }
   }
@@ -105,7 +105,7 @@ class CoinexSingleClient extends BasicClient {
         method: "state.subscribe",
         params: [remote_id],
         id,
-      })
+      }),
     );
   }
 
@@ -113,7 +113,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "state.unsubscribe",
-      })
+      }),
     );
   }
 
@@ -125,7 +125,7 @@ class CoinexSingleClient extends BasicClient {
         method: "deals.subscribe",
         params: [remote_id],
         id,
-      })
+      }),
     );
   }
 
@@ -133,7 +133,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "deals.unsubscribe",
-      })
+      }),
     );
   }
 
@@ -145,7 +145,7 @@ class CoinexSingleClient extends BasicClient {
         method: "kline.subscribe",
         params: [remote_id, candlePeriod(this.candlePeriod)],
         id,
-      })
+      }),
     );
   }
 
@@ -153,7 +153,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "kline.unsubscribe",
-      })
+      }),
     );
   }
 
@@ -165,7 +165,7 @@ class CoinexSingleClient extends BasicClient {
         method: "depth.subscribe",
         params: [remote_id, 50, "0"],
         id,
-      })
+      }),
     );
   }
 
@@ -173,7 +173,7 @@ class CoinexSingleClient extends BasicClient {
     this._wss.send(
       JSON.stringify({
         method: "depth.unsubscribe",
-      })
+      }),
     );
   }
 

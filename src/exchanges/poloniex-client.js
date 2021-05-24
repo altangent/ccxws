@@ -53,7 +53,7 @@ class PoloniexClient extends BasicClient {
       JSON.stringify({
         command: "subscribe",
         channel: this.TICKERS_ID,
-      })
+      }),
     );
   }
 
@@ -64,7 +64,7 @@ class PoloniexClient extends BasicClient {
       JSON.stringify({
         command: "unsubscribe",
         channel: this.TICKERS_ID,
-      })
+      }),
     );
   }
 
@@ -93,7 +93,7 @@ class PoloniexClient extends BasicClient {
       JSON.stringify({
         command: "subscribe",
         channel: remote_id,
-      })
+      }),
     );
   }
 
@@ -107,7 +107,7 @@ class PoloniexClient extends BasicClient {
       JSON.stringify({
         command: "unsubscribe",
         channel: remote_id,
-      })
+      }),
     );
   }
 

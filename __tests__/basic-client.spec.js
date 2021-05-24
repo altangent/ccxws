@@ -34,7 +34,7 @@ function mockSmartWss() {
   let wss = new EventEmitter();
   wss.connect = sinon.stub();
   wss.close = sinon.stub();
-  wss.mockEmit = function(event, payload) {
+  wss.mockEmit = function (event, payload) {
     if (event === "connected") this.isConnected = true;
     this.emit(event, payload);
   };

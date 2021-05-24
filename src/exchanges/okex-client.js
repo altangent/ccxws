@@ -122,7 +122,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [this._marketArg("ticker", market)],
-      })
+      }),
     );
   }
 
@@ -131,7 +131,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("ticker", market)],
-      })
+      }),
     );
   }
 
@@ -140,7 +140,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [this._marketArg("trade", market)],
-      })
+      }),
     );
   }
 
@@ -149,7 +149,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("trade", market)],
-      })
+      }),
     );
   }
 
@@ -158,7 +158,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
-      })
+      }),
     );
   }
 
@@ -167,7 +167,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("candle" + this._candlePeriod(this.candlePeriod), market)],
-      })
+      }),
     );
   }
 
@@ -176,7 +176,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [this._marketArg("depth5", market)],
-      })
+      }),
     );
   }
 
@@ -185,7 +185,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("depth5", market)],
-      })
+      }),
     );
   }
 
@@ -194,7 +194,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [this._marketArg("depth_l2_tbt", market)],
-      })
+      }),
     );
   }
 
@@ -203,7 +203,7 @@ class OKExClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [this._marketArg("depth_l2_tbt", market)],
-      })
+      }),
     );
   }
 

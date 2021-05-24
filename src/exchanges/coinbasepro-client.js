@@ -24,7 +24,7 @@ class CoinbaseProClient extends BasicClient {
         type: "subscribe",
         product_ids: [remote_id],
         channels: ["ticker"],
-      })
+      }),
     );
   }
 
@@ -34,7 +34,7 @@ class CoinbaseProClient extends BasicClient {
         type: "unsubscribe",
         product_ids: [remote_id],
         channels: ["ticker"],
-      })
+      }),
     );
   }
 
@@ -44,7 +44,7 @@ class CoinbaseProClient extends BasicClient {
         type: "subscribe",
         product_ids: [remote_id],
         channels: ["matches"],
-      })
+      }),
     );
   }
 
@@ -54,7 +54,7 @@ class CoinbaseProClient extends BasicClient {
         type: "unsubscribe",
         product_ids: [remote_id],
         channels: ["matches"],
-      })
+      }),
     );
   }
 
@@ -64,7 +64,7 @@ class CoinbaseProClient extends BasicClient {
         type: "subscribe",
         product_ids: [remote_id],
         channels: ["level2"],
-      })
+      }),
     );
   }
 
@@ -74,7 +74,7 @@ class CoinbaseProClient extends BasicClient {
         type: "unsubscribe",
         product_ids: [remote_id],
         channels: ["level2"],
-      })
+      }),
     );
   }
 
@@ -84,7 +84,7 @@ class CoinbaseProClient extends BasicClient {
         type: "subscribe",
         product_ids: [remote_id],
         channels: ["full"],
-      })
+      }),
     );
   }
 
@@ -94,7 +94,7 @@ class CoinbaseProClient extends BasicClient {
         type: "unsubscribe",
         product_ids: [remote_id],
         channels: ["full"],
-      })
+      }),
     );
   }
 

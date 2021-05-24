@@ -34,9 +34,7 @@ class L3PointStore {
         throw new Error("Unknown sorter");
     }
 
-    return Array.from(aggByPrice(this.points).values())
-      .sort(sorter)
-      .slice(0, depth);
+    return Array.from(aggByPrice(this.points).values()).sort(sorter).slice(0, depth);
   }
 }
 

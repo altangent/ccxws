@@ -38,7 +38,7 @@ class HitBTCClient extends BasicClient {
           symbol: remote_id,
         },
         id: ++this._id,
-      })
+      }),
     );
   }
 
@@ -49,7 +49,7 @@ class HitBTCClient extends BasicClient {
         params: {
           symbol: remote_id,
         },
-      })
+      }),
     );
   }
 
@@ -61,7 +61,7 @@ class HitBTCClient extends BasicClient {
           symbol: remote_id,
         },
         id: ++this._id,
-      })
+      }),
     );
   }
 
@@ -72,7 +72,7 @@ class HitBTCClient extends BasicClient {
         params: {
           symbol: remote_id,
         },
-      })
+      }),
     );
   }
 
@@ -85,7 +85,7 @@ class HitBTCClient extends BasicClient {
           period: candlePeriod(this.candlPeriod),
         },
         id: ++this._id,
-      })
+      }),
     );
   }
 
@@ -97,7 +97,7 @@ class HitBTCClient extends BasicClient {
           symbol: remote_id,
           period: candlePeriod(this.candlPeriod),
         },
-      })
+      }),
     );
   }
 
@@ -109,7 +109,7 @@ class HitBTCClient extends BasicClient {
           symbol: remote_id,
         },
         id: ++this._id,
-      })
+      }),
     );
   }
 
@@ -120,7 +120,7 @@ class HitBTCClient extends BasicClient {
         params: {
           symbol: remote_id,
         },
-      })
+      }),
     );
   }
 
@@ -196,7 +196,7 @@ class HitBTCClient extends BasicClient {
     let { ask, bid, last, open, low, high, volume, volumeQuote, timestamp } = param;
     let change = (parseFloat(last) - parseFloat(open)).toFixed(8);
     let changePercent = (((parseFloat(last) - parseFloat(open)) / parseFloat(open)) * 100).toFixed(
-      8
+      8,
     );
     return new Ticker({
       exchange: "HitBTC",

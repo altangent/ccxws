@@ -53,7 +53,7 @@ class UpbitClient extends BasicClient {
       if (!this._wss) return;
       let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
-        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
+        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }]),
       );
     });
   }
@@ -63,7 +63,7 @@ class UpbitClient extends BasicClient {
       if (!this._wss) return;
       let codes = Array.from(this._level2SnapshotSubs.keys());
       this._wss.send(
-        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }])
+        JSON.stringify([{ ticket: "quotation" }, { type: "orderbook", codes: codes }]),
       );
     });
   }

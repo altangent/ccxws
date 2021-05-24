@@ -12,7 +12,7 @@ function testClient(spec) {
   describe(spec.clientName, () => {
     let state = {};
 
-    before(async function() {
+    before(async function () {
       this.timeout(30000);
 
       state.client = spec.clientFactory();
@@ -165,7 +165,7 @@ function testClient(spec) {
         client.on("connected", pushEvent("connected"));
         client.on(
           "connected",
-          assertEvents(["reconnecting", "closing", "closed", "connecting", "connected"], done)
+          assertEvents(["reconnecting", "closing", "closed", "connecting", "connected"], done),
         );
         client.reconnect();
       }).timeout(5000);
@@ -187,7 +187,7 @@ function testClient(spec) {
   describe(spec.clientName + " all markets", () => {
     let client;
 
-    before(async function() {
+    before(async function () {
       this.timeout(15000);
 
       if (spec.fetchAllMarkets && !spec.allMar) {
@@ -285,7 +285,7 @@ function testTickers(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) return this.skip();
       });
 
@@ -381,7 +381,7 @@ function testTrades(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) return this.skip();
       });
 
@@ -467,7 +467,7 @@ function testCandles(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) return this.skip();
       });
 
@@ -521,7 +521,7 @@ function testLevel2Snapshots(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) return this.skip();
       });
 
@@ -578,7 +578,7 @@ function testLevel2Updates(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) {
           this.skip();
           return;
@@ -735,7 +735,7 @@ function testLevel3Updates(spec, state) {
     });
 
     describe("results", () => {
-      before(function() {
+      before(function () {
         if (!result.ready) return this.skip();
       });
 

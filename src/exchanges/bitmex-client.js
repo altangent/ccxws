@@ -48,7 +48,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [`quote:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -57,7 +57,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [`quote:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -66,7 +66,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [`trade:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -75,7 +75,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [`trade:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -84,7 +84,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [`tradeBin${candlePeriod(this.candlePeriod)}:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -93,7 +93,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [`tradeBin${candlePeriod(this.candlePeriod)}:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -102,7 +102,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "subscribe",
         args: [`orderBookL2:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -111,7 +111,7 @@ class BitmexClient extends BasicClient {
       JSON.stringify({
         op: "unsubscribe",
         args: [`orderBookL2:${remote_id}`],
-      })
+      }),
     );
   }
 
@@ -240,7 +240,7 @@ class BitmexClient extends BasicClient {
       datum.high.toFixed(8),
       datum.low.toFixed(8),
       datum.close.toFixed(8),
-      datum.volume.toFixed(8)
+      datum.volume.toFixed(8),
     );
   }
 

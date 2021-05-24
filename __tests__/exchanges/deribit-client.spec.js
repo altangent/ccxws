@@ -73,7 +73,7 @@ testClient({
 
   async fetchMarkets() {
     const res = await https.get(
-      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=future"
+      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=future",
     );
     return res.result.map(p => ({
       id: p.instrument_name,
@@ -93,7 +93,7 @@ testClient({
 
   async fetchMarkets() {
     const res = await https.get(
-      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=option"
+      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=option",
     );
     return res.result
       .map(p => ({
@@ -107,7 +107,7 @@ testClient({
 
   async fetchTradeMarkets() {
     const res = await https.get(
-      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=option"
+      "https://www.deribit.com/api/v2/public/get_instruments?currency=BTC&expired=false&kind=option",
     );
     return res.result.map(p => ({
       id: p.instrument_name,
