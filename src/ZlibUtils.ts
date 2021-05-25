@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import zlib from "zlib";
-import { Queue } from "./flowcontrol/queue";
-const queue = new Queue();
+import { Queue } from "./flowcontrol/Queue";
+const queue = new Queue<any>();
 
 let current: [string, Buffer, ZlibCallback];
 
