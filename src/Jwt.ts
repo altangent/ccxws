@@ -1,9 +1,5 @@
 import { createHmac } from "crypto";
 
-export default {
-    hs256,
-};
-
 function base64Encode(value: Buffer | string | any): string {
     let buffer: Buffer;
     if (Buffer.isBuffer(value)) {
@@ -26,7 +22,7 @@ function hmacSign(algorithm: string, secret: string, data: string): Buffer {
     return hmac.digest();
 }
 
-function hs256(payload: string, secret: string): string {
+export function hs256(payload: any, secret: string): string {
     const encHeader = base64UrlEncode({ alg: "HS256", typ: "JWT" });
     const encPayload = base64UrlEncode(payload);
     const sig = hmacSign("sha256", secret, encHeader + "." + encPayload);
