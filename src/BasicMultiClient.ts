@@ -6,7 +6,7 @@
 
 import { EventEmitter } from "events";
 import semaphore from "semaphore";
-import { Market } from "./BasicClient";
+import { Market } from "./Market";
 import { IClient } from "./IClient";
 import { SubscriptionType } from "./SubscriptionType";
 import { wait } from "./Util";

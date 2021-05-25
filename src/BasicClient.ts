@@ -3,12 +3,8 @@ import { EventEmitter } from "events";
 import { IClient } from "./IClient";
 import { SmartWss } from "./SmartWss";
 import { Watcher } from "./Watcher";
+import { Market } from "./Market";
 
-export type Market = {
-    id: string;
-    base: string;
-    quote: string;
-};
 export type MarketMap = Map<string, Market>;
 export type WssFactoryFn = (path: string) => SmartWss;
 export type SendFn = (remoteId: string, market: Market) => void;
@@ -30,16 +26,16 @@ export abstract class BasicClient extends EventEmitter implements IClient {
     public hasLevel3Snapshots: boolean;
     public hasLevel3Updates: boolean;
 
-    private _wssFactory: WssFactoryFn;
-    private _tickerSubs: MarketMap;
-    private _tradeSubs: MarketMap;
-    private _candleSubs: MarketMap;
-    private _level2SnapshotSubs: MarketMap;
-    private _level2UpdateSubs: MarketMap;
-    private _level3SnapshotSubs: MarketMap;
-    private _level3UpdateSubs: MarketMap;
-    private _wss: SmartWss;
-    private _watcher: Watcher;
+    protected _wssFactory: WssFactoryFn;
+    protected _tickerSubs: MarketMap;
+    protected _tradeSubs: MarketMap;
+    protected _candleSubs: MarketMap;
+    protected _level2SnapshotSubs: MarketMap;
+    protected _level2UpdateSubs: MarketMap;
+    protected _level3SnapshotSubs: MarketMap;
+    protected _level3UpdateSubs: MarketMap;
+    protected _wss: SmartWss;
+    protected _watcher: Watcher;
 
     constructor(
         readonly wssPath: string,

@@ -1,2 +1,2 @@
 export type Fn = (...args: any[]) => void;
-export type CancelableFn = Fn | { cancel: () => void };
+export type CancelableFn = { (...args: any[]): void; cancel: () => void };
