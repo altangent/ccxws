@@ -59,50 +59,58 @@ export type TestSpec = {
     candle?: CandleOptions;
     l2snapshot?: L2SnapshotOptions;
     l2update?: L2UpdateOptions;
+    l3snapshot?: L3SnapshotOptions;
     l3update?: L3UpdateOptions;
 };
 
 export type TickerOptions = {
-    hasTimestamp: boolean;
-    hasLast: boolean;
-    hasOpen: boolean;
-    hasHigh: boolean;
-    hasLow: boolean;
-    hasVolume: boolean;
-    hasQuoteVolume: boolean;
-    hasChange: boolean;
-    hasChangePercent: boolean;
-    hasBid: boolean;
-    hasBidVolume: boolean;
-    hasAsk: boolean;
-    hasAskVolume: boolean;
+    hasTimestamp?: boolean;
+    hasLast?: boolean;
+    hasOpen?: boolean;
+    hasHigh?: boolean;
+    hasLow?: boolean;
+    hasVolume?: boolean;
+    hasQuoteVolume?: boolean;
+    hasChange?: boolean;
+    hasChangePercent?: boolean;
+    hasBid?: boolean;
+    hasBidVolume?: boolean;
+    hasAsk?: boolean;
+    hasAskVolume?: boolean;
+    hasSequenceId?: boolean;
 };
 
 export type TradeOptions = {
-    hasTradeId: boolean;
+    hasTradeId?: boolean;
+    hasSequenceId?: boolean;
 };
 
 export type CandleOptions = {
-    //
+    hasSequenceId?: boolean;
 };
 
 export type L2SnapshotOptions = {
-    hasTimestampMs: boolean;
-    hasSequenceId: boolean;
-    hasCount: boolean;
+    hasTimestampMs?: boolean;
+    hasSequenceId?: boolean;
+    hasCount?: boolean;
 };
 
 export type L2UpdateOptions = {
-    hasSnapshot: boolean;
-    hasTimestampMs: boolean;
-    hasSequenceId: boolean;
-    hasLastSequenceId: boolean;
-    hasEventMs: boolean;
-    hasCount: boolean;
+    hasSnapshot?: boolean;
+    hasTimestampMs?: boolean;
+    hasSequenceId?: boolean;
+    hasLastSequenceId?: boolean;
+    hasEventMs?: boolean;
+    hasCount?: boolean;
 };
 
 export type L3UpdateOptions = {
     //
+};
+
+export type L3SnapshotOptions = {
+    hasTimestampMs?: boolean;
+    hasSequenceId?: boolean;
 };
 
 export type TestRunnerState = {

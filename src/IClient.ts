@@ -1,5 +1,5 @@
 import EventEmitter from "events";
-import { Market } from "./BasicClient";
+import { Market } from "./Market";
 
 export interface IClient extends EventEmitter {
     hasTickers: boolean;

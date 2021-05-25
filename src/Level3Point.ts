@@ -3,6 +3,6 @@ export class Level3Point {
         readonly orderId: string,
         readonly price: string,
         readonly size: string,
-        readonly meta: any,
+        readonly meta?: any,
     ) {}
 }

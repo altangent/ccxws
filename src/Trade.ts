@@ -5,6 +5,7 @@ export class Trade {
     public quote: string;
     public base: string;
     public tradeId: string;
+    public sequenceId: number;
     public unix: number;
     public side: string;
     public price: string;
@@ -17,6 +18,7 @@ export class Trade {
         this.quote = props.quote;
         this.base = props.base;
         this.tradeId = props.tradeId;
+        this.sequenceId = props.sequenceId;
         this.unix = props.unix;
         this.side = props.side;
         this.price = props.price;
