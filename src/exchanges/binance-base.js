@@ -44,6 +44,7 @@ class BinanceBase extends BasicClient {
     restThrottleMs = 1000,
     l2updateSpeed = "",
     l2snapshotSpeed = "",
+    batchTickers = true,
   } = {}) {
     super(wssPath, name, undefined, watcherMs);
     this._restL2SnapshotPath = restL2SnapshotPath;
@@ -57,6 +58,7 @@ class BinanceBase extends BasicClient {
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
+    this.batchTickers = batchTickers;
 
     this._messageId = 0;
     this._tickersActive = false;
@@ -80,25 +82,27 @@ class BinanceBase extends BasicClient {
     super._onClosing();
   }
 
-  _sendSubTicker() {
+  _sendSubTicker(remote_id) {
     if (this._tickersActive) return;
     this._tickersActive = true;
+    const params = this.batchTickers ? ['!ticker@arr'] : [`${remote_id.toLowerCase()}@ticker`];
     this._wss.send(
       JSON.stringify({
         method: "SUBSCRIBE",
-        params: ["!ticker@arr"],
+        params: params,
         id: ++this._messageId,
       })
     );
   }
 
-  _sendUnsubTicker() {
+  _sendUnsubTicker(remote_id) {
     if (this._tickerSubs.size > 1) return;
     this._tickersActive = false;
+    const params = this.batchTickers ? ['!ticker@arr'] : [`${remote_id.toLowerCase()}@ticker`];
     this._wss.send(
       JSON.stringify({
         method: "UNSUBSCRIBE",
-        params: ["!ticker@arr"],
+        params: params,
         id: ++this._messageId,
       })
     );
@@ -204,7 +208,7 @@ class BinanceBase extends BasicClient {
       return;
     }
 
-    // ticker
+    // batch tickers
     if (msg.stream === "!ticker@arr") {
       for (let raw of msg.data) {
         let remote_id = raw.s;
@@ -214,6 +218,17 @@ class BinanceBase extends BasicClient {
         let ticker = this._constructTicker(raw, market);
         this.emit("ticker", ticker, market);
       }
+      return;
+    }
+
+    // single ticker
+    if (msg.stream.toLowerCase().endsWith("ticker")) {
+      let remote_id = msg.data.s;
+      let market = this._tickerSubs.get(remote_id);
+      if (!market) return;
+
+      let ticker = this._constructTicker(msg.data, market);
+      this.emit("ticker", ticker, market);
       return;
     }
 
