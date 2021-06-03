@@ -4,6 +4,7 @@
 
 import { Level2Point } from "../Level2Point";
 import { Level2Snapshot } from "../Level2Snapshots";
+import { Level2Update } from "../Level2Update";
 import { Market } from "../Market";
 import { BinanceBase, BinanceClientOptions } from "./BinanceBase";
 
@@ -67,7 +68,7 @@ export class BinanceFuturesUsdtmClient extends BinanceBase {
         const previousLastSequenceId = msg.data.pu;
         const asks = msg.data.a.map(p => new Level2Point(p[0], p[1]));
         const bids = msg.data.b.map(p => new Level2Point(p[0], p[1]));
-        return new Level2Snapshot({
+        return new Level2Update({
             exchange: this.name,
             base: market.base,
             quote: market.quote,
