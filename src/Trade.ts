@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 export class Trade {
@@ -13,7 +14,7 @@ export class Trade {
     public buyOrderId: string;
     public sellOrderId: string;
 
-    constructor(props: Partial<Trade>) {
+    constructor(props: Partial<Trade> | any) {
         this.exchange = props.exchange;
         this.quote = props.quote;
         this.base = props.base;

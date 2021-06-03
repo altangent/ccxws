@@ -83,16 +83,19 @@ export type TickerOptions = {
 export type TradeOptions = {
     hasTradeId?: boolean;
     hasSequenceId?: boolean;
+    tests?: (spec: any, result: any) => void;
 };
 
 export type CandleOptions = {
     hasSequenceId?: boolean;
+    tests?: (spec: any, result: any) => void;
 };
 
 export type L2SnapshotOptions = {
     hasTimestampMs?: boolean;
     hasSequenceId?: boolean;
     hasCount?: boolean;
+    tests?: (spec: any, result: any) => void;
 };
 
 export type L2UpdateOptions = {
@@ -102,15 +105,18 @@ export type L2UpdateOptions = {
     hasLastSequenceId?: boolean;
     hasEventMs?: boolean;
     hasCount?: boolean;
+    tests?: (spec: any, result: any) => void;
+    done?: (spec: any, result: any, update: Level2Update) => boolean;
 };
 
 export type L3UpdateOptions = {
-    //
+    tests?: (spec: any, result: any) => void;
 };
 
 export type L3SnapshotOptions = {
     hasTimestampMs?: boolean;
     hasSequenceId?: boolean;
+    tests?: (spec: any, result: any) => void;
 };
 
 export type TestRunnerState = {
