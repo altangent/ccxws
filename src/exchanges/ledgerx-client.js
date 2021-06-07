@@ -6,12 +6,12 @@ const Level3Update = require("../level3-update");
 const Level3Snapshot = require("../level3-snapshot");
 
 /**
- * LedgerX is defined in https://docs.ledgerx.com/reference#market-data-feed
+ * LedgerX is defined in https://docs.ledgerx.com/reference#connecting
  * This socket uses a unified stream for ALL market data. So we will leverage
  * subscription filtering to only reply with values that of are of interest.
  */
 class LedgerXClient extends BasicClient {
-  constructor({ wssPath = "wss://trade.ledgerx.com/api/ws?token=", apiKey, watcherMs } = {}) {
+  constructor({ wssPath = "wss://api.ledgerx.com/ws?token=", apiKey, watcherMs } = {}) {
     super(wssPath + apiKey, "LedgerX", undefined, watcherMs);
 
     this.hasTrades = true;
@@ -31,6 +31,8 @@ class LedgerXClient extends BasicClient {
   _sendUnSubLevel3Updates() {}
 
   _onMessage(msg) {
+    this.emit("raw", msg);
+
     const json = JSON.parse(msg);
 
     if (json.type === "auth_success") {
@@ -41,15 +43,15 @@ class LedgerXClient extends BasicClient {
       return;
     }
 
+    if (json.positions !== undefined) {
+      return;
+    }
+
+    if (json.collateral !== undefined) {
+      return;
+    }
+
     if (json.type === "exposure_reports") {
-      return;
-    }
-
-    if (json.type === "open_positions_update") {
-      return;
-    }
-
-    if (json.type === "collateral_balance_update") {
       return;
     }
 
@@ -76,7 +78,7 @@ class LedgerXClient extends BasicClient {
         return;
       }
 
-      // trade event
+      // trade event, filled either partial or fully
       if (json.status_type === 201) {
         // check for trade subscription
         let market =
@@ -110,6 +112,18 @@ class LedgerXClient extends BasicClient {
         this.emit("l3update", update, market, json);
         return;
       }
+
+      // cancelled and replaced event
+      if (json.status_type === 204) {
+        const market =
+          this._level3UpdateSubs.get(json.contract_id) ||
+          this._level3UpdateSubs.get(json.contract_id.toString());
+        if (!market) return;
+
+        const update = this._constructL3Replace(json, market);
+        this.emit("l3update", update, market, json);
+        return;
+      }
     }
   }
 
@@ -125,7 +139,7 @@ class LedgerXClient extends BasicClient {
       let bids = [];
       for (let row of data.book_states) {
         let orderId = row.mid;
-        let price = (row.price / 100).toFixed(2);
+        let price = row.price.toFixed(2);
         let size = row.size.toFixed();
         let point = new Level3Point(orderId, price, size);
         if (row.is_ask) asks.push(point);
@@ -212,10 +226,13 @@ class LedgerXClient extends BasicClient {
       amount: msg.filled_size.toFixed(8),
       buyOrderId,
       sellOrderId,
+      open_interest: msg.open_interest,
     });
   }
 
   /**
+   * 200 - A resting limit order of size inserted_size @ price
+   * inserted_price was inserted into book depth.
    {
       inserted_time: 1597176131501325800,
       timestamp: 1597176131501343700,
@@ -242,7 +259,7 @@ class LedgerXClient extends BasicClient {
     }
    */
   _constructL3Insert(msg, market) {
-    let price = (msg.price / 100).toFixed(8);
+    let price = msg.price.toFixed(8);
     let size = msg.inserted_size.toFixed(8);
     let point = new Level3Point(msg.mid, price, size, {
       order_type: msg.order_type,
@@ -283,6 +300,8 @@ class LedgerXClient extends BasicClient {
   }
 
   /**
+   * 201 - A cross of size filled_size @ price filled_price occurred.
+   * Subtract filled_size from the resting size for this order.
   {
       mid: '885be81549974faf88e4430f6046513d',
       filled_size: 5,
@@ -309,7 +328,7 @@ class LedgerXClient extends BasicClient {
     }
   */
   _constructL3Trade(msg, market) {
-    let price = (msg.original_price / 100).toFixed(8);
+    let price = msg.original_price.toFixed(8);
     let size = (msg.original_size - msg.filled_size).toFixed(8);
     let point = new Level3Point(msg.mid, price, size, {
       order_type: msg.order_type,
@@ -329,6 +348,7 @@ class LedgerXClient extends BasicClient {
       price: msg.price,
       size: msg.size,
       vwap: msg.vwap,
+      open_interest: msg.open_interest,
     });
 
     let asks = [];
@@ -350,6 +370,7 @@ class LedgerXClient extends BasicClient {
   }
 
   /**
+   * 203 - An order was cancelled. Remove this order from book depth.
    {
       inserted_time: 1597176853952381700,
       timestamp: 1597176857137740800,
@@ -376,7 +397,7 @@ class LedgerXClient extends BasicClient {
     }
    */
   _constructL3Cancel(msg, market) {
-    let price = (msg.original_price / 100).toFixed(8);
+    let price = msg.original_price.toFixed(8);
     let size = (0).toFixed(8);
     let point = new Level3Point(msg.mid, price, size, {
       order_type: msg.order_type,
@@ -396,6 +417,80 @@ class LedgerXClient extends BasicClient {
       price: msg.price,
       size: msg.size,
       vwap: msg.vwap,
+      open_interest: msg.open_interest,
+    });
+
+    let asks = [];
+    let bids = [];
+
+    if (msg.is_ask) asks.push(point);
+    else bids.push(point);
+
+    return new Level3Update({
+      exchange: this._name,
+      base: market.base,
+      quote: market.quote,
+      sequenceId: msg.clock,
+      timestampMs: Math.floor(msg.inserted_time / 1e6),
+      runId: this.runId,
+      asks,
+      bids,
+    });
+  }
+
+  /**
+   * 204 - An order was cancelled and replaced. The new order retains the
+   * existing mid, and can only reflect an update in size and not price.
+   * Overwrite the resting order size with inserted_size.
+   *
+   {
+    "status_type": 204,
+    "inserted_size": 12,
+    "original_price": 59000,
+    "open_interest": 121,
+    "filled_size": 0,
+    "updated_time": 1623074768372895949,
+    "clock": 40011,
+    "size": 12,
+    "timestamp": 1623074768372897897,
+    "status_reason": 0,
+    "vwap": 0,
+    "inserted_time": 1623074764668677182,
+    "price": 59000,
+    "type": "action_report",
+    "is_ask": true,
+    "original_size": 12,
+    "order_type": "customer_limit_order",
+    "is_volatile": true,
+    "ticks": 25980094140252686,
+    "filled_price": 0,
+    "mid": "c071baaa458a411db184cb6874e86d69",
+    "inserted_price": 59000,
+    "contract_id": 22216779
+  }
+   */
+  _constructL3Replace(msg, market) {
+    let price = msg.original_price.toFixed(8);
+    let size = msg.inserted_size.toFixed(8);
+    let point = new Level3Point(msg.mid, price, size, {
+      order_type: msg.order_type,
+      status_type: msg.status_type,
+      status_reason: msg.status_reason,
+      is_volatile: msg.is_volatile,
+      timestamp: msg.timestamp,
+      ticks: msg.ticks,
+      inserted_time: msg.inserted_time,
+      updated_time: msg.updated_time,
+      original_price: msg.original_price,
+      original_size: msg.original_size,
+      inserted_price: msg.inserted_price,
+      inserted_size: msg.inserted_size,
+      filled_price: msg.filled_price,
+      filled_size: msg.filled_size,
+      price: msg.price,
+      size: msg.size,
+      vwap: msg.vwap,
+      open_interest: msg.open_interest,
     });
 
     let asks = [];
