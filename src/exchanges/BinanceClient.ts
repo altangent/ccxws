@@ -13,6 +13,7 @@ export class BinanceClient extends BinanceBase {
         watcherMs,
         l2updateSpeed,
         l2snapshotSpeed,
+        batchTickers,
     }: BinanceClientOptions = {}) {
         if (testNet) {
             wssPath = "wss://testnet.binance.vision/stream";
@@ -30,6 +31,7 @@ export class BinanceClient extends BinanceBase {
             watcherMs,
             l2updateSpeed,
             l2snapshotSpeed,
+            batchTickers,
         });
     }
 }

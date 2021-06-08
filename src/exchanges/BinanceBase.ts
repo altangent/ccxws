@@ -54,6 +54,7 @@ export type BinanceClientOptions = {
     l2updateSpeed?: string;
     l2snapshotSpeed?: string;
     testNet?: boolean;
+    batchTickers?: boolean;
 };
 
 export class BinanceBase extends BasicClient {
@@ -62,6 +63,7 @@ export class BinanceBase extends BasicClient {
     public l2snapshotSpeed: string;
     public requestSnapshot: boolean;
     public candlePeriod: CandlePeriod;
+    public batchTickers: boolean;
 
     protected _messageId: number;
     protected _restL2SnapshotPath: string;
@@ -83,6 +85,7 @@ export class BinanceBase extends BasicClient {
         restThrottleMs = 1000,
         l2updateSpeed = "",
         l2snapshotSpeed = "",
+        batchTickers = true,
     }: BinanceClientOptions = {}) {
         super(wssPath, name, undefined, watcherMs);
 
@@ -97,6 +100,7 @@ export class BinanceBase extends BasicClient {
         this.hasCandles = true;
         this.hasLevel2Snapshots = true;
         this.hasLevel2Updates = true;
+        this.batchTickers = batchTickers;
 
         this._messageId = 0;
         this._tickersActive = false;
@@ -123,28 +127,48 @@ export class BinanceBase extends BasicClient {
         super._onClosing();
     }
 
-    protected _sendSubTicker() {
-        if (this._tickersActive) return;
-        this._tickersActive = true;
-        this._wss.send(
-            JSON.stringify({
-                method: "SUBSCRIBE",
-                params: ["!ticker@arr"],
-                id: ++this._messageId,
-            }),
-        );
+    protected _sendSubTicker(remote_id: string) {
+        if (this.batchTickers) {
+            if (this._tickersActive) return;
+            this._tickersActive = true;
+            this._wss.send(
+                JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: ["!ticker@arr"],
+                    id: ++this._messageId,
+                }),
+            );
+        } else {
+            this._wss.send(
+                JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: [`${remote_id.toLowerCase()}@ticker`],
+                    id: ++this._messageId,
+                }),
+            );
+        }
     }
 
-    protected _sendUnsubTicker() {
-        if (this._tickerSubs.size > 1) return;
-        this._tickersActive = false;
-        this._wss.send(
-            JSON.stringify({
-                method: "UNSUBSCRIBE",
-                params: ["!ticker@arr"],
-                id: ++this._messageId,
-            }),
-        );
+    protected _sendUnsubTicker(remote_id: string) {
+        if (this.batchTickers) {
+            if (this._tickerSubs.size > 1) return;
+            this._tickersActive = false;
+            this._wss.send(
+                JSON.stringify({
+                    method: "UNSUBSCRIBE",
+                    params: ["!ticker@arr"],
+                    id: ++this._messageId,
+                }),
+            );
+        } else {
+            this._wss.send(
+                JSON.stringify({
+                    method: "UNSUBSCRIBE",
+                    params: [`${remote_id.toLowerCase()}@ticker`],
+                    id: ++this._messageId,
+                }),
+            );
+        }
     }
 
     protected __batchSub(args: any[]) {
