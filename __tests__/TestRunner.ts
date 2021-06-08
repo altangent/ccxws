@@ -110,6 +110,10 @@ export type L2UpdateOptions = {
 };
 
 export type L3UpdateOptions = {
+    hasSnapshot?: boolean;
+    hasTimestampMs?: boolean;
+    hasSequenceId?: boolean;
+    hasCount?: boolean;
     tests?: (spec: any, result: any) => void;
 };
 
