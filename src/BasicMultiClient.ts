@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/member-ordering */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -10,8 +11,10 @@ import { Market } from "./Market";
 import { IClient } from "./IClient";
 import { SubscriptionType } from "./SubscriptionType";
 import { wait } from "./Util";
+import { NotImplementedFn } from "./NotImplementedFn";
 
 export abstract class BasicMultiClient extends EventEmitter {
+    public name: string;
     public hasTickers: boolean;
     public hasTrades: boolean;
     public hasCandles: boolean;
@@ -41,14 +44,14 @@ export abstract class BasicMultiClient extends EventEmitter {
     }
 
     public async reconnect() {
-        for (const client of this._clients.values()) {
+        for (const client of Array.from(this._clients.values())) {
             (await client).reconnect();
             await wait(this.throttleMs); // delay the reconnection throttling
         }
     }
 
     public async close(): Promise<void> {
-        for (const client of this._clients.values()) {
+        for (const client of Array.from(this._clients.values())) {
             (await client).close();
         }
     }
@@ -123,12 +126,17 @@ export abstract class BasicMultiClient extends EventEmitter {
         }
     }
 
+    public subscribeLevel3Snapshots = NotImplementedFn;
+    public unsubscribeLevel3Snapshots = NotImplementedFn;
+    public subscribeLevel3Updates = NotImplementedFn;
+    public unsubscribeLevel3Updates = NotImplementedFn;
+
     ////// PROTECTED
 
     protected _createBasicClientThrottled(clientArgs: any) {
         return new Promise(resolve => {
             this.sem.take(() => {
-                const client = this._createBasicClient(clientArgs);
+                const client: any = this._createBasicClient(clientArgs);
                 client.on("connecting", () => this.emit("connecting", clientArgs.market));
                 client.on("connected", () => this.emit("connected", clientArgs.market));
                 client.on("disconnected", () => this.emit("disconnected", clientArgs.market));
