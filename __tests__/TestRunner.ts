@@ -114,7 +114,9 @@ export type L3UpdateOptions = {
     hasTimestampMs?: boolean;
     hasSequenceId?: boolean;
     hasCount?: boolean;
+    orderIdPattern?: RegExp;
     tests?: (spec: any, result: any) => void;
+    done?: (spec: any, result: any, update: Level3Update) => boolean;
 };
 
 export type L3SnapshotOptions = {
