@@ -83,6 +83,7 @@ export type TickerOptions = {
 export type TradeOptions = {
     hasTradeId?: boolean;
     hasSequenceId?: boolean;
+    tradeIdPattern?: RegExp;
     tests?: (spec: any, result: any) => void;
 };
 
