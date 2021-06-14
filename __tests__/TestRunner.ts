@@ -96,6 +96,7 @@ export type L2SnapshotOptions = {
     hasTimestampMs?: boolean;
     hasSequenceId?: boolean;
     hasCount?: boolean;
+    hasEventId?: boolean;
     tests?: (spec: any, result: any) => void;
 };
 
@@ -104,6 +105,7 @@ export type L2UpdateOptions = {
     hasTimestampMs?: boolean;
     hasSequenceId?: boolean;
     hasLastSequenceId?: boolean;
+    hasEventId?: boolean;
     hasEventMs?: boolean;
     hasCount?: boolean;
     tests?: (spec: any, result: any) => void;
