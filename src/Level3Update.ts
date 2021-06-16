@@ -7,6 +7,8 @@ export class Level3Update {
     public exchange: string;
     public base: string;
     public quote: string;
+    public sequenceId: number;
+    public timestampMs: number;
     public asks: Level3Point[];
     public bids: Level3Point[];
 
