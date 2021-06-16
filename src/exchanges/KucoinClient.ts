@@ -809,7 +809,6 @@ export class KucoinClient extends BasicClient {
         try {
             const remote_id = market.id;
             const uri = `https://api.kucoin.com/api/v1/market/orderbook/level3?symbol=${remote_id}`;
-            console.log(uri);
             const raw: any = await https.get(uri);
 
             const timestampMs = raw.data.time;
@@ -840,7 +839,6 @@ export class KucoinClient extends BasicClient {
             });
             this.emit("l3snapshot", snapshot, market);
         } catch (ex) {
-            console.log(ex);
             this.emit("error", ex);
             await wait(this.restThrottleMs);
             this.__requestLevel3Snapshot(market);
