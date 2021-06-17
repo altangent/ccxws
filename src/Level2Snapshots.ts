@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
+import { Level2Point } from "./Level2Point";
+
 export class Level2Snapshot {
     public base: string;
     public quote: string;
     public exchange: string;
+    public sequenceId: number;
+    public timestampMs: number;
+    public asks: Level2Point[];
+    public bids: Level2Point[];
 
     constructor(props) {
         for (const key in props) {
