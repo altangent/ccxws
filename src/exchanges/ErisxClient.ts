@@ -474,5 +474,3 @@ export class ErisXClient extends BasicClient {
         });
     }
 }
-
-module.exports = ErisXClient;
