@@ -57,8 +57,11 @@ typings/
 # dotenv environment variables file
 .env
 
-test.js
-test*.js
+test.ts
+test*.ts
 
 .vscode
 **/.DS_Store
+
+dist
+coverage
