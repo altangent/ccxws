@@ -5,7 +5,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import semaphore = require("semaphore");
-import { Level2Point } from "../../dist/src/Level2Point";
+import { Level2Point } from "../Level2Point";
 import { BasicClient } from "../BasicClient";
 import { ClientOptions } from "../ClientOptions";
 import { Level2Snapshot } from "../Level2Snapshots";
