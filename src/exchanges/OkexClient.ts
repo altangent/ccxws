@@ -21,7 +21,7 @@ import * as zlib from "../ZlibUtils";
 
 const pongBuffer = Buffer.from("pong");
 
-export type OKExClientOptions = ClientOptions & {
+export type OkexClientOptions = ClientOptions & {
     sendThrottleMs?: number;
 };
 
@@ -45,7 +45,7 @@ export type OKExClientOptions = ClientOptions & {
  *
  * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
  */
-export class OKExClient extends BasicClient {
+export class OkexClient extends BasicClient {
     public candlePeriod: CandlePeriod;
 
     protected _sendMessage: CancelableFn;
@@ -55,7 +55,7 @@ export class OKExClient extends BasicClient {
         wssPath = "wss://real.okex.com:8443/ws/v3",
         watcherMs,
         sendThrottleMs = 20,
-    }: OKExClientOptions = {}) {
+    }: OkexClientOptions = {}) {
         super(wssPath, "OKEx", undefined, watcherMs);
         this.candlePeriod = CandlePeriod._1m;
         this.hasTickers = true;

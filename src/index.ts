@@ -51,7 +51,7 @@ export { KucoinClient, KucoinClient as Kucoin } from "./exchanges/KucoinClient";
 export { KrakenClient, KrakenClient as Kraken } from "./exchanges/KrakenClient";
 export { LedgerXClient, LedgerXClient as LedgerX } from "./exchanges/LedgerXClient";
 export { LiquidClient, LiquidClient as Liquid } from "./exchanges/LiquidClient";
-export { OKExClient, OKExClient as OKEx } from "./exchanges/OKExClient";
+export { OkexClient as OkexClient, OkexClient as OKEx } from "./exchanges/OkexClient";
 export { PoloniexClient, PoloniexClient as Poloniex } from "./exchanges/PoloniexClient";
 export { UpbitClient, UpbitClient as Upbit } from "./exchanges/UpbitClient";
 export { ZbClient, ZbClient as Zb } from "./exchanges/ZbClient";

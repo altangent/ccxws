@@ -1,5 +1,5 @@
 import { testClient } from "../TestRunner";
-import { OKExClient } from "../../src/exchanges/OKExClient";
+import { OkexClient } from "../../src/exchanges/OkexClient";
 import { get } from "../../src/Https";
 
 const assertions = {
@@ -50,7 +50,7 @@ const assertions = {
 };
 
 testClient({
-    clientFactory: () => new OKExClient(),
+    clientFactory: () => new OkexClient(),
     exchangeName: "OKEx",
     clientName: "OKExClient - Spot",
     markets: [
@@ -75,7 +75,7 @@ testClient({
 });
 
 testClient({
-    clientFactory: () => new OKExClient(),
+    clientFactory: () => new OkexClient(),
     exchangeName: "OKEx",
     clientName: "OKExClient - Futures",
     fetchMarkets: async () => {
@@ -93,7 +93,7 @@ testClient({
 });
 
 testClient({
-    clientFactory: () => new OKExClient(),
+    clientFactory: () => new OkexClient(),
     exchangeName: "OKEx",
     clientName: "OKExClient - Swap",
     fetchMarkets: async () => {
@@ -111,7 +111,7 @@ testClient({
 });
 
 testClient({
-    clientFactory: () => new OKExClient(),
+    clientFactory: () => new OkexClient(),
     exchangeName: "OKEx",
     clientName: "OKExClient - Options",
     fetchMarkets: async () => {
