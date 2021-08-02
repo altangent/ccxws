@@ -54,6 +54,9 @@ class BasicAuthTradeClient extends BasicClient {
     for (let marketSymbol of this._bookTickerSubs.keys()) {
       this._sendSubBookTicker(marketSymbol);
     }
+    if(this._allBookTickerSubs) {
+      this._sendSubAllBookTicker();
+    }
     for (let marketSymbol of this._candleSubs.keys()) {
       this._sendSubCandle(marketSymbol);
     }

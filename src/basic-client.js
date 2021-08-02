@@ -17,6 +17,7 @@ class BasicTradeClient extends EventEmitter {
     this._name = name;
     this._tickerSubs = new Map();
     this._bookTickerSubs = new Map();
+    this._allBookTickerSubs = false;
     this._tradeSubs = new Map();
     this._candleSubs = new Map();
     this._level2SnapshotSubs = new Map();
@@ -27,6 +28,7 @@ class BasicTradeClient extends EventEmitter {
 
     this.hasTickers = false;
     this.hasBookTicker = false;
+    this.hasAllBookTicker = false;
     this.hasTrades = true;
     this.hasCandles = false;
     this.hasLevel2Snapshots = false;
@@ -79,6 +81,24 @@ class BasicTradeClient extends EventEmitter {
     this._unsubscribe(market, this._bookTickerSubs, this._sendUnsubBookTicker.bind(this));
   }
 
+  subscribeAllBookTicker() {
+    if (!this.hasAllBookTicker) return;
+    this._allBookTickerSubs = true
+
+    this._connect()
+    if (this._wss && this._wss.isConnected) {
+      return this._sendSubAllBookTicker();
+    }
+  }
+
+  unsubscribeAllBookTicker() {
+    if (!this.hasAllBookTicker) return;
+    this._allBookTickerSubs = false
+
+    if (this._wss && this._wss.isConnected) {
+      this._sendUnsubAllBookTicker();
+    }
+  }
 
   subscribeCandles(market) {
     if (!this.hasCandles) return;
@@ -241,6 +261,9 @@ class BasicTradeClient extends EventEmitter {
     for (let [marketSymbol, market] of this._bookTickerSubs) {
       this._sendSubBookTicker(marketSymbol, market);
     }
+    if (this._allBookTickerSubs) {
+      this._sendSubAllBookTicker()
+    }
     for (let [marketSymbol, market] of this._candleSubs) {
       this._sendSubCandles(marketSymbol, market);
     }
@@ -301,6 +324,11 @@ class BasicTradeClient extends EventEmitter {
   }
 
   /* istanbul ignore next */
+  _sendSubAllBookTicker() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
   _sendSubCandles() {
     throw new Error("not implemented");
   }
@@ -317,6 +345,11 @@ class BasicTradeClient extends EventEmitter {
 
   /* istanbul ignore next */
   _sendUnsubBookTicker() {
+    throw new Error("not implemented");
+  }
+
+  /* istanbul ignore next */
+  _sendUnsubAllBookTicker() {
     throw new Error("not implemented");
   }
 

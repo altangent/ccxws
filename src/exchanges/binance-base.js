@@ -55,13 +55,13 @@ class BinanceBase extends BasicClient {
     this.requestSnapshot = requestSnapshot;
     this.hasTickers = true;
     this.hasBookTicker = true;
+    this.hasAllBookTicker = true;
     this.hasTrades = true;
     this.hasCandles = true;
     this.hasLevel2Snapshots = true;
     this.hasLevel2Updates = true;
 
     this._messageId = 0;
-    this._tickersActive = false;
     this.candlePeriod = CandlePeriod._1m;
 
     this._batchSub = batch(this._batchSub.bind(this), socketBatchSize);
@@ -74,7 +74,6 @@ class BinanceBase extends BasicClient {
   //////////////////////////////////////////////
 
   _onClosing() {
-    this._tickersActive = false;
     this._batchSub.cancel();
     this._batchUnsub.cancel();
     this._sendMessage.cancel();
@@ -91,25 +90,14 @@ class BinanceBase extends BasicClient {
    */
    _onConnected() {
     this.emit("connected");
+
     const subscribe = (subFn, subs) => {
-      const subscribeMore = (subscriptions) => {
-        if (!subscriptions.length) {
-          return
-        }
-
-        const [marketSymbol, market] = subscriptions[0]
-
-        subFn(marketSymbol, market);
-
-        setTimeout(() => subscribeMore(subscriptions.slice(1)), 200)
-      }
-      const subscriptions = subs && Array.from(subs.entries()) || []
-
-      subscribeMore(subscriptions)
+      Array.from(subs.entries()).forEach(([marketSymbol, market]) => subFn(marketSymbol, market))
     }
 
     subscribe(this._sendSubTicker.bind(this), this._tickerSubs)
     subscribe(this._sendSubBookTicker.bind(this), this._bookTickerSubs)
+    this._allBookTickerSubs && this._sendSubAllBookTicker()
     subscribe(this._sendSubCandles.bind(this), this._candleSubs)
     subscribe(this._sendSubTrades.bind(this), this._tradeSubs)
     subscribe(this._sendSubLevel2Snapshots.bind(this), this._level2SnapshotSubs)
@@ -119,50 +107,6 @@ class BinanceBase extends BasicClient {
     this._watcher.start();
   }
 
-  _sendSubTicker(remote_id) {
-    if (this._tickersActive) return;
-    this._tickersActive = true;
-    this._wss.send(
-      JSON.stringify({
-        method: "SUBSCRIBE",
-        params: [`${remote_id.toLowerCase()}@ticker`],
-        id: ++this._messageId,
-      })
-    );
-  }
-
-  _sendUnsubTicker(remote_id) {
-    if (this._tickerSubs.size > 1) return;
-    this._tickersActive = false;
-    this._wss.send(
-      JSON.stringify({
-        method: "UNSUBSCRIBE",
-        params: [`${remote_id}@ticker`],
-        id: ++this._messageId,
-      })
-    );
-  }
-
-  _sendSubBookTicker(remote_id) {
-    this._wss.send(
-      JSON.stringify({
-        method: "SUBSCRIBE",
-        params: [`${remote_id.toLowerCase()}@bookTicker`],
-        id: ++this._messageId,
-      })
-    );
-  }
-
-  _sendUnsubBookTicker(remote_id) {
-    if (!this._bookTickerSubs.has(remote_id)) return;
-    this._wss.send(
-      JSON.stringify({
-        method: "UNSUBSCRIBE",
-        params: [`${remote_id}@bookTicker`],
-        id: ++this._messageId,
-      })
-    );
-  }
 
   _batchSub(args) {
     const params = args.map(p => p[0]);
@@ -188,6 +132,34 @@ class BinanceBase extends BasicClient {
 
   _sendMessage(msg) {
     this._wss.send(msg);
+  }
+
+  _sendSubTicker(remote_id) {
+    const stream = `${remote_id.toLowerCase()}@ticker`
+    this._batchSub(stream);
+  }
+
+  _sendUnsubTicker(remote_id) {
+    const stream = `${remote_id.toLowerCase()}@ticker`
+    this._batchUnSub(stream);
+  }
+
+  _sendSubBookTicker(remote_id) {
+    const stream = `${remote_id.toLowerCase()}@bookTicker`;
+    this._batchSub(stream);
+  }
+
+  _sendUnsubBookTicker(remote_id) {
+    const stream = `${remote_id}@bookTicker`
+    this._batchUnsub(stream)
+  }
+
+  _sendSubAllBookTicker() {
+    this._batchSub('!bookTicker')
+  }
+
+  _sendUnsubAllBookTicker() {
+    this._batchUnsub('!bookTicker')
   }
 
   _sendSubTrades(remote_id) {
@@ -281,8 +253,19 @@ class BinanceBase extends BasicClient {
       let market = this._bookTickerSubs.get(remote_id);
       if (!market) return;
 
-      let ticker = this._constructBookTicker(msg.data, market);
-      this.emit("bookTicker", ticker, market);
+      let bookTicker = this._constructBookTicker(msg.data, market);
+      this.emit("bookTicker", bookTicker, market);
+      return;
+    }
+
+    // all orderbook ticker
+    if (msg.stream.endsWith("!bookTicker")) {
+      let remote_id = msg.data.s;
+      let market = this._bookTickerSubs.get(remote_id);
+      if (!market) return;
+
+      let bookTicker = this._constructBookTicker(msg.data, remote_id);
+      this.emit("allBookTicker", bookTicker, market);
       return;
     }
 
