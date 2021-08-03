@@ -97,7 +97,7 @@ class BinanceBase extends BasicClient {
 
     subscribe(this._sendSubTicker.bind(this), this._tickerSubs)
     subscribe(this._sendSubBookTicker.bind(this), this._bookTickerSubs)
-    this._allBookTickerSubs && this._sendSubAllBookTicker()
+    subscribe(this._sendSubAllBookTicker.bind(this), this._allBookTickerSubs)
     subscribe(this._sendSubCandles.bind(this), this._candleSubs)
     subscribe(this._sendSubTrades.bind(this), this._tradeSubs)
     subscribe(this._sendSubLevel2Snapshots.bind(this), this._level2SnapshotSubs)
@@ -253,7 +253,7 @@ class BinanceBase extends BasicClient {
       let market = this._bookTickerSubs.get(remote_id);
       if (!market) return;
 
-      let bookTicker = this._constructBookTicker(msg.data, market);
+      const bookTicker = this._constructBookTicker(msg.data, market);
       this.emit("bookTicker", bookTicker, market);
       return;
     }
@@ -261,10 +261,10 @@ class BinanceBase extends BasicClient {
     // all orderbook ticker
     if (msg.stream.endsWith("!bookTicker")) {
       let remote_id = msg.data.s;
-      let market = this._bookTickerSubs.get(remote_id);
+      let market = this._allBookTickerSubs.get(remote_id);
       if (!market) return;
+      const bookTicker = this._constructBookTicker(msg.data, market);
 
-      let bookTicker = this._constructBookTicker(msg.data, remote_id);
       this.emit("allBookTicker", bookTicker, market);
       return;
     }

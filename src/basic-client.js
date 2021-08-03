@@ -17,7 +17,7 @@ class BasicTradeClient extends EventEmitter {
     this._name = name;
     this._tickerSubs = new Map();
     this._bookTickerSubs = new Map();
-    this._allBookTickerSubs = false;
+    this._allBookTickerSubs = new Map();
     this._tradeSubs = new Map();
     this._candleSubs = new Map();
     this._level2SnapshotSubs = new Map();
@@ -81,23 +81,14 @@ class BasicTradeClient extends EventEmitter {
     this._unsubscribe(market, this._bookTickerSubs, this._sendUnsubBookTicker.bind(this));
   }
 
-  subscribeAllBookTicker() {
+  subscribeAllBookTicker(market) {
     if (!this.hasAllBookTicker) return;
-    this._allBookTickerSubs = true
-
-    this._connect()
-    if (this._wss && this._wss.isConnected) {
-      return this._sendSubAllBookTicker();
-    }
+    return this._subscribe(market, this._allBookTickerSubs, this._sendSubAllBookTicker.bind(this));
   }
 
-  unsubscribeAllBookTicker() {
+  unsubscribeAllBookTicker(market) {
     if (!this.hasAllBookTicker) return;
-    this._allBookTickerSubs = false
-
-    if (this._wss && this._wss.isConnected) {
-      this._sendUnsubAllBookTicker();
-    }
+    return this._unsubscribe(market, this._allBookTickerSubs, this._sendUnsubAllBookTicker.bind(this));
   }
 
   subscribeCandles(market) {
@@ -261,8 +252,8 @@ class BasicTradeClient extends EventEmitter {
     for (let [marketSymbol, market] of this._bookTickerSubs) {
       this._sendSubBookTicker(marketSymbol, market);
     }
-    if (this._allBookTickerSubs) {
-      this._sendSubAllBookTicker()
+    for (let [marketSymbol, market] of this._allBookTickerSubs) {
+      this._sendSubAllBookTicker(marketSymbol, market);
     }
     for (let [marketSymbol, market] of this._candleSubs) {
       this._sendSubCandles(marketSymbol, market);
