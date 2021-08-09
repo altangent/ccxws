@@ -13,8 +13,9 @@
   ],
   "author": "Brian Mancini <bmancini@gmail.com>",
   "license": "MIT",
-  "main": "src/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
+    "prepublish": "npm run build",
     "build": "tsc",
     "format:fix": "prettier --write  \"src/**\" \"__tests__/**\"",
     "format": "prettier --check \"src/**\" \"__tests__/**\"",
