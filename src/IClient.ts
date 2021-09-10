@@ -1,4 +1,4 @@
-import EventEmitter from "events";
+import { EventEmitter } from "events";
 import { Market } from "./Market";
 
 export interface IClient extends EventEmitter {
