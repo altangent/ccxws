@@ -3,7 +3,7 @@
 import { testClient } from "../TestRunner";
 import { BitfinexClient } from "../../src/exchanges/BitfinexClient";
 
-const regularSpec = {
+const spec = {
     clientName: "BitfinexClient",
     exchangeName: "Bitfinex",
     markets: [
@@ -21,6 +21,12 @@ const regularSpec = {
             id: "ETHBTC",
             base: "ETH",
             quote: "BTC",
+        },
+        {
+            // test a very low volume market
+            id: "ENJUSD",
+            base: "ENJ",
+            quote: "USD",
         },
     ],
 
@@ -94,34 +100,11 @@ const regularSpec = {
         },
     },
 };
-// create a copy of the regular spec for another spec when enableEmptyHeartbeatEvents = true
-const sequenceIdValidateWithEmptyHeartbeatsSpec = {
-    ...JSON.parse(JSON.stringify(regularSpec)),
-    markets: [
-        {
-            // test a very low volume market
-            id: "ENJUSD",
-            base: "ENJ",
-            quote: "USD",
-        },
-        {
-            id: "BTCUSD",
-            base: "BTC",
-            quote: "USDT",
-        },
-    ],
-    trade: {
-        // note: the empty trade event for heartbeat won't have tradeId. but that won't be the first message so TestRunner won't encounter it
-        hasTradeId: true,
-        hasSequenceId: true,
-    },
-};
-
 testClient(
     {
         // run test w/regular default options
         clientFactory: () => new BitfinexClient(),
-        ...regularSpec,
+        ...spec,
     },
     () => {
         testClient({
@@ -131,7 +114,7 @@ testClient(
                     enableEmptyHeartbeatEvents: true,
                     tradeMessageType: "all",
                 }),
-            ...sequenceIdValidateWithEmptyHeartbeatsSpec,
+            ...spec,
         });
     },
 );
