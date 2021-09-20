@@ -18,7 +18,8 @@
     "format:fix": "prettier --write  \"src/**\" \"__tests__/**\"",
     "format": "prettier --check \"src/**\" \"__tests__/**\"",
     "lint": "eslint src __tests__",
-    "test": "nyc --reporter=text mocha --recursive \"__tests__\""
+    "test": "nyc --reporter=text mocha --recursive \"__tests__\"",
+    "test2": "nyc --reporter=text mocha --recursive \"__tests__/exchanges/bitfinex-client.spec.js\""
   },
   "repository": "altangent/ccxws",
   "dependencies": {
