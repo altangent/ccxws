@@ -144,6 +144,12 @@ export type TestRunnerResult = {
     updateMarket?: Market;
 };
 
+/**
+ * Test a client given a spec.
+ *
+ * @param spec test specification
+ * @param [next] optional,  callback to execute when tests are complete
+ */
 export function testClient(spec: TestSpec, next?: Function) {
     if (spec.skip) return;
     describe(spec.clientName, () => {
