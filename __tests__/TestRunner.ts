@@ -150,7 +150,7 @@ export type TestRunnerResult = {
  * @param spec test specification
  * @param [next] optional,  callback to execute when tests are complete
  */
-export function testClient(spec: TestSpec, next?: Function) {
+export function testClient(spec: TestSpec, next?: (...args: any[]) => void) {
     if (spec.skip) return;
     describe(spec.clientName, () => {
         after(() => {

@@ -212,7 +212,7 @@ export class BitfinexClient extends BasicClient {
     /**
      * Handle heartbeat messages on each channel.
      */
-    protected _onHeartbeatMessage(msg: object, channel: any) {
+    protected _onHeartbeatMessage(msg: any, channel: any) {
         if (channel.channel === "ticker") {
             let market = this._tickerSubs.get(channel.pair);
             if (!market) return;
