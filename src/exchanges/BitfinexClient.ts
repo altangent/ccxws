@@ -22,8 +22,8 @@ export type BitfinexClientOptions = {
     watcherMs?: number;
     l2UpdateDepth?: number;
     throttleL2Snapshot?: number;
-    enableEmptyHeartbeatEvents?: boolean,
-    tradeMessageType?: string
+    enableEmptyHeartbeatEvents?: boolean;
+    tradeMessageType?: string;
 };
 
 export class BitfinexClient extends BasicClient {
@@ -39,14 +39,14 @@ export class BitfinexClient extends BasicClient {
     protected _sendUnsubLevel2Snapshots = NotImplementedAsyncFn;
     protected _sendUnsubLevel3Snapshots = NotImplementedAsyncFn;
 
-  /**
-   *
-   * @param {Object} params
-   * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
-   *                                                            this allows sequenceId validation by always receiving sequenceId from all heartbeat events on all channels while working w/the existing trade/ticker/orderbook event types
-   * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). one of "tu", "te", or "all". determines whether to use trade channel events of type "te" or "tu", or all trade events. see https://blog.bitfinex.com/api/websocket-api-update/.
-   *                                                            if you're using sequenceIds to validate websocket messages you will want to use "all" to receive every sequenceId
-   */
+    /**
+     *
+     * @param {Object} params
+     * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
+     *                                                            this allows sequenceId validation by always receiving sequenceId from all heartbeat events on all channels while working w/the existing trade/ticker/orderbook event types
+     * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). one of "tu", "te", or "all". determines whether to use trade channel events of type "te" or "tu", or all trade events. see https://blog.bitfinex.com/api/websocket-api-update/.
+     *                                                            if you're using sequenceIds to validate websocket messages you will want to use "all" to receive every sequenceId
+     */
     constructor({
         wssPath = "wss://api.bitfinex.com/ws/2",
         watcherMs,
@@ -81,7 +81,7 @@ export class BitfinexClient extends BasicClient {
             // if enableEmptyHeartbeatEvents (validating sequenceIds) we need to keep receiving events from a channel after we sent the unsub event until unsubscribe is confirmed.
             // this is because every message's sequenceId must be validated, and some may arrive between sending unsub and it being confirmed. So we dont remove from the map and will
             // continue emitting events for this channel until they stop arriving
-            if (this.enableEmptyHeartbeatEvents === false){
+            if (this.enableEmptyHeartbeatEvents === false) {
                 map.delete(remote_id);
             }
 
@@ -91,7 +91,6 @@ export class BitfinexClient extends BasicClient {
         }
     }
 
-    
     /**
      * Override the default BasicClient _subscribe.
      */
@@ -100,7 +99,7 @@ export class BitfinexClient extends BasicClient {
         const remote_id = market.id;
         // if enableEmptyHeartbeatEvents (validating sequenceIds) we need to keep receiving events until unsubscribe is confirmed
         // so we dont remove from the map when unsubscribing. So market may still be in the map even if it's been unsubsribed. For that reason, just always send sub if instructed.
-        if (!map.has(remote_id) || (this.enableEmptyHeartbeatEvents === true)) {
+        if (!map.has(remote_id) || this.enableEmptyHeartbeatEvents === true) {
             map.set(remote_id, market);
 
             // perform the subscription if we're connected
@@ -113,7 +112,6 @@ export class BitfinexClient extends BasicClient {
         }
         return false;
     }
-
 
     protected _sendConfiguration() {
         // see docs for "conf" flags. https://docs.bitfinex.com/docs/ws-general#configuration
@@ -216,34 +214,34 @@ export class BitfinexClient extends BasicClient {
      */
     protected _onHeartbeatMessage(msg: object, channel: any) {
         if (channel.channel === "ticker") {
-          let market = this._tickerSubs.get(channel.pair);
-          if (!market) return;
-          this._onTickerHeartbeat(msg, market);
-          return;
+            let market = this._tickerSubs.get(channel.pair);
+            if (!market) return;
+            this._onTickerHeartbeat(msg, market);
+            return;
         }
-    
+
         // trades
         if (channel.channel === "trades") {
-          let market = this._tradeSubs.get(channel.pair);
-          if (!market) return;
-          this._onTradeMessageHeartbeat(msg, market);
-          return;
+            let market = this._tradeSubs.get(channel.pair);
+            if (!market) return;
+            this._onTradeMessageHeartbeat(msg, market);
+            return;
         }
-    
+
         // level3
         if (channel.channel === "book" && channel.prec === "R0") {
-          let market = this._level3UpdateSubs.get(channel.pair);
-          if (!market) return;
-          this._onLevel3UpdateHeartbeat(msg, market);
-          return;
+            let market = this._level3UpdateSubs.get(channel.pair);
+            if (!market) return;
+            this._onLevel3UpdateHeartbeat(msg, market);
+            return;
         }
-    
+
         // level2
         if (channel.channel === "book") {
-          let market = this._level2UpdateSubs.get(channel.pair);
-          if (!market) return;
-          this._onLevel2UpdateHeartbeat(msg, market);
-          return;
+            let market = this._level2UpdateSubs.get(channel.pair);
+            if (!market) return;
+            this._onLevel2UpdateHeartbeat(msg, market);
+            return;
         }
     }
 
@@ -260,7 +258,7 @@ export class BitfinexClient extends BasicClient {
         const channel = this._channels[msg[0]];
         if (!channel) return;
 
-         // handle heartbeats
+        // handle heartbeats
         if (msg[1] === "hb") {
             this._onHeartbeatMessage(msg, channel);
             return;
@@ -368,8 +366,8 @@ export class BitfinexClient extends BasicClient {
     }
 
     /**
-    * Handle heartbeat events in the trades channel.
-    */
+     * Handle heartbeat events in the trades channel.
+     */
     protected _onTradeMessageHeartbeat(msg: any, market: Market) {
         const timestampMs = msg[3];
         const sequenceId = Number(msg[2]);
@@ -377,11 +375,11 @@ export class BitfinexClient extends BasicClient {
         // handle heartbeat by emitting empty update w/sequenceId.
         // example trade heartbeat msg: [ 198655, 'hb', 3, 1610920929093 ]
         let trade = new Trade({
-          exchange: "Bitfinex",
-          base: market.base,
-          quote: market.quote,
-          timestamp: timestampMs,
-          sequenceId,
+            exchange: "Bitfinex",
+            base: market.base,
+            quote: market.quote,
+            timestamp: timestampMs,
+            sequenceId,
         });
         this.emit("trade", trade, market);
         return;
@@ -429,7 +427,7 @@ export class BitfinexClient extends BasicClient {
                 amount,
             });
             this.emit("trade", trade, market);
-        };
+        }
     }
 
     protected _onTradeMessage(msg: any, market: Market) {
@@ -509,13 +507,13 @@ export class BitfinexClient extends BasicClient {
         // handle heartbeat by emitting empty update w/sequenceId.
         // heartbeat msg: [ 169546, 'hb', 17, 1610921150321 ]
         let update = new Level2Update({
-          exchange: "Bitfinex",
-          base: market.base,
-          quote: market.quote,
-          sequenceId,
-          timestampMs,
-          asks: [],
-          bids: [],
+            exchange: "Bitfinex",
+            base: market.base,
+            quote: market.quote,
+            sequenceId,
+            timestampMs,
+            asks: [],
+            bids: [],
         });
         this.emit("l2update", update, market);
         return;
@@ -596,10 +594,10 @@ export class BitfinexClient extends BasicClient {
         this.emit("l3snapshot", result, market);
     }
 
-     /**
+    /**
      * Handle heartbeat events in the l3updatae channel
      */
-      protected _onLevel3UpdateHeartbeat(msg: any, market: Market) {
+    protected _onLevel3UpdateHeartbeat(msg: any, market: Market) {
         const sequenceId = Number(msg[2]);
         const timestampMs = msg[3];
         if (this.enableEmptyHeartbeatEvents === false) return;

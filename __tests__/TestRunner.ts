@@ -202,7 +202,9 @@ export function testClient(spec: TestSpec, next?: Function) {
                     expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
                 });
 
-                it(`should ${spec.hasLevel2Updates ? "support" : "not support"} level2 updates`, () => {
+                it(`should ${
+                    spec.hasLevel2Updates ? "support" : "not support"
+                } level2 updates`, () => {
                     expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
                 });
 
@@ -212,7 +214,9 @@ export function testClient(spec: TestSpec, next?: Function) {
                     expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
                 });
 
-                it(`should ${spec.hasLevel3Updates ? "support" : "not support"} level3 updates`, () => {
+                it(`should ${
+                    spec.hasLevel3Updates ? "support" : "not support"
+                } level3 updates`, () => {
                     expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
                 });
             });

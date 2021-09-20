@@ -70,11 +70,11 @@ const regularSpec = {
         hasTimestampMs: true,
         hasSequenceId: true,
         hasCount: true,
-        done: function(spec, result, update) {
+        done: function (spec, result, update) {
             const hasAsks = update.asks && update.asks.length > 0;
             const hasBids = update.bids && update.bids.length > 0;
             return hasAsks || hasBids;
-        }
+        },
     },
 
     l3snapshot: {
@@ -87,11 +87,11 @@ const regularSpec = {
         hasTimestampMs: true,
         hasSequenceId: true,
         hasCount: true,
-        done: function(spec, result, update) {
+        done: function (spec, result, update) {
             const hasAsks = update.asks && update.asks.length > 0;
             const hasBids = update.bids && update.bids.length > 0;
             return hasAsks || hasBids;
-        }
+        },
     },
 };
 // create a copy of the regular spec for another spec when enableEmptyHeartbeatEvents = true
@@ -100,34 +100,38 @@ const sequenceIdValidateWithEmptyHeartbeatsSpec = {
     markets: [
         {
             // test a very low volume market
-            id: 'ENJUSD',
-            base: 'ENJ',
-            quote: 'USD'
+            id: "ENJUSD",
+            base: "ENJ",
+            quote: "USD",
         },
         {
             id: "BTCUSD",
             base: "BTC",
             quote: "USDT",
-        }
+        },
     ],
     trade: {
         // note: the empty trade event for heartbeat won't have tradeId. but that won't be the first message so TestRunner won't encounter it
-        hasTradeId: true, 
+        hasTradeId: true,
         hasSequenceId: true,
     },
 };
 
-testClient({
-    // run test w/regular default options
-    clientFactory: () => new BitfinexClient(),
-    ...regularSpec
-}, () => {
-    testClient({
-        // run test w/enableEmptyHeartbeatEvents option (for those who want to validate sequenceIds)
-        clientFactory: () => new BitfinexClient({
-            enableEmptyHeartbeatEvents: true,
-            tradeMessageType: 'all'
-        }),
-        ...sequenceIdValidateWithEmptyHeartbeatsSpec
-    });
-});
+testClient(
+    {
+        // run test w/regular default options
+        clientFactory: () => new BitfinexClient(),
+        ...regularSpec,
+    },
+    () => {
+        testClient({
+            // run test w/enableEmptyHeartbeatEvents option (for those who want to validate sequenceIds)
+            clientFactory: () =>
+                new BitfinexClient({
+                    enableEmptyHeartbeatEvents: true,
+                    tradeMessageType: "all",
+                }),
+            ...sequenceIdValidateWithEmptyHeartbeatsSpec,
+        });
+    },
+);
