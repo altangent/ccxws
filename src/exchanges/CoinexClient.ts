@@ -31,7 +31,7 @@ export class CoinexClient extends BasicMultiClient {
         this.options = options;
         this.hasTickers = true;
         this.hasTrades = true;
-        this.hasCandles = true;
+        this.hasCandles = false;
         this.hasLevel2Updates = true;
         this.candlePeriod = CandlePeriod._1m;
     }
@@ -53,7 +53,7 @@ export class CoinexSingleClient extends BasicClient {
         super(wssPath, "Coinex", undefined, watcherMs);
         this.hasTickers = true;
         this.hasTrades = true;
-        this.hasCandles = true;
+        this.hasCandles = false;
         this.hasLevel2Updates = true;
         this.retryErrorTimeout = 15000;
         this._id = 0;
@@ -167,26 +167,6 @@ export class CoinexSingleClient extends BasicClient {
         );
     }
 
-    protected _sendSubCandles(remote_id) {
-        const id = this._id++;
-        this._idSubMap.set(id, { remote_id, type: SubscriptionType.trade });
-        this._wss.send(
-            JSON.stringify({
-                method: "kline.subscribe",
-                params: [remote_id, candlePeriod(this.candlePeriod)],
-                id,
-            }),
-        );
-    }
-
-    protected _sendUnsubCandles() {
-        this._wss.send(
-            JSON.stringify({
-                method: "kline.unsubscribe",
-            }),
-        );
-    }
-
     protected _sendSubLevel2Updates(remote_id) {
         const id = this._id++;
         this._idSubMap.set(id, { remote_id, type: SubscriptionType.level2update });
@@ -207,6 +187,8 @@ export class CoinexSingleClient extends BasicClient {
         );
     }
 
+    protected _sendSubCandles = NotImplementedFn;
+    protected _sendUnsubCandles = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;
     protected _sendUnsubLevel2Snapshots = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;
@@ -248,18 +230,6 @@ export class CoinexSingleClient extends BasicClient {
             for (const t of params[1].reverse()) {
                 const trade = this._constructTrade(t, market);
                 this.emit("trade", trade, market);
-            }
-            return;
-        }
-
-        if (method === "kline.update") {
-            for (const d of params) {
-                const marketId = d[7];
-                const market = this._candleSubs.get(marketId);
-                if (!market) continue;
-
-                const candle = this._constructCandle(d);
-                this.emit("candle", candle, market);
             }
             return;
         }
@@ -321,10 +291,6 @@ export class CoinexSingleClient extends BasicClient {
         });
     }
 
-    protected _constructCandle(data) {
-        return new Candle(data[0] * 1000, data[1], data[3], data[4], data[2], data[5]);
-    }
-
     protected _constructLevel2Snapshot(rawUpdate, market) {
         let { bids, asks } = rawUpdate,
             structuredBids = bids ? bids.map(([price, size]) => new Level2Point(price, size)) : [],
@@ -351,34 +317,5 @@ export class CoinexSingleClient extends BasicClient {
             bids: structuredBids,
             asks: structuredAsks,
         });
-    }
-}
-
-function candlePeriod(period) {
-    switch (period) {
-        case CandlePeriod._1m:
-            return 60;
-        case CandlePeriod._3m:
-            return 180;
-        case CandlePeriod._5m:
-            return 300;
-        case CandlePeriod._15m:
-            return 900;
-        case CandlePeriod._30m:
-            return 1800;
-        case CandlePeriod._1h:
-            return 3600;
-        case CandlePeriod._2h:
-            return 7200;
-        case CandlePeriod._4h:
-            return 14400;
-        case CandlePeriod._12h:
-            return 43200;
-        case CandlePeriod._1d:
-            return 86400;
-        case CandlePeriod._3d:
-            return 259200;
-        case CandlePeriod._1w:
-            return 604800;
     }
 }
