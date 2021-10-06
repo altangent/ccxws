@@ -34,7 +34,7 @@ testClient({
     testCloseEvents: true,
 
     testAllMarketsTrades: true,
-    testAllMarketsTradesSuccess: 200,
+    testAllMarketsTradesSuccess: 20,
 
     hasTickers: true,
     hasTrades: true,
