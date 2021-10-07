@@ -87,7 +87,7 @@ binance.subscribeLevel2Snapshots(market);
 | OKEx                   | 3   | OkexClient                | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*    | -              | -             |
 | Poloniex               | 2   | PoloniexClient            | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
 | Upbit                  | 1   | UpbitClient               | &#10003; | &#10003; | -        | &#10003;       | -             | -              | -             |
-| ZB                     | 1   | ZbCliuent                 | &#10003; | &#10003; | -        | &#10003;       | -             | -              | -             |
+| ZB                     | 1   | ZbClient                  | &#10003; | &#10003; | -        | &#10003;       | -             | -              | -             |
 
 Notes:
 
