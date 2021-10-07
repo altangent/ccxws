@@ -17,19 +17,58 @@ import { NotImplementedAsyncFn, NotImplementedFn } from "../NotImplementedFn";
 import { Ticker } from "../Ticker";
 import { Trade } from "../Trade";
 
+export enum BitfinexTradeMessageType {
+    /**
+     * Receive both execution events and updates
+     */
+    All = "all",
+
+    /**
+     * Receive trade events immediately at the time of execution. Events
+     * do not include the database identifier, only the sequence identifier.
+     */
+    Execution = "te",
+
+    /**
+     * Receive trade events that have been written to the database. These
+     * events include both the sequence identifier as well as the database
+     * identifier. These events are delayed by 1-2 seconds after the
+     * trade event.
+     */
+    Update = "tu",
+}
+
 export type BitfinexClientOptions = {
     wssPath?: string;
     watcherMs?: number;
     l2UpdateDepth?: number;
     throttleL2Snapshot?: number;
+
+    /**
+     * (optional, default false). If true, emits empty events for all
+     * channels on heartbeat events which includes the sequenceId. This
+     * allows sequenceId validation by always receiving sequenceId from
+     * all heartbeat events on all channels while working w/the
+     * existing trade/ticker/orderbook event types
+     */
     enableEmptyHeartbeatEvents?: boolean;
-    tradeMessageType?: string;
+
+    /**
+     * (optional, defaults to "tu"). One of "tu", "te", or "all".
+     * Determines whether to use trade channel events of type "te" or
+     * "tu", or all trade events.
+     * See https://blog.bitfinex.com/api/websocket-api-update/.
+     *
+     * If you're using sequenceIds to validate websocket messages you
+     * will want to use "all" to receive every sequenceId.
+     */
+    tradeMessageType?: BitfinexTradeMessageType;
 };
 
 export class BitfinexClient extends BasicClient {
     public l2UpdateDepth: number;
     public enableEmptyHeartbeatEvents: boolean;
-    public tradeMessageType: string; // "te", "tu", or "all"
+    public tradeMessageType: BitfinexTradeMessageType;
 
     protected _channels: any;
     protected _sendSubCandles = NotImplementedFn;
@@ -39,20 +78,12 @@ export class BitfinexClient extends BasicClient {
     protected _sendUnsubLevel2Snapshots = NotImplementedAsyncFn;
     protected _sendUnsubLevel3Snapshots = NotImplementedAsyncFn;
 
-    /**
-     *
-     * @param {Object} params
-     * @param {Boolean} [params.enableEmptyHeartbeatEvents]       (optional, default false). if true, emits empty events for all channels on heartbeat events which includes the sequenceId.
-     *                                                            this allows sequenceId validation by always receiving sequenceId from all heartbeat events on all channels while working w/the existing trade/ticker/orderbook event types
-     * @param {String} [params.tradeMessageType]                  (optional, defaults to "tu"). one of "tu", "te", or "all". determines whether to use trade channel events of type "te" or "tu", or all trade events. see https://blog.bitfinex.com/api/websocket-api-update/.
-     *                                                            if you're using sequenceIds to validate websocket messages you will want to use "all" to receive every sequenceId
-     */
     constructor({
         wssPath = "wss://api.bitfinex.com/ws/2",
         watcherMs,
         l2UpdateDepth = 250,
         enableEmptyHeartbeatEvents = false,
-        tradeMessageType = "tu",
+        tradeMessageType = BitfinexTradeMessageType.Update,
     }: BitfinexClientOptions = {}) {
         super(wssPath, "Bitfinex", undefined, watcherMs);
         this._channels = {};
@@ -63,7 +94,7 @@ export class BitfinexClient extends BasicClient {
         this.hasLevel3Updates = true;
         this.l2UpdateDepth = l2UpdateDepth;
         this.enableEmptyHeartbeatEvents = enableEmptyHeartbeatEvents;
-        this.tradeMessageType = tradeMessageType; // "te", "tu", or "all"
+        this.tradeMessageType = tradeMessageType;
     }
 
     protected _onConnected() {
@@ -281,20 +312,13 @@ export class BitfinexClient extends BasicClient {
             // example trade update msg: [ 359491, 'tu' or 'te', [ 560287312, 1609712228656, 0.005, 33432 ], 6 ]
             // note: "tu" means it's got the tradeId, this is delayed by 1-2 seconds and includes tradeId.
             // "te" is the same but available immediately and without the tradeId
-            let shouldHandleTradeEvent = false;
             const tradeEventType = msg[1];
-            if (this.tradeMessageType === "all") {
-                shouldHandleTradeEvent = true;
-            } else if (this.tradeMessageType === "te" && tradeEventType === "te") {
-                shouldHandleTradeEvent = true;
-            } else if (this.tradeMessageType === "tu" && tradeEventType === "tu") {
-                shouldHandleTradeEvent = true;
+            if (
+                this.tradeMessageType === BitfinexTradeMessageType.All ||
+                tradeEventType === this.tradeMessageType
+            ) {
+                this._onTradeMessage(msg, market);
             }
-            if (!shouldHandleTradeEvent) {
-                return;
-            }
-
-            this._onTradeMessage(msg, market);
             return;
         }
 
@@ -408,7 +432,6 @@ export class BitfinexClient extends BasicClient {
         ]
         */
         const sequenceId = Number(msg[2]);
-        // msg[1].forEach(thisTrade => {
         for (const thisTrade of msg[1]) {
             let [id, unix, amount, price] = thisTrade;
 
