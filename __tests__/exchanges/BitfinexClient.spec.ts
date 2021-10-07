@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import { testClient } from "../TestRunner";
-import { BitfinexClient } from "../../src/exchanges/BitfinexClient";
+import { BitfinexClient, BitfinexTradeMessageType } from "../../src/exchanges/BitfinexClient";
 
-const spec = {
-    clientName: "BitfinexClient",
+const regularSpec = {
     exchangeName: "Bitfinex",
     markets: [
         {
@@ -100,21 +99,41 @@ const spec = {
         },
     },
 };
-testClient(
-    {
-        // run test w/regular default options
-        clientFactory: () => new BitfinexClient(),
-        ...spec,
+
+const sequenceIdValidateWithEmptyHeartbeatsSpec = {
+    ...JSON.parse(JSON.stringify(regularSpec)),
+    markets: [
+        {
+            // test a very low volume market
+            id: "ENJUSD",
+            base: "ENJ",
+            quote: "USD",
+        },
+        {
+            id: "BTCUSD",
+            base: "BTC",
+            quote: "USDT",
+        },
+    ],
+    trade: {
+        // note: the empty trade event for heartbeat won't have tradeId. but that won't be the first message so TestRunner won't encounter it
+        hasTradeId: true,
+        hasSequenceId: true,
     },
-    () => {
-        testClient({
-            // run test w/enableEmptyHeartbeatEvents option (for those who want to validate sequenceIds)
-            clientFactory: () =>
-                new BitfinexClient({
-                    enableEmptyHeartbeatEvents: true,
-                    tradeMessageType: "all",
-                }),
-            ...spec,
-        });
-    },
-);
+};
+
+testClient({
+    clientName: "BitfinexClient - default options",
+    clientFactory: () => new BitfinexClient(),
+    ...regularSpec,
+});
+
+testClient({
+    clientName: "BitfinexClient - custom options",
+    clientFactory: () =>
+        new BitfinexClient({
+            enableEmptyHeartbeatEvents: true,
+            tradeMessageType: BitfinexTradeMessageType.All,
+        }),
+    ...sequenceIdValidateWithEmptyHeartbeatsSpec,
+});

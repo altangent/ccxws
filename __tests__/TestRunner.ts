@@ -144,274 +144,260 @@ export type TestRunnerResult = {
     updateMarket?: Market;
 };
 
-/**
- * Test a client given a spec.
- *
- * @param spec test specification
- * @param [next] optional,  callback to execute when tests are complete
- */
-export function testClient(spec: TestSpec, next?: (...args: any[]) => void) {
+export function testClient(spec: TestSpec) {
     if (spec.skip) return;
+
     describe(spec.clientName, () => {
-        after(() => {
-            if (next) next();
+        const state: TestRunnerState = {};
+
+        before(async function () {
+            this.timeout(30000);
+
+            state.client = spec.clientFactory();
+
+            if (spec.fetchMarkets) {
+                spec.markets = await spec.fetchMarkets();
+            }
+
+            if (spec.fetchTradeMarkets) {
+                spec.tradeMarkets = await spec.fetchTradeMarkets();
+            } else if (!spec.tradeMarkets) {
+                spec.tradeMarkets = spec.markets;
+            }
+
+            if (spec.fetchAllMarkets) {
+                spec.allMarkets = await spec.fetchAllMarkets();
+            }
+
+            spec.marketIdList = spec.markets.map(p => p.id);
+            spec.marketBaseList = spec.markets.map(p => p.base);
+            spec.marketQuoteList = spec.markets.map(p => p.quote);
         });
-        describe(spec.clientName + " tests", () => {
-            const state: TestRunnerState = {};
 
-            before(async function () {
-                this.timeout(30000);
-
-                state.client = spec.clientFactory();
-
-                if (spec.fetchMarkets) {
-                    spec.markets = await spec.fetchMarkets();
-                }
-
-                if (spec.fetchTradeMarkets) {
-                    spec.tradeMarkets = await spec.fetchTradeMarkets();
-                } else if (!spec.tradeMarkets) {
-                    spec.tradeMarkets = spec.markets;
-                }
-
-                if (spec.fetchAllMarkets) {
-                    spec.allMarkets = await spec.fetchAllMarkets();
-                }
-
-                spec.marketIdList = spec.markets.map(p => p.id);
-                spec.marketBaseList = spec.markets.map(p => p.base);
-                spec.marketQuoteList = spec.markets.map(p => p.quote);
+        describe("capabilities", () => {
+            it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
+                expect(state.client.hasTickers).to.equal(spec.hasTickers);
             });
 
-            describe("capabilities", () => {
-                it(`should ${spec.hasTickers ? "support" : "not support"} tickers`, () => {
-                    expect(state.client.hasTickers).to.equal(spec.hasTickers);
-                });
-
-                it(`should ${spec.hasTrades ? "support" : "not support"} trades`, () => {
-                    expect(state.client.hasTrades).to.equal(spec.hasTrades);
-                });
-
-                it(`should ${spec.hasCandles ? "support" : "not support"} candles`, () => {
-                    expect(state.client.hasCandles).to.equal(spec.hasCandles);
-                });
-
-                it(`should ${
-                    spec.hasLevel2Snapshots ? "support" : "not support"
-                } level2 snapshots`, () => {
-                    expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
-                });
-
-                it(`should ${
-                    spec.hasLevel2Updates ? "support" : "not support"
-                } level2 updates`, () => {
-                    expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
-                });
-
-                it(`should ${
-                    spec.hasLevel3Snapshots ? "support" : "not support"
-                } level3 snapshots`, () => {
-                    expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
-                });
-
-                it(`should ${
-                    spec.hasLevel3Updates ? "support" : "not support"
-                } level3 updates`, () => {
-                    expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
-                });
+            it(`should ${spec.hasTrades ? "support" : "not support"} trades`, () => {
+                expect(state.client.hasTrades).to.equal(spec.hasTrades);
             });
 
-            if (spec.hasTickers && spec.ticker) {
-                testTickers(spec, state);
-            }
+            it(`should ${spec.hasCandles ? "support" : "not support"} candles`, () => {
+                expect(state.client.hasCandles).to.equal(spec.hasCandles);
+            });
 
-            if (spec.hasTrades && spec.trade) {
-                testTrades(spec, state);
-            }
+            it(`should ${
+                spec.hasLevel2Snapshots ? "support" : "not support"
+            } level2 snapshots`, () => {
+                expect(state.client.hasLevel2Snapshots).to.equal(spec.hasLevel2Snapshots);
+            });
 
-            if (spec.hasCandles && spec.candle) {
-                testCandles(spec, state);
-            }
+            it(`should ${spec.hasLevel2Updates ? "support" : "not support"} level2 updates`, () => {
+                expect(state.client.hasLevel2Updates).to.equal(spec.hasLevel2Updates);
+            });
 
-            if (spec.hasLevel2Snapshots && spec.l2snapshot) {
-                testLevel2Snapshots(spec, state);
-            }
+            it(`should ${
+                spec.hasLevel3Snapshots ? "support" : "not support"
+            } level3 snapshots`, () => {
+                expect(state.client.hasLevel3Snapshots).to.equal(spec.hasLevel3Snapshots);
+            });
 
-            if (spec.hasLevel2Updates && spec.l2update) {
-                testLevel2Updates(spec, state);
-            }
-
-            if (spec.hasLevel3Updates && spec.l3update) {
-                testLevel3Updates(spec, state);
-            }
-
-            describe("close", () => {
-                it("should close client", () => {
-                    state.client.close();
-                });
+            it(`should ${spec.hasLevel3Updates ? "support" : "not support"} level3 updates`, () => {
+                expect(state.client.hasLevel3Updates).to.equal(spec.hasLevel3Updates);
             });
         });
 
-        describe(spec.clientName + " events", () => {
-            let client;
-            let actual = [];
-            before(() => {
-                client = spec.clientFactory();
+        if (spec.hasTickers && spec.ticker) {
+            testTickers(spec, state);
+        }
+
+        if (spec.hasTrades && spec.trade) {
+            testTrades(spec, state);
+        }
+
+        if (spec.hasCandles && spec.candle) {
+            testCandles(spec, state);
+        }
+
+        if (spec.hasLevel2Snapshots && spec.l2snapshot) {
+            testLevel2Snapshots(spec, state);
+        }
+
+        if (spec.hasLevel2Updates && spec.l2update) {
+            testLevel2Updates(spec, state);
+        }
+
+        if (spec.hasLevel3Updates && spec.l3update) {
+            testLevel3Updates(spec, state);
+        }
+
+        describe("close", () => {
+            it("should close client", () => {
+                state.client.close();
             });
+        });
+    });
 
-            beforeEach(() => {
-                actual = [];
-            });
+    describe(spec.clientName + " events", () => {
+        let client;
+        let actual = [];
+        before(() => {
+            client = spec.clientFactory();
+        });
 
-            afterEach(() => {
-                client.removeAllListeners();
-            });
+        beforeEach(() => {
+            actual = [];
+        });
 
-            function pushEvent(name) {
-                return () => {
-                    actual.push(name);
-                };
+        afterEach(() => {
+            client.removeAllListeners();
+        });
+
+        function pushEvent(name) {
+            return () => {
+                actual.push(name);
+            };
+        }
+
+        function assertEvents(expected, done) {
+            return () => {
+                try {
+                    expect(actual).to.deep.equal(expected);
+                    setTimeout(done, 1000); // delay this to prevent async "connection" events to complete
+                } catch (ex) {
+                    done(ex);
+                }
+            };
+        }
+
+        if (spec.testConnectEvents) {
+            it("subscribe triggers `connecting` > `connected`", done => {
+                client.on("connecting", pushEvent("connecting"));
+                client.on("connected", pushEvent("connected"));
+                client.on("connected", assertEvents(["connecting", "connected"], done));
+                client.subscribeTrades(spec.markets[0]);
+            }).timeout(5000);
+        }
+
+        if (spec.testDisconnectEvents) {
+            it("disconnection triggers `disconnected` > `connecting` > `connected`", done => {
+                client.on("disconnected", pushEvent("disconnected"));
+                client.on("connecting", pushEvent("connecting"));
+                client.on("connected", pushEvent("connected"));
+                client.on(
+                    "connected",
+                    assertEvents(["disconnected", "connecting", "connected"], done),
+                );
+
+                const p = client._wss
+                    ? Promise.resolve(client._wss)
+                    : Promise.resolve(spec.getEventingSocket(client, spec.markets[0]));
+
+                p.then(smartws => {
+                    smartws._retryTimeoutMs = 1000;
+                    smartws._wss.close(); // simulate a failure by directly closing the underlying socket
+                }).catch(done);
+            }).timeout(5000);
+        }
+
+        if (spec.testReconnectionEvents) {
+            it("reconnects triggers `reconnecting` > `closing` > `closed` > `connecting` > `connected`", done => {
+                client.on("reconnecting", pushEvent("reconnecting"));
+                client.on("closing", pushEvent("closing"));
+                client.on("closed", pushEvent("closed"));
+                client.on("connecting", pushEvent("connecting"));
+                client.on("connected", pushEvent("connected"));
+                client.on(
+                    "connected",
+                    assertEvents(
+                        ["reconnecting", "closing", "closed", "connecting", "connected"],
+                        done,
+                    ),
+                );
+                client.reconnect();
+            }).timeout(5000);
+        }
+
+        if (spec.testCloseEvents) {
+            it("close triggers `closing` > `closed`", done => {
+                client.on("reconnecting", () => {
+                    throw new Error("should not emit reconnecting");
+                });
+                client.on("closing", pushEvent("closing"));
+                client.on("closed", pushEvent("closed"));
+                client.on("closed", assertEvents(["closing", "closed"], done));
+                client.close();
+            }).timeout(5000);
+        }
+    });
+
+    describe(spec.clientName + " all markets", () => {
+        let client;
+
+        before(async function () {
+            this.timeout(15000);
+
+            if (spec.fetchAllMarkets && !spec.allMarkets) {
+                spec.allMarkets = await spec.fetchAllMarkets();
             }
+        });
 
-            function assertEvents(expected, done) {
-                return () => {
-                    try {
-                        expect(actual).to.deep.equal(expected);
-                        setTimeout(done, 1000); // delay this to prevent async "connection" events to complete
-                    } catch (ex) {
-                        done(ex);
-                    }
-                };
-            }
+        beforeEach(() => {
+            client = spec.clientFactory();
+        });
 
-            if (spec.testConnectEvents) {
-                it("subscribe triggers `connecting` > `connected`", done => {
-                    client.on("connecting", pushEvent("connecting"));
-                    client.on("connected", pushEvent("connected"));
-                    client.on("connected", assertEvents(["connecting", "connected"], done));
-                    client.subscribeTrades(spec.markets[0]);
-                }).timeout(5000);
-            }
+        if (spec.testAllMarketsTrades) {
+            it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
+                const markets = new Set();
 
-            if (spec.testDisconnectEvents) {
-                it("disconnection triggers `disconnected` > `connecting` > `connected`", done => {
-                    client.on("disconnected", pushEvent("disconnected"));
-                    client.on("connecting", pushEvent("connecting"));
-                    client.on("connected", pushEvent("connected"));
-                    client.on(
-                        "connected",
-                        assertEvents(["disconnected", "connecting", "connected"], done),
-                    );
-
-                    const p = client._wss
-                        ? Promise.resolve(client._wss)
-                        : Promise.resolve(spec.getEventingSocket(client, spec.markets[0]));
-
-                    p.then(smartws => {
-                        smartws._retryTimeoutMs = 1000;
-                        smartws._wss.close(); // simulate a failure by directly closing the underlying socket
-                    }).catch(done);
-                }).timeout(5000);
-            }
-
-            if (spec.testReconnectionEvents) {
-                it("reconnects triggers `reconnecting` > `closing` > `closed` > `connecting` > `connected`", done => {
-                    client.on("reconnecting", pushEvent("reconnecting"));
-                    client.on("closing", pushEvent("closing"));
-                    client.on("closed", pushEvent("closed"));
-                    client.on("connecting", pushEvent("connecting"));
-                    client.on("connected", pushEvent("connected"));
-                    client.on(
-                        "connected",
-                        assertEvents(
-                            ["reconnecting", "closing", "closed", "connecting", "connected"],
-                            done,
-                        ),
-                    );
-                    client.reconnect();
-                }).timeout(5000);
-            }
-
-            if (spec.testCloseEvents) {
-                it("close triggers `closing` > `closed`", done => {
-                    client.on("reconnecting", () => {
-                        throw new Error("should not emit reconnecting");
-                    });
-                    client.on("closing", pushEvent("closing"));
-                    client.on("closed", pushEvent("closed"));
-                    client.on("closed", assertEvents(["closing", "closed"], done));
+                client.on("error", err => {
+                    client.removeAllListeners("trade");
+                    client.removeAllListeners("error");
                     client.close();
-                }).timeout(5000);
-            }
-        });
+                    done(err);
+                });
 
-        describe(spec.clientName + " all markets", () => {
-            let client;
-
-            before(async function () {
-                this.timeout(15000);
-
-                if (spec.fetchAllMarkets && !spec.allMarkets) {
-                    spec.allMarkets = await spec.fetchAllMarkets();
-                }
-            });
-
-            beforeEach(() => {
-                client = spec.clientFactory();
-            });
-
-            if (spec.testAllMarketsTrades) {
-                it(`subscribeTrades wait for ${spec.testAllMarketsTradesSuccess} markets`, done => {
-                    const markets = new Set();
-
-                    client.on("error", err => {
+                client.on("trade", (trade, market) => {
+                    markets.add(market.id);
+                    if (markets.size >= spec.testAllMarketsTradesSuccess) {
                         client.removeAllListeners("trade");
-                        client.removeAllListeners("error");
                         client.close();
-                        done(err);
-                    });
-
-                    client.on("trade", (trade, market) => {
-                        markets.add(market.id);
-                        if (markets.size >= spec.testAllMarketsTradesSuccess) {
-                            client.removeAllListeners("trade");
-                            client.close();
-                            done();
-                        }
-                    });
-
-                    for (const market of spec.allMarkets) {
-                        client.subscribeTrades(market);
+                        done();
                     }
-                }).timeout(60000);
-            }
+                });
 
-            if (spec.testAllMarketsL2Updates) {
-                it(`subscribeL2Updates wait for ${spec.testAllMarketsL2UpdatesSuccess} markets`, done => {
-                    const markets = new Set();
+                for (const market of spec.allMarkets) {
+                    client.subscribeTrades(market);
+                }
+            }).timeout(60000);
+        }
 
-                    client.on("error", err => {
+        if (spec.testAllMarketsL2Updates) {
+            it(`subscribeL2Updates wait for ${spec.testAllMarketsL2UpdatesSuccess} markets`, done => {
+                const markets = new Set();
+
+                client.on("error", err => {
+                    client.removeAllListeners("l2update");
+                    client.removeAllListeners("error");
+                    client.close();
+                    done(err);
+                });
+
+                client.on("l2update", (_, market) => {
+                    markets.add(market.id);
+                    if (markets.size >= spec.testAllMarketsTradesSuccess) {
                         client.removeAllListeners("l2update");
-                        client.removeAllListeners("error");
                         client.close();
-                        done(err);
-                    });
-
-                    client.on("l2update", (_, market) => {
-                        markets.add(market.id);
-                        if (markets.size >= spec.testAllMarketsTradesSuccess) {
-                            client.removeAllListeners("l2update");
-                            client.close();
-                            done();
-                        }
-                    });
-
-                    for (const market of spec.allMarkets) {
-                        client.subscribeLevel2Updates(market);
+                        done();
                     }
-                }).timeout(60000);
-            }
-        });
+                });
+
+                for (const market of spec.allMarkets) {
+                    client.subscribeLevel2Updates(market);
+                }
+            }).timeout(60000);
+        }
     });
 }
 
