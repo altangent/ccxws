@@ -104,44 +104,25 @@ export class BitfinexClient extends BasicClient {
     }
 
     /**
-     * Override the default BasicClient _unsubscribe.
+     * Override the default BasicClient _unsubscribe by deferring removal
+     * of from the appropriate map until the unsubscribe event has been
+     * received.
+     *
+     * If enableEmptyHeartbeatEvents (validating sequenceIds) we need to
+     * keep receiving events from a channel after we sent the unsub event
+     * until unsubscribe is confirmed. This is because every message's
+     * sequenceId must be validated, and some may arrive between sending
+     * unsub and it being confirmed. So we dont remove from the map and
+     * will continue emitting events for this channel until they stop
+     * arriving.
      */
     protected _unsubscribe(market: Market, map: MarketMap, sendFn: SendFn) {
         const remote_id = market.id;
         if (map.has(remote_id)) {
-            // if enableEmptyHeartbeatEvents (validating sequenceIds) we need to keep receiving events from a channel after we sent the unsub event until unsubscribe is confirmed.
-            // this is because every message's sequenceId must be validated, and some may arrive between sending unsub and it being confirmed. So we dont remove from the map and will
-            // continue emitting events for this channel until they stop arriving
-            if (this.enableEmptyHeartbeatEvents === false) {
-                map.delete(remote_id);
-            }
-
             if (this._wss.isConnected) {
                 sendFn(remote_id, market);
             }
         }
-    }
-
-    /**
-     * Override the default BasicClient _subscribe.
-     */
-    protected _subscribe(market: Market, map: MarketMap, sendFn: SendFn) {
-        this._connect();
-        const remote_id = market.id;
-        // if enableEmptyHeartbeatEvents (validating sequenceIds) we need to keep receiving events until unsubscribe is confirmed
-        // so we dont remove from the map when unsubscribing. So market may still be in the map even if it's been unsubsribed. For that reason, just always send sub if instructed.
-        if (!map.has(remote_id) || this.enableEmptyHeartbeatEvents === true) {
-            map.set(remote_id, market);
-
-            // perform the subscription if we're connected
-            // and if not, then we'll reply on the _onConnected event
-            // to send the signal to our server!
-            if (this._wss && this._wss.isConnected) {
-                sendFn(remote_id, market);
-            }
-            return true;
-        }
-        return false;
     }
 
     protected _sendConfiguration() {
@@ -285,6 +266,12 @@ export class BitfinexClient extends BasicClient {
             return;
         }
 
+        // process unsubscribe event
+        if (msg.event === "unsubscribed") {
+            this._onUnsubscribeMessage(msg);
+            return;
+        }
+
         // lookup channel
         const channel = this._channels[msg[0]];
         if (!channel) return;
@@ -339,6 +326,28 @@ export class BitfinexClient extends BasicClient {
             if (Array.isArray(msg[1][0])) this._onLevel2Snapshot(msg, market);
             else this._onLevel2Update(msg, market);
             return;
+        }
+    }
+
+    protected _onUnsubscribeMessage(msg: any) {
+        const chanId = msg.chanId;
+        const channel = this._channels[chanId];
+        if (!channel) return;
+
+        const marketId = channel.pair;
+
+        // remove channel metadata
+        delete this._channels[chanId];
+
+        // remove from appropriate subscription map
+        if (channel.channel === "ticker") {
+            this._tickerSubs.delete(marketId);
+        } else if (channel.channel === "trades") {
+            this._tradeSubs.delete(marketId);
+        } else if (channel.channel === "book" && channel.prec === "R0") {
+            this._level3UpdateSubs.delete(marketId);
+        } else if (channel.channel === "book") {
+            this._level2UpdateSubs.delete(marketId);
         }
     }
 
