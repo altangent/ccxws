@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 import { testClient } from "../TestRunner";
-import { BitfinexClient } from "../../src/exchanges/BitfinexClient";
+import { BitfinexClient, BitfinexTradeMessageType } from "../../src/exchanges/BitfinexClient";
 
-testClient({
-    clientFactory: () => new BitfinexClient(),
-    clientName: "BitfinexClient",
+const regularSpec = {
     exchangeName: "Bitfinex",
     markets: [
         {
@@ -22,6 +20,12 @@ testClient({
             id: "ETHBTC",
             base: "ETH",
             quote: "BTC",
+        },
+        {
+            // test a very low volume market
+            id: "ENJUSD",
+            base: "ENJ",
+            quote: "USD",
         },
     ],
 
@@ -71,6 +75,11 @@ testClient({
         hasTimestampMs: true,
         hasSequenceId: true,
         hasCount: true,
+        done: function (spec, result, update) {
+            const hasAsks = update.asks && update.asks.length > 0;
+            const hasBids = update.bids && update.bids.length > 0;
+            return hasAsks || hasBids;
+        },
     },
 
     l3snapshot: {
@@ -83,5 +92,48 @@ testClient({
         hasTimestampMs: true,
         hasSequenceId: true,
         hasCount: true,
+        done: function (spec, result, update) {
+            const hasAsks = update.asks && update.asks.length > 0;
+            const hasBids = update.bids && update.bids.length > 0;
+            return hasAsks || hasBids;
+        },
     },
+};
+
+const sequenceIdValidateWithEmptyHeartbeatsSpec = {
+    ...JSON.parse(JSON.stringify(regularSpec)),
+    markets: [
+        {
+            // test a very low volume market
+            id: "ENJUSD",
+            base: "ENJ",
+            quote: "USD",
+        },
+        {
+            id: "BTCUSD",
+            base: "BTC",
+            quote: "USDT",
+        },
+    ],
+    trade: {
+        // note: the empty trade event for heartbeat won't have tradeId. but that won't be the first message so TestRunner won't encounter it
+        hasTradeId: true,
+        hasSequenceId: true,
+    },
+};
+
+testClient({
+    clientName: "BitfinexClient - default options",
+    clientFactory: () => new BitfinexClient(),
+    ...regularSpec,
+});
+
+testClient({
+    clientName: "BitfinexClient - custom options",
+    clientFactory: () =>
+        new BitfinexClient({
+            enableEmptyHeartbeatEvents: true,
+            tradeMessageType: BitfinexTradeMessageType.All,
+        }),
+    ...sequenceIdValidateWithEmptyHeartbeatsSpec,
 });
