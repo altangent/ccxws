@@ -226,7 +226,7 @@ export class BitfinexClient extends BasicClient {
      */
     protected _onHeartbeatMessage(msg: any, channel: any) {
         if (channel.channel === "ticker") {
-            let market = this._tickerSubs.get(channel.pair);
+            let market = this._tickerSubs.get(channel.pair) || this._tickerSubs.get(channel.symbol);
             if (!market) return;
             this._onTickerHeartbeat(msg, market);
             return;
@@ -234,7 +234,7 @@ export class BitfinexClient extends BasicClient {
 
         // trades
         if (channel.channel === "trades") {
-            let market = this._tradeSubs.get(channel.pair);
+            let market = this._tradeSubs.get(channel.pair) || this._tradeSubs.get(channel.symbol);
             if (!market) return;
             this._onTradeMessageHeartbeat(msg, market);
             return;
@@ -242,7 +242,7 @@ export class BitfinexClient extends BasicClient {
 
         // level3
         if (channel.channel === "book" && channel.prec === "R0") {
-            let market = this._level3UpdateSubs.get(channel.pair);
+            let market = this._level3UpdateSubs.get(channel.pair) || this._level3UpdateSubs.get(channel.symbol);
             if (!market) return;
             this._onLevel3UpdateHeartbeat(msg, market);
             return;
@@ -250,7 +250,7 @@ export class BitfinexClient extends BasicClient {
 
         // level2
         if (channel.channel === "book") {
-            let market = this._level2UpdateSubs.get(channel.pair);
+            let market = this._level2UpdateSubs.get(channel.pair) || this._level2UpdateSubs.get(channel.symbol);
             if (!market) return;
             this._onLevel2UpdateHeartbeat(msg, market);
             return;
@@ -283,7 +283,7 @@ export class BitfinexClient extends BasicClient {
         }
 
         if (channel.channel === "ticker") {
-            const market = this._tickerSubs.get(channel.pair);
+            const market = this._tickerSubs.get(channel.pair) || this._tickerSubs.get(channel.symbol);
             if (!market) return;
 
             this._onTicker(msg, market);
@@ -292,7 +292,7 @@ export class BitfinexClient extends BasicClient {
 
         // trades
         if (channel.channel === "trades") {
-            const market = this._tradeSubs.get(channel.pair);
+            const market = this._tradeSubs.get(channel.pair) || this._tradeSubs.get(channel.symbol);
             if (!market) return;
 
             // handle tradeMessageType (constructor param) filtering
@@ -311,7 +311,7 @@ export class BitfinexClient extends BasicClient {
 
         // level3
         if (channel.channel === "book" && channel.prec === "R0") {
-            const market = this._level3UpdateSubs.get(channel.pair);
+            const market = this._level3UpdateSubs.get(channel.pair) || this._level3UpdateSubs.get(channel.symbol);
             if (!market) return;
 
             if (Array.isArray(msg[1][0])) this._onLevel3Snapshot(msg, market);
@@ -321,7 +321,7 @@ export class BitfinexClient extends BasicClient {
 
         // level2
         if (channel.channel === "book") {
-            const market = this._level2UpdateSubs.get(channel.pair);
+            const market = this._level2UpdateSubs.get(channel.pair) || this._level2UpdateSubs.get(channel.symbol);
             if (!market) return;
             if (Array.isArray(msg[1][0])) this._onLevel2Snapshot(msg, market);
             else this._onLevel2Update(msg, market);
