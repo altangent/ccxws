@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 import * as crypto from "crypto";
+import { Level2Update } from "..";
 import { BasicClient } from "../BasicClient";
 import { BasicMultiClient } from "../BasicMultiClient";
 import { Candle } from "../Candle";
@@ -85,6 +86,7 @@ export class CexClient extends BasicMultiClient {
         this.hasTrades = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = true;
+        this.hasLevel2Updates = true;
         this.candlePeriod = CandlePeriod._1m;
     }
 
@@ -104,11 +106,10 @@ export class SingleCexClient extends BasicClient {
     public hasTrades: boolean;
     public hasCandles: boolean;
     public hasLevel2Snapshots: boolean;
+    public hasLevel2Updates: boolean;
     public authorized: boolean;
     public parent: CexClient;
 
-    protected _sendSubLevel2Updates = NotImplementedFn;
-    protected _sendUnsubLevel2Updates = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;
     protected _sendUnsubLevel3Snapshots = NotImplementedFn;
     protected _sendSubLevel3Updates = NotImplementedFn;
@@ -137,6 +138,7 @@ export class SingleCexClient extends BasicClient {
         this.hasTrades = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = true;
+        this.hasLevel2Updates = true;
         this.authorized = false;
         this.parent = parent;
     }
@@ -181,15 +183,18 @@ export class SingleCexClient extends BasicClient {
         }
     }
 
-    protected _sendSubTicker() {
-        if (!this.authorized) return;
-        this._wss.send(
-            JSON.stringify({
-                e: "subscribe",
-                rooms: ["tickers"],
-            }),
-        );
-    }
+    protected _sendSubTicker(remote_id: string) {
+        const [base, quote] = remote_id.split('/');
+
+        if (!this.authorized)
+          return;
+        this._wss.send(JSON.stringify({
+          e: "ticker",
+          data: [
+            base, quote
+          ]
+        }));
+      }
 
     protected _sendUnsubTicker() {
         //
@@ -238,6 +243,28 @@ export class SingleCexClient extends BasicClient {
         //
     }
 
+    protected _sendSubLevel2Updates(remote_id: string) {
+        const [base, quote] = remote_id.split('/');
+
+        if (!this.authorized) return;
+        this._wss.send(
+            JSON.stringify({
+                e: "order-book-subscribe",
+                data: {
+                    pair: [
+                        base,
+                        quote
+                    ],
+                subscribe: true,
+                depth: -1,
+          }})
+        );
+    }
+
+    protected _sendUnsubLevel2Updates() {
+        //
+    }
+
     protected _onMessage(raw: any) {
         const message = JSON.parse(raw);
         const { e, data } = message;
@@ -262,16 +289,15 @@ export class SingleCexClient extends BasicClient {
             return;
         }
 
-        if (e === "tick") {
-            // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-            const marketId = `${data.symbol1}/${data.symbol2}`;
+        if (e === "ticker") {
+            const marketId = `${data.pair[0]}/${data.pair[1]}`;
             const market = this._tickerSubs.get(marketId);
             if (!market) return;
 
             const ticker = this._constructTicker(data, market);
             this.emit("ticker", ticker, market);
             return;
-        }
+          }
 
         if (e === "md") {
             const marketId = data.pair.replace(":", "/");
@@ -280,6 +306,16 @@ export class SingleCexClient extends BasicClient {
 
             const result = this._constructevel2Snapshot(data, market);
             this.emit("l2snapshot", result, market);
+            return;
+        }
+
+        if (e === "md_update") {
+            const marketId = data.pair.replace(":", "/");
+            const market = this._level2UpdateSubs.get(marketId);
+            if (!market) return;
+
+            const result = this._constructevel2Update(data, market);
+            this.emit("l2update", result, market);
             return;
         }
 
@@ -321,27 +357,24 @@ export class SingleCexClient extends BasicClient {
         }
     }
 
-    protected _constructTicker(data: any, market: Market) {
-        // {"e":"tick","data":{"symbol1":"BTC","symbol2":"USD","price":"4244.4","open24":"4248.4","volume":"935.58669239"}}
-        const { open24, price, volume } = data;
-        const change = parseFloat(price) - parseFloat(open24);
-        const changePercent =
-            open24 !== 0
-                ? ((parseFloat(price) - parseFloat(open24)) / parseFloat(open24)) * 100
-                : 0;
-
+    protected _constructTicker(data, market) {
+        
+        const { timestamp, low, high, last, volume, bid, ask, priceChange, priceChangePercentage } = data;
         return new Ticker({
-            exchange: this.name,
-            base: market.base,
-            quote: market.quote,
-            timestamp: Date.now(),
-            last: price,
-            open: open24,
-            volume: volume,
-            change: change.toFixed(8),
-            changePercent: changePercent.toFixed(8),
+          exchange: this.name,
+          base: market.base,
+          quote: market.quote,
+          timestamp,
+          low,
+          high,
+          last,
+          volume,
+          bid,
+          ask,
+          change: priceChange,
+          changePercent: priceChangePercentage
         });
-    }
+      }
 
     protected _constructevel2Snapshot(msg: any, market: Market) {
         const asks = msg.sell.map(
@@ -352,6 +385,24 @@ export class SingleCexClient extends BasicClient {
         );
 
         return new Level2Snapshot({
+            exchange: this.name,
+            base: market.base,
+            quote: market.quote,
+            sequenceId: msg.id,
+            asks,
+            bids,
+        });
+    }
+    
+    protected _constructevel2Update(msg: any, market: Market) {
+        const asks = msg.asks.map(
+            p => new Level2Point(p[0].toFixed(8), p[1], undefined, undefined, Date.now()),
+        );
+        const bids = msg.bids.map(
+            p => new Level2Point(p[0].toFixed(8), p[1], undefined, undefined, Date.now()),
+        );
+
+        return new Level2Update({
             exchange: this.name,
             base: market.base,
             quote: market.quote,
