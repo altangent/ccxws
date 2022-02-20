@@ -29,6 +29,7 @@ export class DigifinexClient extends BasicClient {
         this.hasLevel2Updates = true;
         this.id = 0;
         this._onMessageInf = this._onMessageInf.bind(this);
+        this._sendPing = this._sendPing.bind(this);
     }
 
     protected _beforeConnect() {
@@ -39,7 +40,7 @@ export class DigifinexClient extends BasicClient {
 
     protected _startPing() {
         clearInterval(this._pingInterval);
-        this._pingInterval = setInterval(this._sendPing.bind(this), 15000);
+        this._pingInterval = setInterval(this._sendPing, 15000);
     }
 
     protected _stopPing() {
@@ -54,7 +55,7 @@ export class DigifinexClient extends BasicClient {
                     "method": "server.ping",
                     "params": []
                 })
-            )
+            );
         }
     }
 
