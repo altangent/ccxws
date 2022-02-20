@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { setInterval } from "timers";
 import { BasicClient } from "../BasicClient";
 import { ClientOptions } from "../ClientOptions";
 import { Level2Point } from "../Level2Point";
@@ -19,6 +20,7 @@ import * as zlib from "../ZlibUtils";
  */
 export class DigifinexClient extends BasicClient {
     public id: number;
+    private _pingInterval: NodeJS.Timeout;
 
     constructor({ wssPath = "wss://openapi.digifinex.com/ws/v1/", watcherMs }: ClientOptions = {}) {
         super(wssPath, "Digifinex", undefined, watcherMs);
@@ -27,6 +29,34 @@ export class DigifinexClient extends BasicClient {
         this.hasLevel2Updates = true;
         this.id = 0;
         this._onMessageInf = this._onMessageInf.bind(this);
+        this._sendPing = this._sendPing.bind(this);
+    }
+
+    protected _beforeConnect() {
+        this._wss.on("connected", this._startPing.bind(this));
+        this._wss.on("disconnected", this._stopPing.bind(this));
+        this._wss.on("closed", this._stopPing.bind(this));
+    }
+
+    protected _startPing() {
+        clearInterval(this._pingInterval);
+        this._pingInterval = setInterval(this._sendPing, 15000);
+    }
+
+    protected _stopPing() {
+        clearInterval(this._pingInterval);
+    }
+
+    protected _sendPing() {
+        if (this._wss) {
+            this._wss.send(
+                JSON.stringify({
+                    "id": Math.random() * (9999999999 - 1000000000) + 1000000000,
+                    "method": "server.ping",
+                    "params": []
+                })
+            );
+        }
     }
 
     protected _sendSubTicker(remote_id) {
