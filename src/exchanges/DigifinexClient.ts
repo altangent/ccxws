@@ -22,8 +22,8 @@ export class DigifinexClient extends BasicClient {
     public id: number;
     private _pingInterval: NodeJS.Timeout;
 
-    constructor({ wssPath = "wss://openapi.digifinex.com/ws/v1/", watcherMs }: ClientOptions = {}) {
-        super(wssPath, "Digifinex", undefined, watcherMs);
+    constructor({ wssPath = "wss://openapi.digifinex.com/ws/v1/", watcherMs, retryTimeoutMs }: ClientOptions = {}) {
+        super(wssPath, "Digifinex", undefined, watcherMs, retryTimeoutMs);
         this.hasTickers = true;
         this.hasTrades = true;
         this.hasLevel2Updates = true;

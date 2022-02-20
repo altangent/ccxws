@@ -6,7 +6,7 @@ import { Watcher } from "./Watcher";
 import { Market } from "./Market";
 
 export type MarketMap = Map<string, Market>;
-export type WssFactoryFn = (path: string) => SmartWss;
+export type WssFactoryFn = (path: string, retryTimeoutMs?: number) => SmartWss;
 export type SendFn = (remoteId: string, market: Market) => void;
 
 /**
@@ -42,6 +42,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
         readonly name: string,
         wssFactory?: WssFactoryFn,
         watcherMs?: number,
+        retryTimeoutMs?: number,
     ) {
         super();
         this._tickerSubs = new Map();
@@ -61,7 +62,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
         this.hasLevel2Updates = false;
         this.hasLevel3Snapshots = false;
         this.hasLevel3Updates = false;
-        this._wssFactory = wssFactory || (path => new SmartWss(path));
+        this._wssFactory = wssFactory || (path => new SmartWss(path, retryTimeoutMs));
     }
 
     //////////////////////////////////////////////
