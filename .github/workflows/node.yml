@@ -5,8 +5,14 @@ on:
     branches: [master]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   validate:
+    permissions:
+      checks: write  # for coverallsapp/github-action to create new checks
+      contents: read  # for actions/checkout to fetch code
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -42,6 +48,9 @@ jobs:
           parallel: true
 
   exchange:
+    permissions:
+      checks: write  # for coverallsapp/github-action to create new checks
+      contents: read  # for actions/checkout to fetch code
     needs: [validate]
     runs-on: ubuntu-latest
     strategy:
@@ -107,6 +116,8 @@ jobs:
           parallel: true
 
   finish:
+    permissions:
+      checks: write  # for coverallsapp/github-action to create new checks
     needs: [validate, exchange]
     runs-on: ubuntu-latest
     steps:
