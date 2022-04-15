@@ -36,6 +36,7 @@ class BasicTradeClient extends EventEmitter {
     this.hasLevel3Snapshots = false;
     this.hasLevel3Updates = false;
     this._wssFactory = wssFactory || (path => new SmartWss(path));
+    this._connect();
   }
 
   //////////////////////////////////////////////
