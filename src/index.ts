@@ -14,6 +14,7 @@ import { Level3Point } from "./Level3Point";
 import { Level3Snapshot } from "./Level3Snapshot";
 import { Level3Update } from "./Level3Update";
 import { Ticker } from "./Ticker";
+import { BookTicker } from "./BookTicker";
 import { Trade } from "./Trade";
 
 import { BiboxClient } from "./exchanges/BiboxClient";
@@ -64,6 +65,7 @@ export {
     // Event types
     Auction,
     BlockTrade,
+    BookTicker,
     Candle,
     CandlePeriod,
     Level2Point,

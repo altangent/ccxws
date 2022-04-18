@@ -81,32 +81,30 @@ class BinanceBase extends BasicClient {
     super._onClosing();
   }
 
-
   /**
    * This method is fired anytime the socket is opened, whether
    * the first time, or any subsequent reconnects. This allows
    * the socket to immediate trigger resubscription to relevent
    * feeds
    */
-   _onConnected() {
+  _onConnected() {
     this.emit("connected");
 
     const subscribe = (subFn, subs) => {
-      Array.from(subs.entries()).forEach(([marketSymbol, market]) => subFn(marketSymbol, market))
-    }
+      Array.from(subs.entries()).forEach(([marketSymbol, market]) => subFn(marketSymbol, market));
+    };
 
-    subscribe(this._sendSubTicker.bind(this), this._tickerSubs)
-    subscribe(this._sendSubBookTicker.bind(this), this._bookTickerSubs)
-    subscribe(this._sendSubAllBookTicker.bind(this), this._allBookTickerSubs)
-    subscribe(this._sendSubCandles.bind(this), this._candleSubs)
-    subscribe(this._sendSubTrades.bind(this), this._tradeSubs)
-    subscribe(this._sendSubLevel2Snapshots.bind(this), this._level2SnapshotSubs)
-    subscribe(this._sendSubLevel2Updates.bind(this), this._level2UpdateSubs)
-    subscribe(this._sendSubLevel3Updates.bind(this), this._level3UpdateSubs)
+    subscribe(this._sendSubTicker.bind(this), this._tickerSubs);
+    subscribe(this._sendSubBookTicker.bind(this), this._bookTickerSubs);
+    subscribe(this._sendSubAllBookTicker.bind(this), this._allBookTickerSubs);
+    subscribe(this._sendSubCandles.bind(this), this._candleSubs);
+    subscribe(this._sendSubTrades.bind(this), this._tradeSubs);
+    subscribe(this._sendSubLevel2Snapshots.bind(this), this._level2SnapshotSubs);
+    subscribe(this._sendSubLevel2Updates.bind(this), this._level2UpdateSubs);
+    subscribe(this._sendSubLevel3Updates.bind(this), this._level3UpdateSubs);
 
     this._watcher.start();
   }
-
 
   _batchSub(args) {
     const params = args.map(p => p[0]);
@@ -135,12 +133,12 @@ class BinanceBase extends BasicClient {
   }
 
   _sendSubTicker(remote_id) {
-    const stream = `${remote_id.toLowerCase()}@ticker`
+    const stream = `${remote_id.toLowerCase()}@ticker`;
     this._batchSub(stream);
   }
 
   _sendUnsubTicker(remote_id) {
-    const stream = `${remote_id.toLowerCase()}@ticker`
+    const stream = `${remote_id.toLowerCase()}@ticker`;
     this._batchUnSub(stream);
   }
 
@@ -150,16 +148,16 @@ class BinanceBase extends BasicClient {
   }
 
   _sendUnsubBookTicker(remote_id) {
-    const stream = `${remote_id}@bookTicker`
-    this._batchUnsub(stream)
+    const stream = `${remote_id}@bookTicker`;
+    this._batchUnsub(stream);
   }
 
   _sendSubAllBookTicker() {
-    this._batchSub('!bookTicker')
+    this._batchSub("!bookTicker");
   }
 
   _sendUnsubAllBookTicker() {
-    this._batchUnsub('!bookTicker')
+    this._batchUnsub("!bookTicker");
   }
 
   _sendSubTrades(remote_id) {
@@ -353,12 +351,7 @@ class BinanceBase extends BasicClient {
   }
 
   _constructBookTicker(msg, market) {
-    let {
-      a: ask,
-      A: askVolume,
-      b: bid,
-      B: bidVolume,
-    } = msg;
+    let { a: ask, A: askVolume, b: bid, B: bidVolume } = msg;
     return new BookTicker({
       exchange: this._name,
       base: market.base,
@@ -369,7 +362,6 @@ class BinanceBase extends BasicClient {
       askVolume,
     });
   }
-
 
   _constructAggTrade({ data }, market) {
     let { a: trade_id, p: price, q: size, T: time, m: buyer } = data;

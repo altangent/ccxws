@@ -49,6 +49,8 @@ export class LedgerXClient extends BasicClient {
 
     protected _sendUnSubLevel3Updates() {}
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubTicker = NotImplementedFn;
     protected _sendSubCandles = NotImplementedFn;
     protected _sendUnsubCandles = NotImplementedFn;

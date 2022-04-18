@@ -37,6 +37,7 @@ import { Level2Point } from "../Level2Point";
 import { Level2Snapshot } from "../Level2Snapshots";
 import { Ticker } from "../Ticker";
 import { Trade } from "../Trade";
+import { BookTicker } from "../BookTicker";
 import { Market } from "../Market";
 import { Level2Update } from "../Level2Update";
 import * as https from "../Https";
@@ -55,6 +56,7 @@ export type BinanceClientOptions = {
     l2snapshotSpeed?: string;
     testNet?: boolean;
     batchTickers?: boolean;
+    batchBookTickers?: boolean;
 };
 
 export class BinanceBase extends BasicClient {
@@ -64,10 +66,12 @@ export class BinanceBase extends BasicClient {
     public requestSnapshot: boolean;
     public candlePeriod: CandlePeriod;
     public batchTickers: boolean;
+    public batchBookTickers: boolean;
 
     protected _messageId: number;
     protected _restL2SnapshotPath: string;
     protected _tickersActive: boolean;
+    protected _bookTickersActive: boolean;
     protected _batchSub: CancelableFn;
     protected _batchUnsub: CancelableFn;
     protected _sendMessage: CancelableFn;
@@ -86,6 +90,7 @@ export class BinanceBase extends BasicClient {
         l2updateSpeed = "",
         l2snapshotSpeed = "",
         batchTickers = true,
+        batchBookTickers = true,
     }: BinanceClientOptions = {}) {
         super(wssPath, name, undefined, watcherMs);
 
@@ -96,14 +101,17 @@ export class BinanceBase extends BasicClient {
         this.l2snapshotSpeed = l2snapshotSpeed;
         this.requestSnapshot = requestSnapshot;
         this.hasTickers = true;
+        this.hasBookTickers = true;
         this.hasTrades = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = true;
         this.hasLevel2Updates = true;
         this.batchTickers = batchTickers;
+        this.batchBookTickers = batchBookTickers;
 
         this._messageId = 0;
         this._tickersActive = false;
+        this._bookTickersActive = false;
         this.candlePeriod = CandlePeriod._1m;
 
         this._batchSub = batch(this.__batchSub.bind(this), socketBatchSize);
@@ -120,6 +128,7 @@ export class BinanceBase extends BasicClient {
 
     protected _onClosing() {
         this._tickersActive = false;
+        this._bookTickersActive = false;
         this._batchSub.cancel();
         this._batchUnsub.cancel();
         this._sendMessage.cancel();
@@ -165,6 +174,50 @@ export class BinanceBase extends BasicClient {
                 JSON.stringify({
                     method: "UNSUBSCRIBE",
                     params: [`${remote_id.toLowerCase()}@ticker`],
+                    id: ++this._messageId,
+                }),
+            );
+        }
+    }
+
+    protected _sendSubBookTicker(remote_id: string) {
+        if (this.batchTickers) {
+            if (this._bookTickersActive) return;
+            this._bookTickersActive = true;
+            this._wss.send(
+                JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: ["!bookticker"],
+                    id: ++this._messageId,
+                }),
+            );
+        } else {
+            this._wss.send(
+                JSON.stringify({
+                    method: "SUBSCRIBE",
+                    params: [`${remote_id.toLowerCase()}@bookTicker`],
+                    id: ++this._messageId,
+                }),
+            );
+        }
+    }
+
+    protected _sendUnsubBookTicker(remote_id: string) {
+        if (this.batchBookTickers) {
+            if (this._bookTickerSubs.size > 1) return;
+            this._bookTickersActive = false;
+            this._wss.send(
+                JSON.stringify({
+                    method: "UNSUBSCRIBE",
+                    params: ["!bookTicker"],
+                    id: ++this._messageId,
+                }),
+            );
+        } else {
+            this._wss.send(
+                JSON.stringify({
+                    method: "UNSUBSCRIBE",
+                    params: [`${remote_id.toLowerCase()}@bookTicker`],
                     id: ++this._messageId,
                 }),
             );
@@ -305,6 +358,17 @@ export class BinanceBase extends BasicClient {
             return;
         }
 
+        // orderbook ticker
+        if (msg.stream.endsWith("@bookTicker")) {
+            let remote_id = msg.data.s;
+            let market = this._bookTickerSubs.get(remote_id);
+            if (!market) return;
+
+            const bookTicker = this._constructBookTicker(msg.data, market);
+            this.emit("bookTicker", bookTicker, market);
+            return;
+        }
+
         // trades
         if (msg.stream.toLowerCase().endsWith("trade")) {
             const remote_id = msg.data.s;
@@ -381,6 +445,19 @@ export class BinanceBase extends BasicClient {
             quoteVolume,
             change,
             changePercent,
+            bid,
+            bidVolume,
+            ask,
+            askVolume,
+        });
+    }
+
+    protected _constructBookTicker(msg, market) {
+        let { a: ask, A: askVolume, b: bid, B: bidVolume } = msg;
+        return new BookTicker({
+            exchange: this.name,
+            base: market.base,
+            quote: market.quote,
             bid,
             bidVolume,
             ask,

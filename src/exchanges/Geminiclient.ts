@@ -33,6 +33,7 @@ export class GeminiClient extends EventEmitter implements IClient {
     public reconnectIntervalMs: number;
     public tickersCache: Map<string, Ticker>;
     public readonly hasTickers: boolean;
+    public readonly hasBookTickers: boolean;
     public readonly hasTrades: boolean;
     public readonly hasCandles: boolean;
     public readonly hasLevel2Snapshots: boolean;
@@ -51,6 +52,7 @@ export class GeminiClient extends EventEmitter implements IClient {
         this.tickersCache = new Map(); // key-value pairs of <market_id>: Ticker
 
         this.hasTickers = true;
+        this.hasBookTickers = false;
         this.hasTrades = true;
         this.hasCandles = false;
         this.hasLevel2Snapshots = false;
@@ -91,6 +93,8 @@ export class GeminiClient extends EventEmitter implements IClient {
         return;
     }
 
+    public subscribeBookTicker = NotImplementedFn;
+    public unsubscribeBookTicker = NotImplementedFn;
     public subscribeCandles = NotImplementedFn;
     public unsubscribeCandles = NotImplementedFn;
     public subscribeLevel2Snapshots = NotImplementedFn;

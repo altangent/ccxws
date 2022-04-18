@@ -107,6 +107,8 @@ export class SingleCexClient extends BasicClient {
     public authorized: boolean;
     public parent: CexClient;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Updates = NotImplementedFn;
     protected _sendUnsubLevel2Updates = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;

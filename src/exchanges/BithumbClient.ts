@@ -24,6 +24,8 @@ export class BithumbClient extends BasicClient {
     protected _restL2SnapshotPath: string;
     protected _requestLevel2Snapshot: CancelableFn;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubTicker = NotImplementedFn;
     protected _sendSubCandles = NotImplementedFn;
     protected _sendUnsubCandles = NotImplementedFn;

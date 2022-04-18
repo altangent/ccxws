@@ -135,6 +135,9 @@ export class BitfinexClient extends BasicClient {
         this._wss.send(JSON.stringify({ event: "conf", flags: 65536 + 32768 }));
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
+
     protected _sendSubTicker(remote_id: string) {
         this._wss.send(
             JSON.stringify({

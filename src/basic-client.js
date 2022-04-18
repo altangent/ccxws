@@ -89,7 +89,11 @@ class BasicTradeClient extends EventEmitter {
 
   unsubscribeAllBookTicker(market) {
     if (!this.hasAllBookTicker) return;
-    return this._unsubscribe(market, this._allBookTickerSubs, this._sendUnsubAllBookTicker.bind(this));
+    return this._unsubscribe(
+      market,
+      this._allBookTickerSubs,
+      this._sendUnsubAllBookTicker.bind(this),
+    );
   }
 
   subscribeCandles(market) {
@@ -117,7 +121,7 @@ class BasicTradeClient extends EventEmitter {
     return this._subscribe(
       market,
       this._level2SnapshotSubs,
-      this._sendSubLevel2Snapshots.bind(this)
+      this._sendSubLevel2Snapshots.bind(this),
     );
   }
 

@@ -287,6 +287,8 @@ export class KucoinClient extends BasicClient {
         );
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;
     protected _sendUnsubLevel2Snapshots = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;

@@ -36,6 +36,7 @@ export class BiboxClient extends EventEmitter implements IClient {
     public readonly options: any;
 
     public readonly hasTickers: boolean;
+    public readonly hasBookTickers: boolean;
     public readonly hasTrades: boolean;
     public readonly hasCandles: boolean;
     public readonly hasLevel2Snapshots: boolean;
@@ -49,6 +50,8 @@ export class BiboxClient extends EventEmitter implements IClient {
     protected _clients: BiboxBasicClient[];
     protected _subscribe: CancelableFn;
 
+    public subscribeBookTicker = NotImplementedFn
+    public unsubscribeBookTicker = NotImplementedFn
     public subscribeLevel2Updates = NotImplementedFn;
     public unsubscribeLevel2Updates = NotImplementedAsyncFn;
     public subscribeLevel3Snapshots = NotImplementedFn;
@@ -248,6 +251,8 @@ export class BiboxBasicClient extends BasicClient {
     public subCount: number;
     public parent: BiboxClient;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Updates = NotImplementedFn;
     protected _sendUnsubLevel2Updates = NotImplementedAsyncFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;
