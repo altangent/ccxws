@@ -181,13 +181,13 @@ export class BinanceBase extends BasicClient {
     }
 
     protected _sendSubBookTicker(remote_id: string) {
-        if (this.batchTickers) {
+        if (this.batchBookTickers) {
             if (this._bookTickersActive) return;
             this._bookTickersActive = true;
             this._wss.send(
                 JSON.stringify({
                     method: "SUBSCRIBE",
-                    params: ["!bookticker"],
+                    params: ["!bookTicker"],
                     id: ++this._messageId,
                 }),
             );
@@ -359,7 +359,7 @@ export class BinanceBase extends BasicClient {
         }
 
         // orderbook ticker
-        if (msg.stream.endsWith("@bookTicker")) {
+        if (msg.stream.endsWith("@bookTicker") || msg.stream === "!bookTicker") {
             let remote_id = msg.data.s;
             let market = this._bookTickerSubs.get(remote_id);
             if (!market) return;

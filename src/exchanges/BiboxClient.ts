@@ -50,8 +50,8 @@ export class BiboxClient extends EventEmitter implements IClient {
     protected _clients: BiboxBasicClient[];
     protected _subscribe: CancelableFn;
 
-    public subscribeBookTicker = NotImplementedFn
-    public unsubscribeBookTicker = NotImplementedFn
+    public subscribeBookTicker = NotImplementedFn;
+    public unsubscribeBookTicker = NotImplementedFn;
     public subscribeLevel2Updates = NotImplementedFn;
     public unsubscribeLevel2Updates = NotImplementedAsyncFn;
     public subscribeLevel3Snapshots = NotImplementedFn;
