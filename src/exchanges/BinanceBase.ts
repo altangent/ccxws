@@ -360,8 +360,8 @@ export class BinanceBase extends BasicClient {
 
         // orderbook ticker
         if (msg.stream.endsWith("@bookTicker") || msg.stream === "!bookTicker") {
-            let remote_id = msg.data.s;
-            let market = this._bookTickerSubs.get(remote_id);
+            const remote_id = msg.data.s;
+            const market = this._bookTickerSubs.get(remote_id);
             if (!market) return;
 
             const bookTicker = this._constructBookTicker(msg.data, market);
