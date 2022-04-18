@@ -1,18 +1,25 @@
 name: Node.js CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [master]
+  pull_request:
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Use Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
-          node-version: 10.x
+          node-version: ${{ matrix.node-version }}
+
       - run: npm ci
 
       - name: Verify formatting
@@ -22,7 +29,7 @@ jobs:
         run: npm run lint
 
       - name: Test non-exchanges
-        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exit --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.js"
+        run: $(npm bin)/nyc --reporter=lcov --extension=.ts --reporter=text $(npm bin)/mocha --exit --require ts-node/register --exclude "__tests__/exchanges/**" --recursive "__tests__/**/*.spec.ts"
         env:
           CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
           CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}
@@ -39,58 +46,55 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        node-version: [12.x]
         exchange:
-          - bibox
-          - binance
-          - binance-futures-coinm
-          - binance-futures-usdtm
-          - binanceje
-          - binanceus
-          - bitfinex
-          - bitflyer
-          - bithumb
-          - bitmex
-          - bitstamp
-          - bittrex
-          - cex
-          - coinbasepro
-          - coinex
-          - deribit
-          - digifinex
-          # - ethfinex
-          - ftx
-          - ftx-us
-          - gateio
-          - gemini
-          - hitbtc
-          - huobi
-          - huobi-futures
-          - huobi-japan
-          - huobi-korea
-          - huobi-russia
-          - huobi-swaps
-          - kucoin
-          # - ledgerx
-          - liquid
-          - okex
-          - poloniex
-          - upbit
-          - zb
+          - Bibox
+          - Binance
+          - BinanceFuturesCoinm
+          - BinanceFuturesUsdtm
+          - BinanceUs
+          - Bitfinex
+          - Bitflyer
+          - Bithumb
+          - Bitmex
+          - Bitstamp
+          - Bittrex
+          - Cex
+          - CoinbasePro
+          - Coinex
+          - Deribit
+          - Digifinex
+          - Ftx
+          - FtxUs
+          - Gateio
+          - Gemini
+          - HitBtc
+          - Huobi
+          - HuobiFutures
+          - HuobiJapan
+          - HuobiKorea
+          - HuobiSwaps
+          - Kucoin
+          - Liquid
+          - Okex
+          - Poloniex
+          - Upbit
+          - Zb
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Use Node.js
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
-          node-version: 10.x
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm install
 
       - name: Run tests
-        run: $(npm bin)/nyc --reporter=lcov --reporter=text $(npm bin)/mocha --exit __tests__/exchanges/${{ matrix.exchange }}-client.spec.js
+        run: $(npm bin)/nyc --reporter=lcov --extension=.ts --reporter=text $(npm bin)/mocha --exit --require ts-node/register __tests__/exchanges/${{ matrix.exchange }}Client.spec.ts
         env:
           CEX_API_KEY: ${{ secrets.CEX_API_KEY }}
           CEX_API_SECRET: ${{ secrets.CEX_API_SECRET }}

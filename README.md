@@ -26,8 +26,8 @@ npm install ccxws
 Create a new client for an exchange. Subscribe to the events that you want to listen to by supplying a market.
 
 ```javascript
-const ccxws = require("ccxws");
-const binance = new ccxws.Binance();
+import { BinanceClient } from "ccxws";
+const binance = new BinanceClient();
 
 // market could be from CCXT or genearted by the user
 const market = {
@@ -51,46 +51,43 @@ binance.subscribeLevel2Snapshots(market);
 
 ## Exchanges
 
-| Exchange               | API | Class               | Ticker   | Trades   | Candles  | OB-L2<br/>Snapshot | OB-L2<br/>Updates | OB-L3<br/>Snapshot | OB-L3<br/>Updates |
-| ---------------------- | --- | ------------------- | -------- | -------- | -------- | ------------------ | ----------------- | ------------------ | ----------------- |
-| Bibox                  | 1   | Bibox               | &#10003; | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
-| Binance                | 1   | Binance             | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Futures Coin-M | 1   | BinanceFuturesCoinM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Futures USDT-M | 1   | BinanceFuturesUsdtM | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance Jersey         | 1   | BinanceJe           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Binance US             | 1   | BinanceUs           | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*\*      | -                  | -                 |
-| Bitfinex               | 2   | Bitfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
-| bitFlyer               | 1   | Bitflyer            | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
-| Bithumb                | 1   | Bithumb             | &#10003; | &#10003; | -        | -                  | &#10003;\*\*      | -                  | -                 |
-| BitMEX                 | 1   | BitMEX              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Bitstamp               | 2   | Bitstamp            | -        | &#10003; | -        | &#10003;           | &#10003;\*\*      | -                  | -                 | - |
-| Bittrex                | 3   | Bittrex             | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Cex.io                 | 1   | Cex                 | &#10003; | &#10003; | &#10003; | &#10003;           |                   | -                  | -                 |
-| Coinbase Pro           | 1   | CoinbasePro         | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;          |
-| Coinex                 | 1   | Coinex              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Deribit                | 2   | Deribit             | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Digifinex              | 1   | Digifinex           | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| ErisX                  | 3.4 | ErisX               | -        | &#10003; | -        | -                  | -                 | -                  | &#10003;\*        |
-| Ethfinex               | 1   | Ethfinex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | &#10003;\*        |
-| FTX                    | 1   | Ftx                 | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| FTX US                 | 1   | FtxUs               | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| Gate.io                | 3   | Gateio              | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| Gemini                 | 1   | Gemini              | -        | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| HitBTC                 | 2   | HitBTC              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| Huobi Global           | 1   | Huobi               | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| Huobi Global Futures   | 1   | HuobiFutures        | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
-| Huobi Global Swaps     | 1   | HuobiSwaps          | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
-| Huobi Japan            | 1   | HuobiJapan          | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| Huobi Korea            | 1   | HuobiKorea          | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| Huobi Russia           | 1   | HuobiRussia         | &#10003; | &#10003; | &#10003; | &#10003;           | -                 | -                  | -                 |
-| KuCoin                 | 2   | Kucoin              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*\*      | -                  | &#10003;\*        |
-| Kraken                 | 0   | Kraken              | &#10003; | &#10003; | &#10003; | -                  | &#10003;\*        | -                  | -                 |
-| LedgerX                | 1   | LedgerX             | -        | &#10003; | -        | -                  | -                 | -                  | &#10003;\*        |
-| Liquid                 | 2   | Liquid              | &#10003; | &#10003; | -        | -                  | &#10003;          | -                  | -                 |
-| OKEx                   | 3   | OKEx                | &#10003; | &#10003; | &#10003; | &#10003;           | &#10003;\*        | -                  | -                 |
-| Poloniex               | 2   | Poloniex            | &#10003; | &#10003; | -        | -                  | &#10003;\*        | -                  | -                 |
-| Upbit                  | 1   | Upbit               | &#10003; | &#10003; | -        | &#10003;           | -                 | -                  | -                 |
-| ZB                     | 1   | Zb                  | &#10003; | &#10003; | -        | &#10003;           | -                 | -                  | -                 |
+| Exchange               | API | Class                     | Ticker   | Trades   | Candles  | OB-L2 Snapshot | OB-L2 Updates | OB-L3 Snapshot | OB-L3 Updates |
+| ---------------------- | --- | ------------------------- | -------- | -------- | -------- | -------------- | ------------- | -------------- | ------------- |
+| Bibox                  | 1   | BiboxClient               | &#10003; | &#10003; | &#10003; | &#10003;       |               | -              | -             |
+| Binance                | 1   | BinanceClient             | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*\*  | -              | -             |
+| Binance Futures Coin-M | 1   | BinanceFuturesCoinmClient | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*\*  | -              | -             |
+| Binance Futures USDT-M | 1   | BinanceFuturesUsdtmClient | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*\*  | -              | -             |
+| Binance US             | 1   | BinanceUsClient           | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*\*  | -              | -             |
+| Bitfinex               | 2   | BitfinexClient            | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | &#10003;\*    |
+| bitFlyer               | 1   | BitflyerClient            | &#10003; | &#10003; | -        | -              | &#10003;\*\*  | -              | -             |
+| Bithumb                | 1   | BithumbClient             | &#10003; | &#10003; | -        | -              | &#10003;\*\*  | -              | -             |
+| BitMEX                 | 1   | BitmexClient              | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| Bitstamp               | 2   | BitstampClient            | -        | &#10003; | -        | &#10003;       | &#10003;\*\*  | -              | -             |
+| Bittrex                | 3   | BittrexClient             | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| Cex.io                 | 1   | CexClient                 | &#10003; | &#10003; | &#10003; | &#10003;       |               | -              | -             |
+| Coinbase Pro           | 1   | CoinbaseProClient         | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | &#10003;      |
+| Coinex                 | 1   | CoinexClient              | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| Deribit                | 2   | DeribitClient             | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| Digifinex              | 1   | DigifinexClient           | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| ErisX                  | 3.4 | ErisXClient               | -        | &#10003; | -        | -              | -             | -              | &#10003;\*    |
+| FTX                    | 1   | FtxClient                 | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| FTX US                 | 1   | FtxUsClient               | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| Gate.io                | 3   | GateioClient              | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| Gemini                 | 1   | GeminiClient              | -        | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| HitBTC                 | 2   | HitBtcClient              | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| Huobi Global           | 1   | HuobiClient               | &#10003; | &#10003; | &#10003; | &#10003;       | -             | -              | -             |
+| Huobi Global Futures   | 1   | HuobiFuturesClient        | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*    | -              | -             |
+| Huobi Global Swaps     | 1   | HuobiSwapsClient          | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*    | -              | -             |
+| Huobi Japan            | 1   | HuobiJapanClient          | &#10003; | &#10003; | &#10003; | &#10003;       | -             | -              | -             |
+| Huobi Korea            | 1   | HuobiKoreaClient          | &#10003; | &#10003; | &#10003; | &#10003;       | -             | -              | -             |
+| KuCoin                 | 2   | KucoinClient              | &#10003; | &#10003; | &#10003; | -              | &#10003;\*\*  | -              | &#10003;\*    |
+| Kraken                 | 0   | KrakenClient              | &#10003; | &#10003; | &#10003; | -              | &#10003;\*    | -              | -             |
+| LedgerX                | 1   | LedgerXClient             | -        | &#10003; | -        | -              | -             | -              | &#10003;\*    |
+| Liquid                 | 2   | LiquidClient              | &#10003; | &#10003; | -        | -              | &#10003;      | -              | -             |
+| OKEx                   | 3   | OkexClient                | &#10003; | &#10003; | &#10003; | &#10003;       | &#10003;\*    | -              | -             |
+| Poloniex               | 2   | PoloniexClient            | &#10003; | &#10003; | -        | -              | &#10003;\*    | -              | -             |
+| Upbit                  | 1   | UpbitClient               | &#10003; | &#10003; | -        | &#10003;       | -             | -              | -             |
+| ZB                     | 1   | ZbClient                  | &#10003; | &#10003; | -        | &#10003;       | -             | -              | -             |
 
 Notes:
 
@@ -474,13 +471,18 @@ Additional metadata is often provided in the `meta` property that has more detai
 - `bids: [Level3Point]` - the bid (buyer side) price points
 
 ## Caveats
+
 ### Snapshots broadcast using the REST API
+
 For exchanges which request the Level2Snapshot or Level3Snapshot over REST, there can be a race condition where messages are missed between the snapshot and the first update, for example the snapshot `sequenceId` is 100 and the first update's `sequenceId` is 105.
 
 For a not-so-reliable fix you can monkey-patch a delay so that the snapshot is requested after subscribing to updates to better ensure the snapshot arrives with a `sequenceId` >= the first update that arrives. See example below:
+
 ```js
-const REST_DELAY_MS = 500
+const REST_DELAY_MS = 500;
 client._originalRequestLevel2Snapshot = client._requestLevel2Snapshot;
-client._requestLevel2Snapshot = market => setTimeout(() => client._originalRequestLevel2Snapshot(market), REST_DELAY_MS);
+client._requestLevel2Snapshot = market =>
+  setTimeout(() => client._originalRequestLevel2Snapshot(market), REST_DELAY_MS);
 ```
+
 Otherwise you should be prepared to manually verify the `sequenceId` if possible, and request the snapshot again if there is a gap between the snapshot and the first update by calling `client.requestLevel2Snapshot(market)` again.

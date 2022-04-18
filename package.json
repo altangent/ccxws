@@ -1,6 +1,10 @@
 {
   "name": "ccxws",
+<<<<<<< HEAD
   "version": "0.43.2",
+=======
+  "version": "0.47.0",
+>>>>>>> 50ec03d4900ee9027a05678869ba05adb4d02fa3
   "description": "Websocket client for 37 cryptocurrency exchanges",
   "keywords": [
     "bitmex",
@@ -13,12 +17,14 @@
   ],
   "author": "Brian Mancini <bmancini@gmail.com>",
   "license": "MIT",
-  "main": "src/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
+    "prepublish": "npm run build",
+    "build": "tsc",
     "format:fix": "prettier --write  \"src/**\" \"__tests__/**\"",
     "format": "prettier --check \"src/**\" \"__tests__/**\"",
     "lint": "eslint src __tests__",
-    "test": "nyc --reporter=text mocha --recursive \"__tests__\""
+    "test": "nyc --reporter=lcov --reporter=text --extension=.ts mocha --require ts-node/register --recursive \"__tests__/**/*.spec.ts\""
   },
   "repository": "altangent/ccxws",
   "dependencies": {
@@ -30,11 +36,24 @@
     "ws": "^7.3.0"
   },
   "devDependencies": {
-    "chai": "^4.2.0",
-    "eslint": "^5.16.0",
-    "mocha": "^6.2.3",
+    "@types/chai": "^4.2.18",
+    "@types/mocha": "^8.2.2",
+    "@types/node": "^15.6.0",
+    "@types/semaphore": "^1.1.1",
+    "@types/sinon": "^10.0.0",
+    "@types/ws": "^7.4.4",
+    "@typescript-eslint/eslint-plugin": "^4.24.0",
+    "@typescript-eslint/parser": "^4.24.0",
+    "chai": "^4.3.4",
+    "eslint": "^7.27.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.23.3",
+    "eslint-plugin-prefer-arrow": "^1.2.3",
+    "mocha": "^8.4.0",
     "nyc": "^15.1.0",
-    "prettier": "^1.19.1",
-    "sinon": "^7.5.0"
+    "prettier": "^2.3.0",
+    "sinon": "^10.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.2.4"
   }
 }
