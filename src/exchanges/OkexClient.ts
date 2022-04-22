@@ -17,17 +17,14 @@ import { Market } from "../Market";
 import { NotImplementedFn } from "../NotImplementedFn";
 import { Ticker } from "../Ticker";
 import { Trade } from "../Trade";
-import * as zlib from "../ZlibUtils";
-
-const pongBuffer = Buffer.from("pong");
 
 export type OkexClientOptions = ClientOptions & {
     sendThrottleMs?: number;
 };
 
 /**
- * Implements OKEx V3 WebSocket API as defined in
- * https://www.okex.com/docs/en/#spot_ws-general
+ * Implements OKEx V5 WebSocket API as defined in
+ * https://www.okx.com/docs/en/#websocket-api
  *
  * Limits:
  *    1 connection / second
@@ -43,7 +40,7 @@ export type OkexClientOptions = ClientOptions & {
  * matches the server. If the order book does not match you should
  * issue a reconnect.
  *
- * Refer to: https://www.okex.com/docs/en/#spot_ws-checksum
+ * Refer to: https://www.okx.com/docs/en/#websocket-api-checksum
  */
 export class OkexClient extends BasicClient {
     public candlePeriod: CandlePeriod;
@@ -52,7 +49,7 @@ export class OkexClient extends BasicClient {
     protected _pingInterval: NodeJS.Timeout;
 
     constructor({
-        wssPath = "wss://real.okex.com:8443/ws/v3",
+        wssPath = "wss://ws.okx.com:8443/ws/v5/public",
         watcherMs,
         sendThrottleMs = 20,
     }: OkexClientOptions = {}) {
@@ -96,8 +93,8 @@ export class OkexClient extends BasicClient {
      * the default is a spot market.
      */
     protected _marketArg(method: string, market: Market) {
-        const type = (market.type || "spot").toLowerCase();
-        return `${type.toLowerCase()}/${method}:${market.id}`;
+        const type: string = (market.type || "SPOT").toUpperCase();
+        return {"channel":method, "instId":market.id, "instType": type };
     }
 
     /**
@@ -106,29 +103,29 @@ export class OkexClient extends BasicClient {
     protected _candlePeriod(period: CandlePeriod) {
         switch (period) {
             case CandlePeriod._1m:
-                return "60s";
+                return "1m";
             case CandlePeriod._3m:
-                return "180s";
+                return "3m";
             case CandlePeriod._5m:
-                return "300s";
+                return "5m";
             case CandlePeriod._15m:
-                return "900s";
+                return "15m";
             case CandlePeriod._30m:
-                return "1800s";
+                return "30m";
             case CandlePeriod._1h:
-                return "3600s";
+                return "1H";
             case CandlePeriod._2h:
-                return "7200s";
+                return "2H";
             case CandlePeriod._4h:
-                return "14400s";
+                return "4H";
             case CandlePeriod._6h:
-                return "21600s";
+                return "6H";
             case CandlePeriod._12h:
-                return "43200s";
+                return "12H";
             case CandlePeriod._1d:
-                return "86400s";
+                return "1D";
             case CandlePeriod._1w:
-                return "604800s";
+                return "1W";
         }
     }
 
@@ -140,7 +137,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "subscribe",
-                args: [this._marketArg("ticker", market)],
+                args: [this._marketArg("tickers", market)],
             }),
         );
     }
@@ -149,7 +146,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "unsubscribe",
-                args: [this._marketArg("ticker", market)],
+                args: [this._marketArg("tickers", market)],
             }),
         );
     }
@@ -158,7 +155,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "subscribe",
-                args: [this._marketArg("trade", market)],
+                args: [this._marketArg("trades", market)],
             }),
         );
     }
@@ -167,7 +164,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "unsubscribe",
-                args: [this._marketArg("trade", market)],
+                args: [this._marketArg("trades", market)],
             }),
         );
     }
@@ -194,7 +191,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "subscribe",
-                args: [this._marketArg("depth5", market)],
+                args: [this._marketArg("books5", market)],
             }),
         );
     }
@@ -203,7 +200,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "unsubscribe",
-                args: [this._marketArg("depth5", market)],
+                args: [this._marketArg("books5", market)],
             }),
         );
     }
@@ -212,7 +209,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "subscribe",
-                args: [this._marketArg("depth_l2_tbt", market)],
+                args: [this._marketArg("books-l2-tbt", market)],
             }),
         );
     }
@@ -221,7 +218,7 @@ export class OkexClient extends BasicClient {
         this._sendMessage(
             JSON.stringify({
                 op: "unsubscribe",
-                args: [this._marketArg("depth_l2_tbt", market)],
+                args: [this._marketArg("books-l2-tbt", market)],
             }),
         );
     }
@@ -231,26 +228,19 @@ export class OkexClient extends BasicClient {
     protected _sendSubLevel3Updates = NotImplementedFn;
     protected _sendUnsubLevel3Updates = NotImplementedFn;
 
-    protected _onMessage(compressed) {
-        zlib.inflateRaw(compressed, (err, raw) => {
-            if (err) {
-                this.emit("error", err);
-                return;
-            }
+    protected _onMessage(json: string) {
+        // ignore pongs
+        if(json==="pong"){
+            return;
+        }
 
-            // ignore pongs
-            if (raw.equals(pongBuffer)) {
-                return;
-            }
-
-            // process JSON message
-            try {
-                const msg = JSON.parse(raw.toString());
-                this._processsMessage(msg);
-            } catch (ex) {
-                this.emit("error", ex);
-            }
-        });
+        // process JSON message
+        try {
+            const msg = JSON.parse(json.toString());
+            this._processsMessage(msg);
+        } catch (ex) {
+            this.emit("error", ex);
+        }
     }
 
     protected _processsMessage(msg: any) {
@@ -272,31 +262,31 @@ export class OkexClient extends BasicClient {
         }
 
         // tickers
-        if (msg.table.match(/ticker/)) {
+        if (msg.arg.channel.match(/tickers/)) {
             this._processTicker(msg);
             return;
         }
 
         // trades
-        if (msg.table.match(/trade/)) {
+        if (msg.arg.channel.match(/trades/)) {
             this._processTrades(msg);
             return;
         }
 
         // candles
-        if (msg.table.match(/candle/)) {
+        if (msg.arg.channel.match(/candle/)) {
             this._processCandles(msg);
             return;
         }
 
         // l2 snapshots
-        if (msg.table.match(/depth5/)) {
+        if (msg.arg.channel.match(/books5/)) {
             this._processLevel2Snapshot(msg);
             return;
         }
 
         // l2 updates
-        if (msg.table.match(/depth/)) {
+        if (msg.arg.channel.match(/books-l2-tbt/)) {
             this._processLevel2Update(msg);
             return;
         }
@@ -304,26 +294,37 @@ export class OkexClient extends BasicClient {
 
     /**
    * Process ticker messages in the format
-    { table: 'spot/ticker',
-      data:
-      [ { instrument_id: 'ETH-BTC',
-          last: '0.02181',
-          best_bid: '0.0218',
-          best_ask: '0.02181',
-          open_24h: '0.02247',
-          high_24h: '0.02262',
-          low_24h: '0.02051',
-          base_volume_24h: '379522.2418555',
-          quote_volume_24h: '8243.729793336415',
-          timestamp: '2019-07-15T17:10:55.671Z' } ] }
+    {
+      arg: { channel: 'tickers', instId: 'BTC-USDT' },
+      data: [ 
+        {
+          instType: 'SPOT',
+          instId: 'BTC-USDT',
+          last: '40280',
+          lastSz: '0.00339105',
+          askPx: '40280.1',
+          askSz: '0.59279275',
+          bidPx: '40280',
+          bidSz: '0.26603777',
+          open24h: '42580',
+          high24h: '42671.8',
+          low24h: '39747.8',
+          sodUtc0: '40476',
+          sodUtc8: '42142.2',
+          volCcy24h: '295680931.82106796',
+          vol24h: '7236.9089522',
+          ts: '1650636858898'
+        } 
+      ]
+    }
    */
     protected _processTicker(msg) {
-        for (const datum of msg.data) {
-            // ensure market
-            const remoteId = datum.instrument_id;
-            const market = this._tickerSubs.get(remoteId);
-            if (!market) continue;
+        // ensure market
+        const remoteId = msg.arg.instId;
+        const market = this._tickerSubs.get(remoteId);
+        if (!market) return;
 
+        for (const datum of msg.data) {
             // construct and emit ticker
             const ticker = this._constructTicker(datum, market);
             this.emit("ticker", ticker, market);
@@ -332,22 +333,27 @@ export class OkexClient extends BasicClient {
 
     /**
    * Processes trade messages in the format
-    { table: 'spot/trade',
-      data:
-      [ { instrument_id: 'ETH-BTC',
-          price: '0.0218',
+    { 
+      arg:{ channel: 'trades', instId: 'BTC-USDT' },
+      data: [ 
+        {
+          instId: 'ETH-BTC',
+          px: '0.0218',
           side: 'sell',
-          size: '1.1',
-          timestamp: '2019-07-15T17:10:56.047Z',
-          trade_id: '776432498' } ] }
+          sz: '1.1',
+          ts: '1630048897897',
+          tradeId: '776432498' 
+        }
+      ] 
+    }
    */
     protected _processTrades(msg) {
-        for (const datum of msg.data) {
-            // ensure market
-            const remoteId = datum.instrument_id;
-            const market = this._tradeSubs.get(remoteId);
-            if (!market) continue;
+        // ensure market
+        const remoteId = msg.arg.instId;
+        const market = this._tradeSubs.get(remoteId);
+        if (!market) return;
 
+        for (const datum of msg.data) {
             // construct and emit trade
             const trade = this._constructTrade(datum, market);
             this.emit("trade", trade, market);
@@ -357,29 +363,27 @@ export class OkexClient extends BasicClient {
     /**
    * Processes a candle message
     {
-      "table": "spot/candle60s",
-      "data": [
-        {
-          "candle": [
-            "2020-08-10T20:42:00.000Z",
-            "0.03332",
-            "0.03332",
-            "0.03331",
-            "0.03332",
-            "44.058532"
-          ],
-          "instrument_id": "ETH-BTC"
-        }
+      arg: { channel: 'candle1m', instId: 'BTC-USDT' },
+      data: [
+        [
+          '1650643500000',
+          '39299.9',
+          '39329.9',
+          '39223.6',
+          '39230.3',
+          '46.90395862',
+          '1841904.25187161'
+        ]
       ]
     }
    */
     protected _processCandles(msg) {
-        for (const datum of msg.data) {
-            // ensure market
-            const remoteId = datum.instrument_id;
-            const market = this._candleSubs.get(remoteId);
-            if (!market) continue;
+        // ensure market
+        const remoteId = msg.arg.instId;
+        const market = this._candleSubs.get(remoteId);
+        if (!market) return;
 
+        for (const datum of msg.data) {
             // construct and emit candle
             const candle = this._constructCandle(datum);
             this.emit("candle", candle, market);
@@ -388,20 +392,37 @@ export class OkexClient extends BasicClient {
 
     /**
    * Processes a level 2 snapshot message in the format:
-      { table: 'spot/depth5',
-        data: [{
-            asks: [ ['0.02192', '1.204054', '3' ] ],
-            bids: [ ['0.02191', '15.117671', '3' ] ],
-            instrument_id: 'ETH-BTC',
-            timestamp: '2019-07-15T16:54:42.301Z' } ] }
+    {
+      arg: { channel: 'books5', instId: 'BTC-USDT' },
+      data: [
+       {
+          asks: [
+            [ '39629.7', '0.01054105', '0', '3' ],
+            [ '39630', '0.003', '0', '1' ],
+            [ '39634.7', '0.00272956', '0', '1' ],
+            [ '39634.9', '0.32', '0', '1' ],
+            [ '39635.5', '0.01', '0', '1' ]
+          ],
+          bids: [
+            [ '39629.6', '7.41993802', '0', '29' ],
+            [ '39628.7', '0.01059358', '0', '1' ],
+            [ '39628.5', '0.03207637', '0', '1' ],
+            [ '39628.4', '4.58225129', '0', '9' ],
+            [ '39626.5', '0.1', '0', '1' ]
+          ],
+          instId: 'BTC-USDT',
+          ts: '1650655643181'
+        }
+      ]
+   }
    */
     protected _processLevel2Snapshot(msg) {
-        for (const datum of msg.data) {
-            // ensure market
-            const remote_id = datum.instrument_id;
-            const market = this._level2SnapshotSubs.get(remote_id);
-            if (!market) return;
+        // ensure market
+        const remote_id = msg.arg.instId;
+        const market = this._level2SnapshotSubs.get(remote_id);
+        if (!market) return;
 
+        for (const datum of msg.data) {
             // construct snapshot
             const snapshot = this._constructLevel2Snapshot(datum, market);
             this.emit("l2snapshot", snapshot, market);
@@ -410,40 +431,83 @@ export class OkexClient extends BasicClient {
 
     /**
    * Processes a level 2 update message in one of two formats.
-   * The first message received is the "partial" orderbook and contains
+   * The first message received is the "snapshot" orderbook and contains
    * 200 records in it.
    *
-    { table: 'spot/depth',
-          action: 'partial',
-          data:
-            [ { instrument_id: 'ETH-BTC',
-                asks: [Array],
-                bids: [Array],
-                timestamp: '2019-07-15T17:18:31.737Z',
-                checksum: 723501244 } ] }
+    { 
+      "arg": { "channel": "books", "instId": "BTC-USDT" },
+      "action": "snapshot",
+      "data": [
+        {
+          "asks": [
+            ["8476.98", "415", "0", "13"],
+            ["8477", "7", "0", "2"],
+            ["8477.34", "85", "0", "1"],
+            ["8477.56", "1", "0", "1"],
+            ["8505.84", "8", "0", "1"],
+            ["8506.37", "85", "0", "1"],
+            ["8506.49", "2", "0", "1"],
+            ["8506.96", "100", "0", "2"]
+          ],
+          "bids": [
+            ["8476.97", "256", "0", "12"],
+            ["8475.55", "101", "0", "1"],
+            ["8475.54", "100", "0", "1"],
+            ["8475.3", "1", "0", "1"],
+            ["8447.32", "6", "0", "1"],
+            ["8447.02", "246", "0", "1"],
+            ["8446.83", "24", "0", "1"],
+            ["8446", "95", "0", "3"]
+          ],
+          "ts": "1597026383085",
+          "checksum": -855196043
+        }
+      ]
+    }
    *
    * Subsequent calls will include the updates stream for changes to
    * the order book:
    *
-      { table: 'spot/depth',
-      action: 'update',
-      data:
-        [ { instrument_id: 'ETH-BTC',
-            asks: [Array],
-            bids: [Array],
-            timestamp: '2019-07-15T17:18:32.289Z',
-            checksum: 680530848 } ] }
+     { 
+      "arg": { "channel": "books", "instId": "BTC-USDT" },
+      "action": "update",
+      "data": [
+        {
+          "asks": [
+            ["8476.98", "415", "0", "13"],
+            ["8477", "7", "0", "2"],
+            ["8477.34", "85", "0", "1"],
+            ["8477.56", "1", "0", "1"],
+            ["8505.84", "8", "0", "1"],
+            ["8506.37", "85", "0", "1"],
+            ["8506.49", "2", "0", "1"],
+            ["8506.96", "100", "0", "2"]
+          ],
+          "bids": [
+            ["8476.97", "256", "0", "12"],
+            ["8475.55", "101", "0", "1"],
+            ["8475.54", "100", "0", "1"],
+            ["8475.3", "1", "0", "1"],
+            ["8447.32", "6", "0", "1"],
+            ["8447.02", "246", "0", "1"],
+            ["8446.83", "24", "0", "1"],
+            ["8446", "95", "0", "3"]
+          ],
+          "ts": "1597026383085",
+          "checksum": -855196043
+        }
+      ]
+    }
    */
     protected _processLevel2Update(msg) {
+        // ensure market
+        const remote_id = msg.arg.instId;
+        const market = this._level2UpdateSubs.get(remote_id);
+        if (!market) return;
         const action = msg.action;
         for (const datum of msg.data) {
-            // ensure market
-            const remote_id = datum.instrument_id;
-            const market = this._level2UpdateSubs.get(remote_id);
-            if (!market) continue;
-
             // handle updates
-            if (action === "partial") {
+            if (action === "snapshot") {
                 const snapshot = this._constructLevel2Snapshot(datum, market);
                 this.emit("l2snapshot", snapshot, market);
             } else if (action === "update") {
@@ -458,97 +522,104 @@ export class OkexClient extends BasicClient {
 
     /**
    * Constructs a ticker from the datum in the format:
-      { instrument_id: 'ETH-BTC',
-        last: '0.02172',
-        best_bid: '0.02172',
-        best_ask: '0.02173',
-        open_24h: '0.02254',
-        high_24h: '0.02262',
-        low_24h: '0.02051',
-        base_volume_24h: '378400.064179',
-        quote_volume_24h: '8226.4437921288',
-        timestamp: '2019-07-15T16:10:40.193Z' }
+    {
+      instType: 'SPOT',
+      instId: 'BTC-USDT',
+      last: '40280',
+      lastSz: '0.00339105',
+      askPx: '40280.1',
+      askSz: '0.59279275',
+      bidPx: '40280',
+      bidSz: '0.26603777',
+      open24h: '42580',
+      high24h: '42671.8',
+      low24h: '39747.8',
+      sodUtc0: '40476',
+      sodUtc8: '42142.2',
+      volCcy24h: '295680931.82106796',
+      vol24h: '7236.9089522',
+      ts: '1650636858898'
+    }
    */
     protected _constructTicker(data, market) {
         const {
             last,
-            best_bid,
-            best_bid_size,
-            best_ask,
-            best_ask_size,
-            open_24h,
-            high_24h,
-            low_24h,
-            base_volume_24h,
-            volume_24h, // found in futures
-            timestamp,
+            bidPx,
+            bidSz,
+            askPx,
+            askSz,
+            open24h,
+            high24h,
+            low24h,
+            vol24h,
+            ts,
         } = data;
 
-        const change = parseFloat(last) - parseFloat(open_24h);
-        const changePercent = change / parseFloat(open_24h);
-        const ts = moment.utc(timestamp).valueOf();
+        const change = parseFloat(last) - parseFloat(open24h);
+        const changePercent = change / parseFloat(open24h);
+        const timestamp = moment.unix(Math.ceil(ts/1000)).utc().valueOf();
         return new Ticker({
             exchange: this.name,
             base: market.base,
             quote: market.quote,
-            timestamp: ts,
+            timestamp,
             last,
-            open: open_24h,
-            high: high_24h,
-            low: low_24h,
-            volume: base_volume_24h || volume_24h,
+            open: open24h,
+            high: high24h,
+            low: low24h,
+            volume: vol24h,
             change: change.toFixed(8),
             changePercent: changePercent.toFixed(2),
-            bid: best_bid || "0",
-            bidVolume: best_bid_size || "0",
-            ask: best_ask || "0",
-            askVolume: best_ask_size || "0",
+            bid: bidPx || "0",
+            bidVolume: bidSz || "0",
+            ask: askPx || "0",
+            askVolume: askSz || "0",
         });
     }
 
     /**
    * Constructs a trade from the message datum in format:
-    { instrument_id: 'ETH-BTC',
-      price: '0.02182',
+    { 
+      instId: 'ETH-BTC',
+      px: '0.02182',
       side: 'sell',
-      size: '0.94',
-      timestamp: '2019-07-15T16:38:02.169Z',
-      trade_id: '776370532' }
+      sz: '0.94',
+      ts: '1630048897897',
+      tradeId: '776370532'
+    }
     */
     protected _constructTrade(datum, market) {
-        const { price, side, size, timestamp, trade_id, qty } = datum;
-        const ts = moment.utc(timestamp).valueOf();
+        const { px, side, sz, ts, tradeId } = datum;
+        const unix = moment.unix(Math.ceil(ts/1000)).utc().valueOf();
 
         return new Trade({
             exchange: this.name,
             base: market.base,
             quote: market.quote,
-            tradeId: trade_id,
+            tradeId,
             side,
-            unix: ts,
-            price,
-            amount: size || qty,
+            unix,
+            price: px,
+            amount: sz,
         });
     }
 
     /**
    * Constructs a candle for the market
-      {
-        "candle": [
-          "2020-08-10T20:42:00.000Z",
-          "0.03332",
-          "0.03332",
-          "0.03331",
-          "0.03332",
-          "44.058532"
-        ],
-        "instrument_id": "ETH-BTC"
-      }
+    [
+      '1650643500000',
+      '39299.9',
+      '39329.9',
+      '39223.6',
+      '39230.3',
+      '46.90395862',
+      '1841904.25187161'
+    ]
    * @param {*} datum
    */
     protected _constructCandle(datum) {
-        const [datetime, open, high, low, close, volume] = datum.candle;
-        const ts = moment.utc(datetime).valueOf();
+        const [datetime, open, high, low, close, volume,] = datum;
+        const ts = moment.unix(Math.ceil(datetime/1000)).utc().valueOf();
         return new Candle(ts, open, high, low, close, volume);
     }
 
@@ -556,25 +627,57 @@ export class OkexClient extends BasicClient {
    * Constructs a snapshot message from the datum in a
    * snapshot message data property. Datum in the format:
    *
-      { instrument_id: 'ETH-BTC',
-        asks: [ ['0.02192', '1.204054', '3' ] ],
-        bids: [ ['0.02191', '15.117671', '3' ] ],
-        timestamp: '2019-07-15T16:54:42.301Z' }
+    {
+      asks: [
+        [ '39629.7', '0.01054105', '0', '3' ],
+        [ '39630', '0.003', '0', '1' ],
+        [ '39634.7', '0.00272956', '0', '1' ],
+        [ '39634.9', '0.32', '0', '1' ],
+        [ '39635.5', '0.01', '0', '1' ]
+      ],
+      bids: [
+        [ '39629.6', '7.41993802', '0', '29' ],
+        [ '39628.7', '0.01059358', '0', '1' ],
+        [ '39628.5', '0.03207637', '0', '1' ],
+        [ '39628.4', '4.58225129', '0', '9' ],
+        [ '39626.5', '0.1', '0', '1' ]
+      ],
+      instId: 'BTC-USDT',
+      ts: '1650655643181'
+    }
    *
    * The snapshot may also come from an update, in which case we need
    * to include the checksum
    *
-      { instrument_id: 'ETH-BTC',
-        asks: [ ['0.02192', '1.204054', '3' ] ],
-        bids: [ ['0.02191', '15.117671', '3' ] ],
-        timestamp: '2019-07-15T17:18:31.737Z',
-        checksum: 723501244 }
-
+    {
+      "asks": [
+        ["8476.98", "415", "0", "13"],
+        ["8477", "7", "0", "2"],
+        ["8477.34", "85", "0", "1"],
+        ["8477.56", "1", "0", "1"],
+        ["8505.84", "8", "0", "1"],
+        ["8506.37", "85", "0", "1"],
+        ["8506.49", "2", "0", "1"],
+        ["8506.96", "100", "0", "2"]
+      ],
+      "bids": [
+        ["8476.97", "256", "0", "12"],
+        ["8475.55", "101", "0", "1"],
+        ["8475.54", "100", "0", "1"],
+        ["8475.3", "1", "0", "1"],
+        ["8447.32", "6", "0", "1"],
+        ["8447.02", "246", "0", "1"],
+        ["8446.83", "24", "0", "1"],
+        ["8446", "95", "0", "3"]
+      ],
+      "ts": "1597026383085",
+      "checksum": -855196043
+    }
    */
     protected _constructLevel2Snapshot(datum, market) {
-        const asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[2]));
-        const bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[2]));
-        const ts = moment.utc(datum.timestamp).valueOf();
+        const asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[3]));
+        const bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[3]));
+        const ts = moment.unix(Math.ceil(datum.ts/1000)).utc().valueOf();
         const checksum = datum.checksum;
         return new Level2Snapshot({
             exchange: this.name,
@@ -590,17 +693,36 @@ export class OkexClient extends BasicClient {
     /**
    * Constructs an update message from the datum in the update
    * stream. Datum is in the format:
-    { instrument_id: 'ETH-BTC',
-      asks: [ ['0.02192', '1.204054', '3' ] ],
-      bids: [ ['0.02191', '15.117671', '3' ] ],
-      timestamp: '2019-07-15T17:18:32.289Z',
-      checksum: 680530848 }
+    {
+      "asks": [
+        ["8476.98", "415", "0", "13"],
+        ["8477", "7", "0", "2"],
+        ["8477.34", "85", "0", "1"],
+        ["8477.56", "1", "0", "1"],
+        ["8505.84", "8", "0", "1"],
+        ["8506.37", "85", "0", "1"],
+        ["8506.49", "2", "0", "1"],
+        ["8506.96", "100", "0", "2"]
+      ],
+      "bids": [
+        ["8476.97", "256", "0", "12"],
+        ["8475.55", "101", "0", "1"],
+        ["8475.54", "100", "0", "1"],
+        ["8475.3", "1", "0", "1"],
+        ["8447.32", "6", "0", "1"],
+        ["8447.02", "246", "0", "1"],
+        ["8446.83", "24", "0", "1"],
+        ["8446", "95", "0", "3"]
+      ],
+      "ts": "1597026383085",
+      "checksum": -855196043
+    }
    */
     // eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
     _constructLevel2Update(datum, market) {
         const asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[3]));
         const bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[3]));
-        const ts = moment.utc(datum.timestamp).valueOf();
+        const ts = moment.unix(Math.ceil(datum.ts/1000)).utc().valueOf();
         const checksum = datum.checksum;
         return new Level2Update({
             exchange: this.name,
