@@ -79,7 +79,9 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Futures",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okx.com/api/v5/public/instruments?instType=FUTURES");
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=FUTURES",
+        );
         return results.data
             .filter(p => p.settleCcy === "BTC")
             .map(p => ({
@@ -97,7 +99,9 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Swap",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okx.com/api/v5/public/instruments?instType=SWAP");
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=SWAP",
+        );
         return results.data
             .filter(p => ["BTC", "ETH", "LTC"].includes(p.settleCcy))
             .map(p => ({
@@ -115,7 +119,9 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Options",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okx.com/api/v5/public/instruments?instType=OPTION&uly=BTC-USD");
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=OPTION&uly=BTC-USD",
+        );
         return results.data
             .map(p => ({
                 id: p.instId,

@@ -94,7 +94,7 @@ export class OkexClient extends BasicClient {
      */
     protected _marketArg(method: string, market: Market) {
         const type: string = (market.type || "SPOT").toUpperCase();
-        return {"channel":method, "instId":market.id, "instType": type };
+        return { channel: method, instId: market.id, instType: type };
     }
 
     /**
@@ -230,7 +230,7 @@ export class OkexClient extends BasicClient {
 
     protected _onMessage(json: string) {
         // ignore pongs
-        if(json==="pong"){
+        if (json === "pong") {
             return;
         }
 
@@ -542,22 +542,14 @@ export class OkexClient extends BasicClient {
     }
    */
     protected _constructTicker(data, market) {
-        const {
-            last,
-            bidPx,
-            bidSz,
-            askPx,
-            askSz,
-            open24h,
-            high24h,
-            low24h,
-            vol24h,
-            ts,
-        } = data;
+        const { last, bidPx, bidSz, askPx, askSz, open24h, high24h, low24h, vol24h, ts } = data;
 
         const change = parseFloat(last) - parseFloat(open24h);
         const changePercent = change / parseFloat(open24h);
-        const timestamp = moment.unix(Math.ceil(ts/1000)).utc().valueOf();
+        const timestamp = moment
+            .unix(Math.ceil(ts / 1000))
+            .utc()
+            .valueOf();
         return new Ticker({
             exchange: this.name,
             base: market.base,
@@ -590,7 +582,10 @@ export class OkexClient extends BasicClient {
     */
     protected _constructTrade(datum, market) {
         const { px, side, sz, ts, tradeId } = datum;
-        const unix = moment.unix(Math.ceil(ts/1000)).utc().valueOf();
+        const unix = moment
+            .unix(Math.ceil(ts / 1000))
+            .utc()
+            .valueOf();
 
         return new Trade({
             exchange: this.name,
@@ -618,8 +613,11 @@ export class OkexClient extends BasicClient {
    * @param {*} datum
    */
     protected _constructCandle(datum) {
-        const [datetime, open, high, low, close, volume,] = datum;
-        const ts = moment.unix(Math.ceil(datetime/1000)).utc().valueOf();
+        const [datetime, open, high, low, close, volume] = datum;
+        const ts = moment
+            .unix(Math.ceil(datetime / 1000))
+            .utc()
+            .valueOf();
         return new Candle(ts, open, high, low, close, volume);
     }
 
@@ -677,7 +675,10 @@ export class OkexClient extends BasicClient {
     protected _constructLevel2Snapshot(datum, market) {
         const asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[3]));
         const bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[3]));
-        const ts = moment.unix(Math.ceil(datum.ts/1000)).utc().valueOf();
+        const ts = moment
+            .unix(Math.ceil(datum.ts / 1000))
+            .utc()
+            .valueOf();
         const checksum = datum.checksum;
         return new Level2Snapshot({
             exchange: this.name,
@@ -722,7 +723,10 @@ export class OkexClient extends BasicClient {
     _constructLevel2Update(datum, market) {
         const asks = datum.asks.map(p => new Level2Point(p[0], p[1], p[3]));
         const bids = datum.bids.map(p => new Level2Point(p[0], p[1], p[3]));
-        const ts = moment.unix(Math.ceil(datum.ts/1000)).utc().valueOf();
+        const ts = moment
+            .unix(Math.ceil(datum.ts / 1000))
+            .utc()
+            .valueOf();
         const checksum = datum.checksum;
         return new Level2Update({
             exchange: this.name,
