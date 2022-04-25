@@ -79,14 +79,16 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Futures",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okex.com/api/futures/v3/instruments");
-        return results
-            .filter(p => p.base_currency === "BTC")
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=FUTURES",
+        );
+        return results.data
+            .filter(p => p.settleCcy === "BTC")
             .map(p => ({
-                id: p.instrument_id,
-                base: p.base_currency,
-                quote: p.quote_currency,
-                type: "futures",
+                id: p.instId,
+                base: p.settleCcy,
+                quote: p.ctValCcy,
+                type: "FUTURES",
             }));
     },
     ...assertions,
@@ -97,14 +99,16 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Swap",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okex.com/api/swap/v3/instruments");
-        return results
-            .filter(p => ["BTC", "ETH", "LTC"].includes(p.base_currency))
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=SWAP",
+        );
+        return results.data
+            .filter(p => ["BTC", "ETH", "LTC"].includes(p.settleCcy))
             .map(p => ({
-                id: p.instrument_id,
-                base: p.base_currency,
-                quote: p.quote_currency,
-                type: "swap",
+                id: p.instId,
+                base: p.settleCcy,
+                quote: p.ctValCcy,
+                type: "SWAP",
             }));
     },
     ...assertions,
@@ -115,13 +119,15 @@ testClient({
     exchangeName: "OKEx",
     clientName: "OKExClient - Options",
     fetchMarkets: async () => {
-        const results: any = await get("https://www.okex.com/api/option/v3/instruments/BTC-USD");
-        return results
+        const results: any = await get(
+            "https://www.okx.com/api/v5/public/instruments?instType=OPTION&uly=BTC-USD",
+        );
+        return results.data
             .map(p => ({
-                id: p.instrument_id,
-                base: p.base_currency,
-                quote: p.quote_currency,
-                type: "option",
+                id: p.instId,
+                base: p.settleCcy,
+                quote: p.ctValCcy,
+                type: "OPTION",
             }))
             .filter(p => p.id.endsWith("-C"))
             .slice(0, 20);
