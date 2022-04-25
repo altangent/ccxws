@@ -163,8 +163,8 @@ export class BithumbClient extends BasicClient {
     }
    */
     protected _constructTicker(data: any, market: Market) {
-        const timestamp = moment
-            .parseZone(data.date + data.time + "+09:00", "YYYYMMDDhhmmssZ")
+        const timestamp = moment(data.date + data.time + "+09:00", "YYYYMMDDhhmmssZ")
+            .utc()
             .valueOf();
         return new Ticker({
             exchange: this.name,
@@ -212,8 +212,8 @@ export class BithumbClient extends BasicClient {
   }
    */
     protected _constructTrade(datum: any, market: Market) {
-        const unix = moment
-            .parseZone(datum.contDtm + "+09:00", "YYYY-MM-DD hh:mm:ss.SSSSSS")
+        const unix = moment(datum.contDtm + "+09:00", "YYYY-MM-DD hh:mm:ss.SSSSSSZ")
+            .utc()
             .valueOf();
         const side = datum.buySellGb == 1 ? "buy" : "sell";
         const price = datum.contPrice;
