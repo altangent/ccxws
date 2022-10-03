@@ -300,14 +300,8 @@ export class BinanceBase extends BasicClient {
 
     protected _onMessage(raw: string) {
         const timestamp = Date.now();
-
-        console.time("parse");
-
         const msg = JSON.parse(raw);
 
-        console.timeEnd("parse");
-
-        msg.data.timestamp = timestamp;
 
         // subscribe/unsubscribe responses
         if (msg.result === null && msg.id) {
@@ -328,6 +322,8 @@ export class BinanceBase extends BasicClient {
         if (!msg.stream) {
             return;
         }
+
+        msg.data.timestamp = timestamp;
 
         // ticker
         if (msg.stream === "!ticker@arr") {
