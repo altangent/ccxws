@@ -299,7 +299,15 @@ export class BinanceBase extends BasicClient {
     /////////////////////////////////////////////
 
     protected _onMessage(raw: string) {
+        const timestamp = Date.now();
+
+        console.time("parse");
+
         const msg = JSON.parse(raw);
+
+        console.timeEnd("parse");
+
+        msg.data.timestamp = timestamp;
 
         // subscribe/unsubscribe responses
         if (msg.result === null && msg.id) {
@@ -340,7 +348,7 @@ export class BinanceBase extends BasicClient {
             const market = this._bookTickerSubs.get(remote_id);
             if (!market) return;
 
-            const bookTicker = this._constructBookTicker(msg.data, market);
+            const bookTicker = this._constructBookTicker(msg, market);
             this.emit("bookTicker", bookTicker, market);
             return;
         }
@@ -428,8 +436,8 @@ export class BinanceBase extends BasicClient {
         });
     }
 
-    protected _constructBookTicker(msg, market) {
-        let { a: ask, A: askVolume, b: bid, B: bidVolume, timestamp } = msg;
+    protected _constructBookTicker({ data }, market: Market) {
+        const { a: ask, A: askVolume, b: bid, B: bidVolume, timestamp } = data;
         return new BookTicker({
             exchange: this.name,
             base: market.base,
