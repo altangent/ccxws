@@ -99,7 +99,7 @@ export class SmartWss extends EventEmitter {
               this._closeCallback();
             });
             this._wss.on("error", err => this.emit("error", err));
-            this._wss.on("message", msg => this.emit("message", msg));
+            this._wss.on("message", msg => this.emit("message", { ...msg,   timestamp: Date.now() }));
         });
     }
 

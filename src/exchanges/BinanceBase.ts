@@ -429,7 +429,7 @@ export class BinanceBase extends BasicClient {
     }
 
     protected _constructBookTicker(msg, market) {
-        let { a: ask, A: askVolume, b: bid, B: bidVolume } = msg;
+        let { a: ask, A: askVolume, b: bid, B: bidVolume, timestamp } = msg;
         return new BookTicker({
             exchange: this.name,
             base: market.base,
@@ -438,6 +438,7 @@ export class BinanceBase extends BasicClient {
             bidVolume,
             ask,
             askVolume,
+            timestamp
         });
     }
 
