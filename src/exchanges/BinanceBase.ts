@@ -299,7 +299,7 @@ export class BinanceBase extends BasicClient {
     /////////////////////////////////////////////
 
     protected _onMessage(raw: string) {
-        const timestamp = Date.now();
+        const hrtime = process.hrtime();
         const msg = JSON.parse(raw);
 
 
@@ -323,7 +323,7 @@ export class BinanceBase extends BasicClient {
             return;
         }
 
-        msg.data.timestamp = timestamp;
+        msg.data.hrtime = hrtime;
 
         // ticker
         if (msg.stream === "!ticker@arr") {
