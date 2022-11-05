@@ -18,7 +18,7 @@ export class BookTicker {
     public bidVolume: string;
     public ask: string;
     public askVolume: string;
-    public hrtime: number[];
+    public hrtime: [number, number];
 
     constructor({ exchange, base, quote, bid, bidVolume, ask, askVolume, hrtime }) {
         this.exchange = exchange;
