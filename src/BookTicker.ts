@@ -18,9 +18,9 @@ export class BookTicker {
     public bidVolume: string;
     public ask: string;
     public askVolume: string;
-    public timestamp: number;
+    public hrtime: number[];
 
-    constructor({ exchange, base, quote, bid, bidVolume, ask, askVolume, timestamp }) {
+    constructor({ exchange, base, quote, bid, bidVolume, ask, askVolume, hrtime }) {
         this.exchange = exchange;
         this.base = base;
         this.quote = quote;
@@ -28,7 +28,7 @@ export class BookTicker {
         this.bidVolume = bidVolume;
         this.ask = ask;
         this.askVolume = askVolume;
-        this.timestamp = timestamp;
+        this.hrtime = hrtime;
     }
 
     /**
