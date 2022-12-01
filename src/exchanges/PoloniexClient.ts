@@ -107,6 +107,8 @@ export class PoloniexClient extends BasicClient {
         this._sendUnsubscribe(remote_id);
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubCandles = NotImplementedFn;
     protected _sendUnsubCandles = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;

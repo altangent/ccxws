@@ -284,6 +284,8 @@ export class KrakenClient extends BasicClient {
         this._processsMessage(msgs);
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;
     protected _sendUnsubLevel2Snapshots = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;

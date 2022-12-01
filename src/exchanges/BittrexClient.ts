@@ -41,6 +41,8 @@ export class BittrexClient extends BasicClient {
     protected _messageId: number;
     protected _requestLevel2Snapshot: CancelableFn;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;
     protected _sendUnsubLevel2Snapshots = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;

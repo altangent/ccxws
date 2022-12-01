@@ -8,9 +8,11 @@ import { BasicClient } from "../src/BasicClient";
 class TestClient extends BasicClient {
     protected _onMessage = sinon.stub();
     protected _sendSubTicker = sinon.stub();
+    protected _sendSubBookTicker = sinon.stub();
     protected _sendSubCandles = sinon.stub();
     protected _sendUnsubCandles = sinon.stub();
     protected _sendUnsubTicker = sinon.stub();
+    protected _sendUnsubBookTicker = sinon.stub();
     protected _sendSubTrades = sinon.stub();
     protected _sendUnsubTrades = sinon.stub();
     protected _sendSubLevel2Snapshots = sinon.stub();
@@ -26,6 +28,7 @@ class TestClient extends BasicClient {
 function buildInstance() {
     const instance = new TestClient("wss://localhost/test", "test", mockSmartWss);
     instance.hasTickers = true;
+    instance.hasBookTickers = true;
     instance.hasTrades = true;
     instance.hasCandles = true;
     instance.hasLevel2Snapshots = true;
@@ -386,6 +389,52 @@ describe("BasicClient", () => {
                 expect(instance._sendSubTicker.callCount).to.equal(2);
                 expect(instance._sendSubTicker.args[1][0]).to.equal("LTCBTC");
                 expect(instance._sendSubTicker.args[1][1]).to.be.an("object");
+            });
+        });
+
+        // describe("on unsubscribe", () => {
+        //   it("should send unsubscribe to socket", () => {
+        //     instance.unsubscribeTicker({ id: "LTCBTC" });
+        //     expect(instance._sendUnsubTicker.callCount).to.equal(1);
+        //     expect(instance._sendUnsubTicker.args[0][0]).to.equal("LTCBTC");
+        //   });
+        // });
+    });
+
+    describe("bookTicker", () => {
+        let instance;
+
+        before(() => {
+            instance = buildInstance();
+            instance._connect();
+        });
+
+        describe("on first subscribe", () => {
+            it("should open a connection", () => {
+                instance.subscribeBookTicker({ id: "BTCUSD" });
+                expect(instance._wss).to.not.be.undefined;
+                expect(instance._wss.connect.callCount).to.equal(1);
+            });
+            it("should send subscribe to the socket", () => {
+                instance._wss.mockEmit("connected");
+                expect(instance._sendSubBookTicker.callCount).to.equal(1);
+                expect(instance._sendSubBookTicker.args[0][0]).to.equal("BTCUSD");
+                expect(instance._sendSubBookTicker.args[0][1]).to.be.an("object");
+            });
+            it("should start the reconnectChecker", () => {
+                expect(instance._watcher.start.callCount).to.equal(1);
+            });
+        });
+
+        describe("on subsequent subscribes", () => {
+            it("should not connect again", () => {
+                instance.subscribeBookTicker({ id: "LTCBTC" });
+                expect(instance._wss.connect.callCount).to.equal(1);
+            });
+            it("should send subscribe to the socket", () => {
+                expect(instance._sendSubBookTicker.callCount).to.equal(2);
+                expect(instance._sendSubBookTicker.args[1][0]).to.equal("LTCBTC");
+                expect(instance._sendSubBookTicker.args[1][1]).to.be.an("object");
             });
         });
 

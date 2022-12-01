@@ -28,18 +28,19 @@
  */
 
 import { BasicClient } from "../BasicClient";
+import { BookTicker } from "../BookTicker";
 import { Candle } from "../Candle";
 import { CandlePeriod } from "../CandlePeriod";
 import { batch } from "../flowcontrol/Batch";
 import { CancelableFn } from "../flowcontrol/Fn";
 import { throttle } from "../flowcontrol/Throttle";
+import * as https from "../Https";
 import { Level2Point } from "../Level2Point";
 import { Level2Snapshot } from "../Level2Snapshots";
+import { Level2Update } from "../Level2Update";
+import { Market } from "../Market";
 import { Ticker } from "../Ticker";
 import { Trade } from "../Trade";
-import { Market } from "../Market";
-import { Level2Update } from "../Level2Update";
-import * as https from "../Https";
 
 export type BinanceClientOptions = {
     name?: string;
@@ -55,6 +56,7 @@ export type BinanceClientOptions = {
     l2snapshotSpeed?: string;
     testNet?: boolean;
     batchTickers?: boolean;
+    batchBookTickers?: boolean;
 };
 
 export class BinanceBase extends BasicClient {
@@ -64,10 +66,12 @@ export class BinanceBase extends BasicClient {
     public requestSnapshot: boolean;
     public candlePeriod: CandlePeriod;
     public batchTickers: boolean;
+    public batchBookTickers: boolean;
 
     protected _messageId: number;
     protected _restL2SnapshotPath: string;
     protected _tickersActive: boolean;
+    protected _bookTickersActive: boolean;
     protected _batchSub: CancelableFn;
     protected _batchUnsub: CancelableFn;
     protected _sendMessage: CancelableFn;
@@ -86,6 +90,7 @@ export class BinanceBase extends BasicClient {
         l2updateSpeed = "",
         l2snapshotSpeed = "",
         batchTickers = true,
+        batchBookTickers = false,
     }: BinanceClientOptions = {}) {
         super(wssPath, name, undefined, watcherMs);
 
@@ -96,14 +101,17 @@ export class BinanceBase extends BasicClient {
         this.l2snapshotSpeed = l2snapshotSpeed;
         this.requestSnapshot = requestSnapshot;
         this.hasTickers = true;
+        this.hasBookTickers = true;
         this.hasTrades = true;
         this.hasCandles = true;
         this.hasLevel2Snapshots = true;
         this.hasLevel2Updates = true;
         this.batchTickers = batchTickers;
+        this.batchBookTickers = batchBookTickers;
 
         this._messageId = 0;
         this._tickersActive = false;
+        this._bookTickersActive = false;
         this.candlePeriod = CandlePeriod._1m;
 
         this._batchSub = batch(this.__batchSub.bind(this), socketBatchSize);
@@ -120,6 +128,7 @@ export class BinanceBase extends BasicClient {
 
     protected _onClosing() {
         this._tickersActive = false;
+        this._bookTickersActive = false;
         this._batchSub.cancel();
         this._batchUnsub.cancel();
         this._sendMessage.cancel();
@@ -139,13 +148,7 @@ export class BinanceBase extends BasicClient {
                 }),
             );
         } else {
-            this._wss.send(
-                JSON.stringify({
-                    method: "SUBSCRIBE",
-                    params: [`${remote_id.toLowerCase()}@ticker`],
-                    id: ++this._messageId,
-                }),
-            );
+            this._batchSub(`${remote_id.toLowerCase()}@ticker`);
         }
     }
 
@@ -161,13 +164,39 @@ export class BinanceBase extends BasicClient {
                 }),
             );
         } else {
+            this._batchUnsub(`${remote_id.toLowerCase()}@ticker`);
+        }
+    }
+
+    protected _sendSubBookTicker(remote_id: string) {
+        if (this.batchBookTickers) {
+            if (this._bookTickersActive) return;
+            this._bookTickersActive = true;
             this._wss.send(
                 JSON.stringify({
-                    method: "UNSUBSCRIBE",
-                    params: [`${remote_id.toLowerCase()}@ticker`],
+                    method: "SUBSCRIBE",
+                    params: ["!bookTicker"],
                     id: ++this._messageId,
                 }),
             );
+        } else {
+            this._batchSub(`${remote_id.toLowerCase()}@bookTicker`);
+        }
+    }
+
+    protected _sendUnsubBookTicker(remote_id: string) {
+        if (this.batchBookTickers) {
+            if (this._bookTickerSubs.size > 1) return;
+            this._bookTickersActive = false;
+            this._wss.send(
+                JSON.stringify({
+                    method: "UNSUBSCRIBE",
+                    params: ["!bookTicker"],
+                    id: ++this._messageId,
+                }),
+            );
+        } else {
+            this._batchUnsub(`${remote_id.toLowerCase()}@bookTicker`);
         }
     }
 
@@ -270,7 +299,9 @@ export class BinanceBase extends BasicClient {
     /////////////////////////////////////////////
 
     protected _onMessage(raw: string) {
+        const hrtime = process.hrtime();
         const msg = JSON.parse(raw);
+
 
         // subscribe/unsubscribe responses
         if (msg.result === null && msg.id) {
@@ -292,6 +323,8 @@ export class BinanceBase extends BasicClient {
             return;
         }
 
+        msg.data.hrtime = hrtime;
+
         // ticker
         if (msg.stream === "!ticker@arr") {
             for (const raw of msg.data) {
@@ -302,6 +335,17 @@ export class BinanceBase extends BasicClient {
                 const ticker = this._constructTicker(raw, market);
                 this.emit("ticker", ticker, market);
             }
+            return;
+        }
+
+        // orderbook ticker
+        if (msg.stream.endsWith("@bookTicker") || msg.stream === "!bookTicker") {
+            const remote_id = msg.data.s;
+            const market = this._bookTickerSubs.get(remote_id);
+            if (!market) return;
+
+            const bookTicker = this._constructBookTicker(msg, market);
+            this.emit("bookTicker", bookTicker, market);
             return;
         }
 
@@ -388,6 +432,21 @@ export class BinanceBase extends BasicClient {
         });
     }
 
+    protected _constructBookTicker({ data }, market: Market) {
+        const { u: uId, a: ask, A: askVolume, b: bid, B: bidVolume, hrtime } = data;
+        return new BookTicker({
+            exchange: this.name,
+            base: market.base,
+            quote: market.quote,
+            bid,
+            bidVolume,
+            ask,
+            askVolume,
+            uId,
+            hrtime
+        });
+    }
+
     protected _constructAggTrade({ data }, market: Market) {
         const { a: trade_id, p: price, q: size, T: time, m: buyer } = data;
         const unix = time;
@@ -433,31 +492,31 @@ export class BinanceBase extends BasicClient {
     }
 
     /**
-   * Kline data looks like:
-   { stream: 'btcusdt@kline_1m',
-    data:
-    { e: 'kline',
-      E: 1571068845689,
-      s:  'BTCUSDT',
-      k:
-        { t: 1571068800000,
-          T: 1571068859999,
-          s: 'BTCUSDT',
-          i: '1m',
-          f: 189927800,
-          L: 189928107,
-          o: '8254.05000000',
-          c: '8253.61000000',
-          h: '8256.58000000',
-          l: '8250.93000000',
-          v: '19.10571600',
-          n: 308,
-          x: false,
-          q: '157694.32610840',
-          V: '8.19456200',
-          Q: '67640.56793106',
-          B: '0' } } }
-   */
+    * Kline data looks like:
+    { stream: 'btcusdt@kline_1m',
+     data:
+     { e: 'kline',
+       E: 1571068845689,
+       s:  'BTCUSDT',
+       k:
+         { t: 1571068800000,
+           T: 1571068859999,
+           s: 'BTCUSDT',
+           i: '1m',
+           f: 189927800,
+           L: 189928107,
+           o: '8254.05000000',
+           c: '8253.61000000',
+           h: '8256.58000000',
+           l: '8250.93000000',
+           v: '19.10571600',
+           n: 308,
+           x: false,
+           q: '157694.32610840',
+           V: '8.19456200',
+           Q: '67640.56793106',
+           B: '0' } } }
+    */
     protected _constructCandle({ data }) {
         const k = data.k;
         return new Candle(k.t, k.o, k.h, k.l, k.c, k.v);
@@ -478,26 +537,26 @@ export class BinanceBase extends BasicClient {
     }
 
     /**
-   {
-      "e": "depthUpdate", // Event type
-      "E": 123456789,     // Event time
-      "s": "BNBBTC",      // Symbol
-      "U": 157,           // First update ID in event
-      "u": 160,           // Final update ID in event
-      "b": [              // Bids to be updated
-        [
-          "0.0024",       // Price level to be updated
-          "10"            // Quantity
-        ]
-      ],
-      "a": [              // Asks to be updated
-        [
-          "0.0026",       // Price level to be updated
-          "100"           // Quantity
-        ]
-      ]
-    }
-   */
+    {
+       "e": "depthUpdate", // Event type
+       "E": 123456789,     // Event time
+       "s": "BNBBTC",      // Symbol
+       "U": 157,           // First update ID in event
+       "u": 160,           // Final update ID in event
+       "b": [              // Bids to be updated
+         [
+           "0.0024",       // Price level to be updated
+           "10"            // Quantity
+         ]
+       ],
+       "a": [              // Asks to be updated
+         [
+           "0.0026",       // Price level to be updated
+           "100"           // Quantity
+         ]
+       ]
+     }
+    */
     protected _constructLevel2Update(msg, market) {
         const eventMs = msg.data.E;
         const sequenceId = msg.data.U;

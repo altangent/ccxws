@@ -60,6 +60,7 @@ typings/
 test.ts
 test*.ts
 
+.history
 .vscode
 **/.DS_Store
 

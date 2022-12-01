@@ -3,6 +3,7 @@ import { Market } from "./Market";
 
 export interface IClient extends EventEmitter {
     hasTickers: boolean;
+    hasBookTickers: boolean;
     hasTrades: boolean;
     hasCandles: boolean;
     hasLevel2Snapshots: boolean;
@@ -15,6 +16,8 @@ export interface IClient extends EventEmitter {
 
     subscribeTicker(market: Market): void;
     unsubscribeTicker(market: Market): Promise<void>;
+    subscribeBookTicker(market: Market): void;
+    unsubscribeBookTicker(market: Market): Promise<void>;
     subscribeCandles(market: Market): void;
     unsubscribeCandles(market: Market): Promise<void>;
     subscribeTrades(market: Market): void;
