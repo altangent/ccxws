@@ -18,9 +18,10 @@ export class BookTicker {
     public bidVolume: string;
     public ask: string;
     public askVolume: string;
+    public uId: string;
     public hrtime: [number, number];
 
-    constructor({ exchange, base, quote, bid, bidVolume, ask, askVolume, hrtime }) {
+    constructor({ exchange, base, quote, bid, bidVolume, ask, askVolume, uId, hrtime }: {exchange: string, base: string, quote: string, bid: string, bidVolume: string, ask: string, askVolume: string, uId: string, hrtime: [number, number]}) {
         this.exchange = exchange;
         this.base = base;
         this.quote = quote;
@@ -29,6 +30,7 @@ export class BookTicker {
         this.ask = ask;
         this.askVolume = askVolume;
         this.hrtime = hrtime;
+        this.uId = uId;
     }
 
     /**
