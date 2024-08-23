@@ -69,6 +69,8 @@ export class SmartWss extends EventEmitter {
      * Attempts a connection and will either fail or timeout otherwise.
      */
     private _attemptConnect(): Promise<void> {
+        let pongTimer: NodeJS.Timer;
+
         return new Promise(resolve => {
             const wssPath = this.wssPath;
             this.emit("connecting");
@@ -80,9 +82,22 @@ export class SmartWss extends EventEmitter {
                 this._connected = true;
                 this.emit("open"); // deprecated
                 this.emit("connected");
+
+                pongTimer = setInterval(() => {
+                  this._wss.pong();
+                }, 60000);
+
                 resolve();
             });
-            this._wss.on("close", () => this._closeCallback());
+
+            this._wss.on("ping", () => {
+              this._wss.pong();
+            });
+            this._wss.on("close", () => {
+              clearInterval(pongTimer);
+
+              this._closeCallback();
+            });
             this._wss.on("error", err => this.emit("error", err));
             this._wss.on("message", msg => this.emit("message", msg));
         });

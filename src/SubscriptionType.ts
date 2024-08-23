@@ -6,4 +6,5 @@ export enum SubscriptionType {
     level3snapshot = 5,
     level3update = 6,
     candle = 7,
+    bookTicker = 8,
 }

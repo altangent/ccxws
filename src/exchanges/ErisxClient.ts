@@ -152,6 +152,8 @@ export class ErisXClient extends BasicClient {
         );
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubTicker = NotImplementedFn;
     protected _sendSubCandles = NotImplementedFn;
     protected _sendUnsubCandles = NotImplementedFn;

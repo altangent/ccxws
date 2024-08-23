@@ -23,6 +23,8 @@ export class BitflyerClient extends BasicClient {
 
     protected _restSem: semaphore.Semaphore;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubCandles = NotImplementedFn;
     protected _sendUnsubCandles = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;

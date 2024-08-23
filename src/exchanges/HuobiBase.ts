@@ -124,6 +124,8 @@ export class HuobiBase extends BasicClient {
         );
     }
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;
     protected _sendUnsubLevel3Snapshots = NotImplementedFn;
     protected _sendSubLevel3Updates = NotImplementedFn;

@@ -21,6 +21,8 @@ export class BitmexClient extends BasicClient {
     protected l2PriceMap: Map<string, string>;
     protected tickerMap: Map<string, Ticker>;
 
+    protected _sendSubBookTicker = NotImplementedFn;
+    protected _sendUnsubBookTicker = NotImplementedFn;
     protected _sendSubLevel2Snapshots = NotImplementedFn;
     protected _sendUnsubLevel2Snapshots = NotImplementedFn;
     protected _sendSubLevel3Snapshots = NotImplementedFn;

@@ -2,13 +2,17 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "CommonJS",
-    "declaration": true,
+    "declaration": false,
     "esModuleInterop": true,
     "removeComments": false,
     "preserveConstEnums": true,
     "sourceMap": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "skipLibCheck": true
   },
-  "include": [ "src/**/*", "__tests__" ],
+  "include": [
+    "src/**/*",
+    "__tests__"
+  ],
   "exclude": []
 }

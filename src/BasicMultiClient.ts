@@ -16,6 +16,7 @@ import { NotImplementedFn } from "./NotImplementedFn";
 export abstract class BasicMultiClient extends EventEmitter {
     public name: string;
     public hasTickers: boolean;
+    public hasBookTickers: boolean;
     public hasTrades: boolean;
     public hasCandles: boolean;
     public hasLevel2Snapshots: boolean;
@@ -33,6 +34,7 @@ export abstract class BasicMultiClient extends EventEmitter {
         this._clients = new Map();
 
         this.hasTickers = false;
+        this.hasBookTickers = false;
         this.hasTrades = false;
         this.hasCandles = false;
         this.hasLevel2Snapshots = false;
@@ -71,6 +73,19 @@ export abstract class BasicMultiClient extends EventEmitter {
         if (this._clients.has(market.id)) {
             const client = await this._clients.get(market.id);
             client.unsubscribeTicker(market);
+        }
+    }
+
+    public subscribeBookTicker(market: Market) {
+        if (!this.hasBookTickers) return;
+        this._subscribe(market, this._clients, SubscriptionType.bookTicker);
+    }
+
+    public async unsubscribeBookTicker(market: Market) {
+        if (!this.hasBookTickers) return;
+        if (this._clients.has(market.id)) {
+            const client = await this._clients.get(market.id);
+            client.unsubscribeBookTicker(market);
         }
     }
 
@@ -180,6 +195,15 @@ export abstract class BasicMultiClient extends EventEmitter {
                 if (subscribed) {
                     client.on("ticker", (ticker, market) => {
                         this.emit("ticker", ticker, market);
+                    });
+                }
+            }
+
+            if (subscriptionType === SubscriptionType.bookTicker) {
+                const subscribed = client.subscribeBookTicker(market);
+                if (subscribed) {
+                    client.on("bookTicker", (ticker, market) => {
+                        this.emit("bookTicker", ticker, market);
                     });
                 }
             }

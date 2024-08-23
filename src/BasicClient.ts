@@ -19,6 +19,7 @@ export type SendFn = (remoteId: string, market: Market) => void;
  */
 export abstract class BasicClient extends EventEmitter implements IClient {
     public hasTickers: boolean;
+    public hasBookTickers: boolean;
     public hasTrades: boolean;
     public hasCandles: boolean;
     public hasLevel2Snapshots: boolean;
@@ -28,6 +29,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
 
     protected _wssFactory: WssFactoryFn;
     protected _tickerSubs: MarketMap;
+    protected _bookTickerSubs: MarketMap;
     protected _tradeSubs: MarketMap;
     protected _candleSubs: MarketMap;
     protected _level2SnapshotSubs: MarketMap;
@@ -45,6 +47,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
     ) {
         super();
         this._tickerSubs = new Map();
+        this._bookTickerSubs = new Map();
         this._tradeSubs = new Map();
         this._candleSubs = new Map();
         this._level2SnapshotSubs = new Map();
@@ -55,6 +58,7 @@ export abstract class BasicClient extends EventEmitter implements IClient {
         this._watcher = new Watcher(this, watcherMs);
 
         this.hasTickers = false;
+        this.hasBookTickers = false;
         this.hasTrades = true;
         this.hasCandles = false;
         this.hasLevel2Snapshots = false;
@@ -95,6 +99,16 @@ export abstract class BasicClient extends EventEmitter implements IClient {
     public unsubscribeTicker(market: Market): Promise<void> {
         if (!this.hasTickers) return;
         this._unsubscribe(market, this._tickerSubs, this._sendUnsubTicker.bind(this));
+    }
+
+    public subscribeBookTicker(market: Market) {
+        if (!this.hasBookTickers) return;
+        return this._subscribe(market, this._bookTickerSubs, this._sendSubBookTicker.bind(this));
+    }
+
+    public unsubscribeBookTicker(market: Market): Promise<void> {
+        if (!this.hasBookTickers) return;
+        this._unsubscribe(market, this._bookTickerSubs, this._sendUnsubBookTicker.bind(this));
     }
 
     public subscribeCandles(market: Market) {
@@ -277,6 +291,9 @@ export abstract class BasicClient extends EventEmitter implements IClient {
         for (const [marketSymbol, market] of this._tickerSubs) {
             this._sendSubTicker(marketSymbol, market);
         }
+        for (const [marketSymbol, market] of this._bookTickerSubs) {
+            this._sendSubBookTicker(marketSymbol, market);
+        }
         for (const [marketSymbol, market] of this._candleSubs) {
             this._sendSubCandles(marketSymbol, market);
         }
@@ -339,11 +356,15 @@ export abstract class BasicClient extends EventEmitter implements IClient {
 
     protected abstract _sendSubTicker(remoteId: string, market: Market);
 
+    protected abstract _sendSubBookTicker(remoteId: string, market: Market);
+
     protected abstract _sendSubCandles(remoteId: string, market: Market);
 
     protected abstract _sendUnsubCandles(remoteId: string, market: Market);
 
     protected abstract _sendUnsubTicker(remoteId: string, market: Market);
+
+    protected abstract _sendUnsubBookTicker(remoteId: string, market: Market);
 
     protected abstract _sendSubTrades(remoteId: string, market: Market);
 

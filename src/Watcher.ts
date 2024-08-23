@@ -17,6 +17,7 @@ export class Watcher {
         this._lastMessage = undefined;
 
         client.on("ticker", this.markAlive.bind(this));
+        client.on("bookTicker", this.markAlive.bind(this));
         client.on("candle", this.markAlive.bind(this));
         client.on("trade", this.markAlive.bind(this));
         client.on("l2snapshot", this.markAlive.bind(this));
